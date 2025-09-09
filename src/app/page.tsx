@@ -143,6 +143,26 @@ export default function Home() {
           </p>
         </div>
       </section>
+      {/* New Section: Don&apos;t Miss Any Match */}
+      <section
+        className="w-full flex justify-center items-center py-16 px-4"
+        style={{
+          background: "linear-gradient(135deg, #414345 0%, #232526 100%)",
+        }}
+      >
+        <div className="max-w-2xl w-full rounded-2xl p-8 sm:p-12 text-white text-center">
+          <h2 className={`text-3xl sm:text-5xl font-bold mb-6 ${robotoSlab.className}`}>
+            Don&apos;t Miss Any Match
+          </h2>
+          <p className={`text-base sm:text-lg ${montserrat.className}`}>
+            Watch every great goal, epic save, and legendary moment right here.
+            <br /><br />
+            FC Mierda plays a strong match and extends it&apos;s lead position. Championship becomes closer to reality.
+            <br /><br />
+            Every player brings their own style, skills, and stories—on and off the pitch. Together, we are FC Mierda!
+          </p>
+        </div>
+      </section>
     </div>
   );
 }

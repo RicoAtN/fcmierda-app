@@ -67,7 +67,7 @@ export default function KanaalPlusPage() {
             className={`text-lg sm:text-xl text-white font-medium mb-8 drop-shadow-lg ${montserrat.className}`}
             style={{ maxWidth: 600 }}
           >
-            On this page you can watch back all of our game summaries of FC Mierda. Don&apos;t miss any match—watch every great goal, epic save, and legendary moment right here. Great goals, great playbacks, and all the action!
+            On this page you can watch back all of our game summaries of FC Mierda. Don&apos;t miss any match. Watch every great goal, epic save, and legendary moment right here.
           </p>
         </div>
       </section>
@@ -124,7 +124,7 @@ export default function KanaalPlusPage() {
             <div><span className="font-semibold text-green-300">Competition:</span> Power League Summer division 2</div>
           </div>
           <p className={`text-base sm:text-lg ${montserrat.className}`}>
-            FC Mierda plays a strong match and extends its lead position. A huge step towards the championship.
+            FC Mierda plays a strong match and extends it&apos;s lead position. Championship becomes closer to reality.
           </p>
         </div>
         {/* 3 */}
