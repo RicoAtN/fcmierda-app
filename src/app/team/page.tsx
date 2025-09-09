@@ -126,7 +126,7 @@ export default function TeamPage() {
           </div>
           <p className="text-gray-300 text-center mt-8">
             Don&apos;t miss any match—watch every great goal, epic save, and legendary moment right here.
-            FC Mierda plays a strong match and extends it&apos;s lead position. Championship becomes closer to reality.
+            FC Mierda plays a strong match and extends its lead position. Championship becomes closer to reality.
             Every player brings their own style, skills, and stories—on and off the pitch. Together, we are FC Mierda!
           </p>
         </div>

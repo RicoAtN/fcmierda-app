@@ -104,7 +104,7 @@ export default function Home() {
           <p className={`text-base sm:text-lg ${montserrat.className}`}>
             A few lads in Rotterdam met, looked at each other, and thought... “Why not play football… poorly, but with style?” And just like that, FC Mierda was born in 2017.
             <br /><br />
-            We play 7-a-side on a half pitch because a full field for us is just asking for trouble. On the pitch, we’re smart and efficient; off the pitch, we’re absolute legends in the third half.
+            We play 7-a-side on a half pitch because a full field for us is just asking for trouble. On the pitch, we&rsquo;re smart and efficient; off the pitch, we&rsquo;re absolute legends in the third half.
             <br /><br />
             On this app you can follow us for fixtures, results, and recaps.
             Witness FC Mierda proving that legends never really fade.
@@ -157,7 +157,7 @@ export default function Home() {
           <p className={`text-base sm:text-lg ${montserrat.className}`}>
             Watch every great goal, epic save, and legendary moment right here.
             <br /><br />
-            FC Mierda plays a strong match and extends it&apos;s lead position. Championship becomes closer to reality.
+            FC Mierda plays a strong match and extends its lead position. Championship becomes closer to reality.
             <br /><br />
             Every player brings their own style, skills, and stories—on and off the pitch. Together, we are FC Mierda!
           </p>

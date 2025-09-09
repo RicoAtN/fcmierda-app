@@ -97,13 +97,13 @@ export default function KanaalPlusPage() {
             <div><span className="font-semibold text-green-300">Competition:</span> Power League Summer division 2</div>
           </div>
           <p className={`text-base sm:text-lg ${montserrat.className}`}>
-            Watch our epic championship match with all the goals, saves, and celebrations that made history. FC Mierda doesn't catch fever, but they catch trophies.
+            Watch our epic championship match with all the goals, saves, and celebrations that made history. FC Mierda doesn&apos;t catch fever, but they catch trophies.
           </p>
         </div>
         {/* 2 */}
         <div className="max-w-2xl w-full rounded-2xl p-6 sm:p-10 text-white text-center bg-gray-900 shadow-xl mx-auto">
           <h2 className={`text-xl sm:text-2xl font-bold mb-4 ${robotoSlab.className}`}>
-            FC Mierda doesn't disappoint and extends its lead
+            FC Mierda doesn&apos;t disappoint and extends its lead
           </h2>
           <div className="aspect-w-16 aspect-h-9 w-full max-w-xl mx-auto mb-4">
             <iframe
@@ -124,7 +124,7 @@ export default function KanaalPlusPage() {
             <div><span className="font-semibold text-green-300">Competition:</span> Power League Summer division 2</div>
           </div>
           <p className={`text-base sm:text-lg ${montserrat.className}`}>
-            FC Mierda plays a strong match and extends it&apos;s lead position. Championship becomes closer to reality.
+            FC Mierda plays a strong match and extends its lead position. Championship becomes closer to reality.
           </p>
         </div>
         {/* 3 */}
