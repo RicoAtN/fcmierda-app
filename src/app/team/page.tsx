@@ -1,6 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
 import { Roboto_Slab, Montserrat } from "next/font/google";
+import Menu from "@/components/Menu"; // Import the reusable Menu component
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -9,37 +9,7 @@ export default function TeamPage() {
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
       {/* Navigation Bar */}
-      <nav className="absolute top-0 left-0 w-full flex justify-center py-4 sm:py-6 z-20">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center">
-          <Link href="/">
-            <Image
-              src="/FCMierda-team-logo.png"
-              alt="FC Mierda Logo"
-              width={40}
-              height={40}
-              className="rounded-full shadow-md"
-              style={{ width: 40, height: 40 }}
-              priority
-            />
-          </Link>
-        </div>
-        <ul className="flex flex-wrap justify-center gap-3 sm:gap-12 bg-white/40 backdrop-blur-md px-2 sm:px-10 py-2 sm:py-4 rounded-2xl max-w-[98vw] shadow-lg">
-          <li>
-            <Link href="/" className="text-gray-900 font-semibold text-xs sm:text-lg hover:text-green-600 transition-colors px-2 sm:px-4">Home</Link>
-          </li>
-          <li>
-            <Link href="/team" className="text-gray-900 font-semibold text-xs sm:text-lg hover:text-green-600 transition-colors px-2 sm:px-4">
-              Team
-            </Link>
-          </li>
-          <li>
-            <Link href="/kanaalplus" className="text-gray-900 font-semibold text-xs sm:text-lg hover:text-green-600 transition-colors px-2 sm:px-4">Kanaal+</Link>
-          </li>
-          <li>
-            <Link href="#contact" className="text-gray-900 font-semibold text-xs sm:text-lg hover:text-green-600 transition-colors px-2 sm:px-4">Contact</Link>
-          </li>
-        </ul>
-      </nav>
+      <Menu />
       {/* Meet the Team Section */}
       <section
         className="w-full flex justify-center items-center py-10 px-4 bg-gray-900"
@@ -89,7 +59,7 @@ export default function TeamPage() {
             <div>
               <h3 className="font-bold text-green-300 mb-2">Goalkeepers</h3>
               <ul className="ml-4 list-disc">
-                <li><span className="font-bold">Alon:</span> Alon d'Or #1</li>
+                <li><span className="font-bold">Alon:</span> Alon d&apos;Or #1</li>
                 <li><span className="font-bold">Victor:</span> turbokwek #12</li>
               </ul>
             </div>

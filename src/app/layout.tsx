@@ -14,13 +14,16 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "FC Mierda - Official Website",
+  icons: {
+    icon: "/FCMierda-team-logo.png",
+  },
   description: "Welcome to the official website of FC Mierda. Get the latest game recaps, results, and more.",
   keywords: ["football", "soccer", "FC Mierda", "team", "Rotterdam football team", "Powerleague"],
   authors: [{ name: "FC Mierda", url: "https://fc-mierda.nl" }],
   openGraph: {
     title: "FC Mierda - Official Website",
     description: "Follow FC Mierda for the latest news, fixtures, and results. We're the slightly below average football team from Rotterdam playing in the Powerleague.",
-    url: "https://fc-mierda.nl",
+    url: "https://fcmierda.nl",
     siteName: "FC Mierda",
     images: [
       {
@@ -34,9 +37,6 @@ export const metadata: Metadata = {
     type: "website",
   },
   themeColor: "#006400",
-  icons: {
-    icon: "/favicon.ico",
-  },
 };
 
 export default function RootLayout({

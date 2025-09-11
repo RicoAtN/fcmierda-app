@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Roboto_Slab, Montserrat } from "next/font/google";
+import Menu from "@/components/Menu"; // <-- Import your Menu component
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -18,38 +19,7 @@ export default function Home() {
       }}
     >
       {/* Navigation Bar */}
-      <nav className="absolute top-0 left-0 w-full flex justify-center py-4 sm:py-6 z-20">
-        {/* FC Mierda Logo on the top left */}
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center">
-          <Link href="/">
-            <Image
-              src="/FCMierda-team-logo.png"
-              alt="FC Mierda Logo"
-              width={40}
-              height={40}
-              className="rounded-full shadow-md"
-              style={{ width: 40, height: 40 }}
-              priority
-            />
-          </Link>
-        </div>
-        <ul className="flex flex-wrap justify-center gap-3 sm:gap-12 bg-white/40 backdrop-blur-md px-2 sm:px-10 py-2 sm:py-4 rounded-2xl max-w-[98vw] shadow-lg">
-          <li>
-            <Link href="/" className="text-gray-900 font-semibold text-xs sm:text-lg hover:text-green-600 transition-colors px-2 sm:px-4">Home</Link>
-          </li>
-          <li>
-            <Link href="/team" className="text-gray-900 font-semibold text-xs sm:text-lg hover:text-green-600 transition-colors px-2 sm:px-4">
-              Team
-            </Link>
-          </li>
-          <li>
-            <Link href="/kanaalplus" className="text-gray-900 font-semibold text-xs sm:text-lg hover:text-green-600 transition-colors px-2 sm:px-4">Kanaal+</Link>
-          </li>
-          <li>
-            <Link href="#contact" className="text-gray-900 font-semibold text-xs sm:text-lg hover:text-green-600 transition-colors px-2 sm:px-4">Contact</Link>
-          </li>
-        </ul>
-      </nav>
+      <Menu />
       {/* Restored upper section layout */}
       <main className="relative z-10 flex flex-col items-center justify-center text-center px-4 w-full min-h-screen">
         <div className="flex flex-col items-center justify-center mt-16 sm:mt-[60px] mb-90">
@@ -155,12 +125,16 @@ export default function Home() {
             Don&apos;t Miss Any Match
           </h2>
           <p className={`text-base sm:text-lg ${montserrat.className}`}>
-            Watch every great goal, epic save, and legendary moment right here.
-            <br /><br />
-            FC Mierda plays a strong match and extends its lead position. Championship becomes closer to reality.
-            <br /><br />
-            Every player brings their own style, skills, and stories—on and off the pitch. Together, we are FC Mierda!
+            Want to relive every goal, epic save, and legendary moment from FC Mierda?
+            On our <span className="text-green-400 font-semibold">Kanaal+</span> page you can watch all the highlights, match recaps, and unforgettable plays.<br /><br />
+            Be a true fan—never miss a single moment of FC Mierda magic!
           </p>
+          <Link
+            href="/kanaalplus"
+            className="inline-block mt-8 bg-green-500 hover:bg-green-600 text-white font-extrabold text-xl px-10 py-4 rounded-full shadow-lg transition-all duration-200"
+          >
+            Watch all highlights on Mierda Kanaal+
+          </Link>
         </div>
       </section>
     </div>
