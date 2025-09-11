@@ -1,16 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
+import { Pool } from "pg";
 
-const filePath = path.join(process.cwd(), "data", "next-game.json");
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
 export async function GET() {
-  const data = await fs.readFile(filePath, "utf-8");
-  return NextResponse.json(JSON.parse(data));
+  const client = await pool.connect();
+  try {
+    const res = await client.query("SELECT * FROM next_game ORDER BY id DESC LIMIT 1");
+    return NextResponse.json(res.rows[0] || {});
+  } finally {
+    client.release();
+  }
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  await fs.writeFile(filePath, JSON.stringify(body, null, 2));
-  return NextResponse.json({ success: true });
+  const client = await pool.connect();
+  try {
+    // Upsert: delete all and insert new
+    await client.query("DELETE FROM next_game");
+    await client.query(
+      `INSERT INTO next_game (date, kickoff, opponent, location, competition, note)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        body.date || "",
+        body.kickoff || "",
+        body.opponent || "",
+        body.location || "",
+        body.competition || "",
+        body.note || "",
+      ]
+    );
+    return NextResponse.json({ success: true });
+  } finally {
+    client.release();
+  }
 }
