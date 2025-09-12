@@ -21,7 +21,11 @@ export async function GET() {
     const res = await client.query("SELECT * FROM next_game ORDER BY id DESC LIMIT 1");
     return NextResponse.json(res.rows[0] || EMPTY_GAME);
   } catch (e) {
-    console.error("GET /api/next-game error:", e instanceof Error ? e.message : e);
+    if (e instanceof Error) {
+      console.error("GET /api/next-game error:", e.message);
+    } else {
+      console.error("GET /api/next-game error:", e);
+    }
     return NextResponse.json(EMPTY_GAME);
   } finally {
     if (client) client.release();
@@ -48,9 +52,21 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error("POST /api/next-game error:", e instanceof Error ? e.message : e);
-    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : String(e) });
+    if (e instanceof Error) {
+      console.error("POST /api/next-game error:", e.message);
+      return NextResponse.json({ success: false, error: e.message });
+    } else {
+      console.error("POST /api/next-game error:", e);
+      return NextResponse.json({ success: false, error: String(e) });
+    }
   } finally {
     if (client) client.release();
   }
 }
+
+const res = await fetch("/api/next-game");
+if (!res.ok) {
+  // handle error, e.g. show a message
+  return;
+}
+const data = await res.json();
