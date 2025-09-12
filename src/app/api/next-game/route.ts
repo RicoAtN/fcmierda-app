@@ -63,10 +63,3 @@ export async function POST(req: NextRequest) {
     if (client) client.release();
   }
 }
-
-const res = await fetch("/api/next-game");
-if (!res.ok) {
-  // handle error, e.g. show a message
-  return;
-}
-const data = await res.json();
