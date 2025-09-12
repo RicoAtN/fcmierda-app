@@ -36,7 +36,6 @@ export default async function FixturesPage() {
   if (!nextGame) {
     return <div>Could not load fixture data.</div>;
   }
-  const gatheringTime = getGatheringTime(nextGame.kickoff);
 
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
@@ -102,7 +101,7 @@ export default async function FixturesPage() {
               <span className="font-semibold text-green-300">
                 Gathering time:
               </span>{" "}
-              {gatheringTime}
+              {getGatheringTime(nextGame.kickoff)}
             </div>
             <div>
               <span className="font-semibold text-green-300">Kick-off time:</span>{" "}

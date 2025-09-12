@@ -18,14 +18,10 @@ export async function GET() {
   let client;
   try {
     client = await pool.connect();
+    // Get the last (most recent) record
     const res = await client.query("SELECT * FROM next_game ORDER BY id DESC LIMIT 1");
     return NextResponse.json(res.rows[0] || EMPTY_GAME);
   } catch (e) {
-    if (e instanceof Error) {
-      console.error("GET /api/next-game error:", e.message);
-    } else {
-      console.error("GET /api/next-game error:", e);
-    }
     return NextResponse.json(EMPTY_GAME);
   } finally {
     if (client) client.release();
