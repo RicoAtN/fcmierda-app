@@ -20,9 +20,12 @@ function getGatheringTime(kickoff: string) {
 export const dynamic = "force-dynamic";
 
 async function getNextGame() {
-  const res = await fetch("/api/next-game", { cache: "no-store" });
+  const baseUrl =
+    process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
+  const res = await fetch(`${baseUrl}/api/next-game`, { cache: "no-store" });
   if (!res.ok) {
-    // Optionally show an error message or return a default value
     return null;
   }
   return res.json();
@@ -30,6 +33,9 @@ async function getNextGame() {
 
 export default async function FixturesPage() {
   const nextGame = await getNextGame();
+  if (!nextGame) {
+    return <div>Could not load fixture data.</div>;
+  }
   const gatheringTime = getGatheringTime(nextGame.kickoff);
 
   return (
