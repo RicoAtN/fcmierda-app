@@ -21,11 +21,7 @@ export async function GET() {
     const res = await client.query("SELECT * FROM next_game ORDER BY id DESC LIMIT 1");
     return NextResponse.json(res.rows[0] || EMPTY_GAME);
   } catch (e) {
-    if (e instanceof Error) {
-      console.error("GET /api/next-game error:", e.message);
-    } else {
-      console.error("GET /api/next-game error:", e);
-    }
+    console.error("GET /api/next-game error:", e instanceof Error ? e.message : e);
     return NextResponse.json(EMPTY_GAME);
   } finally {
     if (client) client.release();
@@ -37,7 +33,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     client = await pool.connect();
-    await client.query("DELETE FROM next_game");
+    // Only insert, do not delete
     await client.query(
       `INSERT INTO next_game (date, kickoff, opponent, location, competition, note)
        VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -52,13 +48,8 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json({ success: true });
   } catch (e) {
-    if (e instanceof Error) {
-      console.error("POST /api/next-game error:", e.message);
-      return NextResponse.json({ success: false, error: e.message });
-    } else {
-      console.error("POST /api/next-game error:", e);
-      return NextResponse.json({ success: false, error: String(e) });
-    }
+    console.error("POST /api/next-game error:", e instanceof Error ? e.message : e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : String(e) });
   } finally {
     if (client) client.release();
   }
