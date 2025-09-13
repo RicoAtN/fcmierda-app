@@ -20,7 +20,8 @@ function getGatheringTime(kickoff: string) {
 export const dynamic = "force-dynamic";
 
 async function getNextGame() {
-  const res = await fetch("/api/next-game", { cache: "no-store" });
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+  const res = await fetch(`${baseUrl}/api/next-game`, { cache: "no-store" });
   if (!res.ok) {
     return null;
   }
