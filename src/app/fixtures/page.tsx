@@ -20,10 +20,8 @@ function getGatheringTime(kickoff: string) {
 export const dynamic = "force-dynamic";
 
 async function getNextGame() {
-  const isProd = process.env.VERCEL_ENV === "production";
-  const baseUrl = isProd
-    ? ""
-    : "http://localhost:3000";
+  const isLocal = process.env.NODE_ENV !== "production";
+  const baseUrl = isLocal ? "http://localhost:3000" : "";
   const res = await fetch(`${baseUrl}/api/next-game`, { cache: "no-store" });
   if (!res.ok) {
     return null;
