@@ -20,9 +20,10 @@ function getGatheringTime(kickoff: string) {
 export const dynamic = "force-dynamic";
 
 async function getNextGame() {
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
+  const baseUrl =
+    process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
   const res = await fetch(`${baseUrl}/api/next-game`, { cache: "no-store" });
   if (!res.ok) {
     return null;
