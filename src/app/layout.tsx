@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     siteName: "FC Mierda",
     images: [
       {
-        url: "https://fc-mierda.com/og-image.jpg",
+        url: "https://www.fcmierda.nl/_next/image?url=%2FFCMierda-team-logo.png&w=750&q=75",
         width: 1200,
         height: 630,
         alt: "FC Mierda Logo",

@@ -9,6 +9,8 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
+export const dynamic = "force-dynamic";
+
 // Helper to calculate gathering time
 function getGatheringTime(kickoff: string) {
   if (!kickoff || !/^\d{2}:\d{2}$/.test(kickoff)) return "-";
@@ -22,8 +24,7 @@ function getGatheringTime(kickoff: string) {
   return `${String(gh).padStart(2, "0")}:${String(gm).padStart(2, "0")}`;
 }
 
-export const dynamic = "force-dynamic";
-
+// Fetch the latest game from Neon
 async function getNextGameDirect() {
   let client;
   try {
@@ -32,7 +33,7 @@ async function getNextGameDirect() {
       "SELECT * FROM next_game ORDER BY id DESC LIMIT 1"
     );
     return res.rows[0] || null;
-  } catch (e) {
+  } catch {
     return null;
   } finally {
     if (client) client.release();
@@ -55,6 +56,7 @@ export default async function FixturesPage() {
     note: nextGame.note || "-",
   };
 
+  // Attendance processing
   const attendance = nextGame.attendance || {};
   const present = Object.entries(attendance)
     .filter(([_, status]) => status === "present")
@@ -75,6 +77,7 @@ export default async function FixturesPage() {
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
       {/* Navigation Bar */}
       <Menu />
+
       {/* Fixtures Intro Section */}
       <section
         className="w-full flex justify-center items-center py-10 px-4 bg-gray-900"
@@ -107,6 +110,7 @@ export default async function FixturesPage() {
           </p>
         </div>
       </section>
+
       {/* Next Game Update Section */}
       <section className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800">
         <div className="max-w-2xl w-full rounded-2xl p-6 sm:p-10 text-white text-center bg-gray-900 shadow-xl mx-auto">
@@ -126,6 +130,13 @@ export default async function FixturesPage() {
               </>
             )}
           </h2>
+
+          <p className={`text-base sm:text-lg ${montserrat.className}`}>
+            Get ready for the next challenge! FC Mierda faces {safeGame.opponent}{" "}
+            in what promises to be an exciting match. Come support us and don&apos;t
+            miss the action!
+          </p>
+          <br />
           <div className="mb-4 text-left text-sm sm:text-base">
             <div>
               <span className="font-semibold text-green-300">Date:</span>{" "}
@@ -157,46 +168,41 @@ export default async function FixturesPage() {
               <span className="font-semibold text-green-300">Note:</span>{" "}
               {safeGame.note}
             </div>
-            
           </div>
-          <p className={`text-base sm:text-lg ${montserrat.className}`}>
-            Get ready for the next challenge! FC Mierda faces {safeGame.opponent}{" "}
-            in what promises to be an exciting match. Come support us and don&apos;t
-            miss the action!
-          </p>
 
+          {/* Player Attendance Section */}
           <div className="mt-8">
-  <h2 className="text-xl font-bold mb-4">Player Attendance</h2>
-  <div className="grid grid-cols-3 gap-4 text-center">
-    <div>
-      <h3 className="font-bold text-green-400 mb-2">Present ({present.length})</h3>
-      {present.length > 0 ? present.map((name) => (
-        <div key={name}>{name}</div>
-      )) : <div className="text-gray-400">None</div>}
-    </div>
-    <div>
-      <h3 className="font-bold text-yellow-400 mb-2">Not Sure ({notSure.length})</h3>
-      {notSure.length > 0 ? notSure.map((name) => (
-        <div key={name}>{name}</div>
-      )) : <div className="text-gray-400">None</div>}
-    </div>
-    <div>
-      <h3 className="font-bold text-red-400 mb-2">Absent ({absent.length})</h3>
-      {absent.length > 0 ? absent.map((name) => (
-        <div key={name}>{name}</div>
-      )) : <div className="text-gray-400">None</div>}
-    </div>
-  </div>
-  <div className="mt-6">
-    <h3 className="font-bold text-blue-400 mb-2">Supporter / Coach</h3>
-    {supporters.length > 0 ? supporters.map((name) => (
-      <div key={name}>{name}</div>
-    )) : <div className="text-gray-400">None</div>}
-  </div>
-</div>
+            <h2 className="text-xl font-bold mb-4">Player Attendance</h2>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <h3 className="font-bold text-green-400 mb-2">Present ({present.length})</h3>
+                {present.length > 0 ? present.map((name) => (
+                  <div key={name}>{name}</div>
+                )) : <div className="text-gray-400">None</div>}
+              </div>
+              <div>
+                <h3 className="font-bold text-yellow-400 mb-2">Not Sure ({notSure.length})</h3>
+                {notSure.length > 0 ? notSure.map((name) => (
+                  <div key={name}>{name}</div>
+                )) : <div className="text-gray-400">None</div>}
+              </div>
+              <div>
+                <h3 className="font-bold text-red-400 mb-2">Absent ({absent.length})</h3>
+                {absent.length > 0 ? absent.map((name) => (
+                  <div key={name}>{name}</div>
+                )) : <div className="text-gray-400">None</div>}
+              </div>
+            </div>
+            <div className="mt-6">
+              <h3 className="font-bold text-blue-400 mb-2">Supporter / Coach</h3>
+              {supporters.length > 0 ? supporters.map((name) => (
+                <div key={name}>{name}</div>
+              )) : <div className="text-gray-400">None</div>}
+            </div>
+          </div>
         </div>
 
-        
+        {/* Powerleague Table Section */}
         <div className="max-w-4xl w-full rounded-2xl p-6 sm:p-10 text-white text-center bg-gray-900 shadow-xl mx-auto mt-8">
           <h2
             className={`text-xl sm:text-2xl font-bold mb-4 ${robotoSlab.className}`}
@@ -208,12 +214,12 @@ export default async function FixturesPage() {
             First Division Rotterdam 7vs7
           </div>
           <div className="flex flex-col items-center gap-6 my-6">
-            {<img
+            <img
               src="/currentLeagueTable.jpg"
               alt="Current League Table"
               className="rounded-lg shadow-lg max-w-full h-auto border border-green-700"
               style={{ maxHeight: 500 }}
-            /> }
+            />
           </div>
           <p className={`text-base sm:text-lg font-bold ${montserrat.className} mt-4`}>
             View the current standings and results for Powerleague First Division
