@@ -37,6 +37,16 @@ export default async function FixturesPage() {
     return <div>Could not load fixture data.</div>;
   }
 
+  // Defensive: fallback for missing fields
+  const safeGame = {
+    date: nextGame.date || "-",
+    kickoff: nextGame.kickoff || "-",
+    opponent: nextGame.opponent || "-",
+    location: nextGame.location || "-",
+    competition: nextGame.competition || "-",
+    note: nextGame.note || "-",
+  };
+
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
       {/* Navigation Bar */}
@@ -80,14 +90,14 @@ export default async function FixturesPage() {
             className={`text-xl sm:text-2xl font-bold mb-4 ${robotoSlab.className}`}
           >
             Next Game vs
-            {nextGame.opponent && (
+            {safeGame.opponent && (
               <>
                 <br />
                 <span
                   className="font-extrabold text-green-300 text-2xl sm:text-3xl tracking-wide"
                   style={{ fontFamily: "monospace" }}
                 >
-                  {nextGame.opponent}
+                  {safeGame.opponent}
                 </span>
               </>
             )}
@@ -95,37 +105,37 @@ export default async function FixturesPage() {
           <div className="mb-4 text-left text-sm sm:text-base">
             <div>
               <span className="font-semibold text-green-300">Date:</span>{" "}
-              {nextGame.date}
+              {safeGame.date}
             </div>
             <div>
               <span className="font-semibold text-green-300">
                 Gathering time:
               </span>{" "}
-              {getGatheringTime(nextGame.kickoff)}
+              {getGatheringTime(safeGame.kickoff)}
             </div>
             <div>
               <span className="font-semibold text-green-300">Kick-off time:</span>{" "}
-              {nextGame.kickoff}
+              {safeGame.kickoff}
             </div>
             <div>
               <span className="font-semibold text-green-300">Opponent:</span>{" "}
-              {nextGame.opponent}
+              {safeGame.opponent}
             </div>
             <div>
               <span className="font-semibold text-green-300">Location:</span>{" "}
-              {nextGame.location}
+              {safeGame.location}
             </div>
             <div>
               <span className="font-semibold text-green-300">Competition:</span>{" "}
-              {nextGame.competition}
+              {safeGame.competition}
             </div>
             <div>
               <span className="font-semibold text-green-300">Note:</span>{" "}
-              {nextGame.note}
+              {safeGame.note}
             </div>
           </div>
           <p className={`text-base sm:text-lg ${montserrat.className}`}>
-            Get ready for the next challenge! FC Mierda faces {nextGame.opponent}{" "}
+            Get ready for the next challenge! FC Mierda faces {safeGame.opponent}{" "}
             in what promises to be an exciting match. Come support us and don&apos;t
             miss the action!
           </p>
@@ -141,12 +151,12 @@ export default async function FixturesPage() {
             First Division Rotterdam 7vs7
           </div>
           <div className="flex flex-col items-center gap-6 my-6">
-            <img
+            {/* <img
               src="/currentLeagueTable.jpg"
               alt="Current League Table"
               className="rounded-lg shadow-lg max-w-full h-auto border border-green-700"
               style={{ maxHeight: 500 }}
-            />
+            /> */}
           </div>
           <p className={`text-base sm:text-lg ${montserrat.className} mt-4`}>
             View the current standings and results for Powerleague First Division
