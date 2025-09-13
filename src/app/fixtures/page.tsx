@@ -1,8 +1,13 @@
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
+import { Pool } from "pg";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
 // Helper to calculate gathering time
 function getGatheringTime(kickoff: string) {
@@ -19,21 +24,23 @@ function getGatheringTime(kickoff: string) {
 
 export const dynamic = "force-dynamic";
 
-async function getNextGame() {
-  const isLocal =
-    typeof window === "undefined" &&
-    process.env.NODE_ENV !== "production" &&
-    process.env.VERCEL !== "1";
-  const baseUrl = isLocal ? "http://localhost:3000" : "";
-  const res = await fetch(`${baseUrl}/api/next-game`, { cache: "no-store" });
-  if (!res.ok) {
+async function getNextGameDirect() {
+  let client;
+  try {
+    client = await pool.connect();
+    const res = await client.query(
+      "SELECT * FROM next_game ORDER BY id DESC LIMIT 1"
+    );
+    return res.rows[0] || null;
+  } catch (e) {
     return null;
+  } finally {
+    if (client) client.release();
   }
-  return res.json();
 }
 
 export default async function FixturesPage() {
-  const nextGame = await getNextGame();
+  const nextGame = await getNextGameDirect();
   if (!nextGame) {
     return <div>Could not load fixture data.</div>;
   }
