@@ -55,6 +55,22 @@ export default async function FixturesPage() {
     note: nextGame.note || "-",
   };
 
+  const attendance = nextGame.attendance || {};
+  const present = Object.entries(attendance)
+    .filter(([_, status]) => status === "present")
+    .map(([name]) => name);
+  const notSure = Object.entries(attendance)
+    .filter(([_, status]) => status === "not sure")
+    .map(([name]) => name);
+  const absent = Object.entries(attendance)
+    .filter(([_, status]) => status === "absent")
+    .map(([name]) => name);
+  const supporters = Object.entries(attendance)
+    .filter(
+      ([_, status]) => status === "supporter" || status === "coach"
+    )
+    .map(([name]) => name);
+
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
       {/* Navigation Bar */}
@@ -141,13 +157,46 @@ export default async function FixturesPage() {
               <span className="font-semibold text-green-300">Note:</span>{" "}
               {safeGame.note}
             </div>
+            
           </div>
           <p className={`text-base sm:text-lg ${montserrat.className}`}>
             Get ready for the next challenge! FC Mierda faces {safeGame.opponent}{" "}
             in what promises to be an exciting match. Come support us and don&apos;t
             miss the action!
           </p>
+
+          <div className="mt-8">
+  <h2 className="text-xl font-bold mb-4">Player Attendance</h2>
+  <div className="grid grid-cols-3 gap-4 text-center">
+    <div>
+      <h3 className="font-bold text-green-400 mb-2">Present ({present.length})</h3>
+      {present.length > 0 ? present.map((name) => (
+        <div key={name}>{name}</div>
+      )) : <div className="text-gray-400">None</div>}
+    </div>
+    <div>
+      <h3 className="font-bold text-yellow-400 mb-2">Not Sure ({notSure.length})</h3>
+      {notSure.length > 0 ? notSure.map((name) => (
+        <div key={name}>{name}</div>
+      )) : <div className="text-gray-400">None</div>}
+    </div>
+    <div>
+      <h3 className="font-bold text-red-400 mb-2">Absent ({absent.length})</h3>
+      {absent.length > 0 ? absent.map((name) => (
+        <div key={name}>{name}</div>
+      )) : <div className="text-gray-400">None</div>}
+    </div>
+  </div>
+  <div className="mt-6">
+    <h3 className="font-bold text-blue-400 mb-2">Supporter / Coach</h3>
+    {supporters.length > 0 ? supporters.map((name) => (
+      <div key={name}>{name}</div>
+    )) : <div className="text-gray-400">None</div>}
+  </div>
+</div>
         </div>
+
+        
         <div className="max-w-4xl w-full rounded-2xl p-6 sm:p-10 text-white text-center bg-gray-900 shadow-xl mx-auto mt-8">
           <h2
             className={`text-xl sm:text-2xl font-bold mb-4 ${robotoSlab.className}`}
@@ -159,17 +208,25 @@ export default async function FixturesPage() {
             First Division Rotterdam 7vs7
           </div>
           <div className="flex flex-col items-center gap-6 my-6">
-            {/* <img
+            {<img
               src="/currentLeagueTable.jpg"
               alt="Current League Table"
               className="rounded-lg shadow-lg max-w-full h-auto border border-green-700"
               style={{ maxHeight: 500 }}
-            /> */}
+            /> }
           </div>
-          <p className={`text-base sm:text-lg ${montserrat.className} mt-4`}>
+          <p className={`text-base sm:text-lg font-bold ${montserrat.className} mt-4`}>
             View the current standings and results for Powerleague First Division
             Rotterdam 7vs7.
           </p>
+          <a
+            href="https://www.powerleague.com/nl/competitie?league_id=e62374e8-650a-9db1-e014-c00cc844e83f&division_id="
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-green-300 font-bold underline"
+          >
+            Visit Powerleague.com for the latest info the league standings, results, and program.
+          </a>
         </div>
       </section>
     </div>

@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     client = await pool.connect();
     await client.query(
-      `INSERT INTO next_game (date, kickoff, opponent, location, competition, note)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+      `INSERT INTO next_game (date, kickoff, opponent, location, competition, note, attendance)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         body.date || "",
         body.kickoff || "",
@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
         body.location || "",
         body.competition || "",
         body.note || "",
+        JSON.stringify(body.attendance || {}), // <-- Make sure this is included!
       ]
     );
     return NextResponse.json({ success: true });

@@ -6,6 +6,26 @@ import Menu from "@/components/Menu";
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
 
+const players = [
+  "Alon",
+  "Victor",
+  "Rico",
+  "Kevin",
+  "Pim S🥸",
+  "Mitchell",
+  "Mart",
+  "Niek",
+  "Jordy",
+  "Lennert",
+  "Ka",
+  "Sven",
+  "Pim",
+  "Daan",
+  "Bouwhuis",
+  "Frank",
+  "Hans",
+];
+
 export default function CMSPage() {
   const [form, setForm] = useState({
     date: "",
@@ -16,12 +36,28 @@ export default function CMSPage() {
     note: "",
   });
   const [status, setStatus] = useState("");
+  const [attendance, setAttendance] = useState<Record<string, string>>(
+    Object.fromEntries(players.map((name) => [name, "absent"]))
+  );
 
   // Fetch current next game data on load
   useEffect(() => {
     fetch("/api/next-game")
       .then((res) => res.json())
-      .then((data) => setForm(data));
+      .then((data) => {
+        setForm({
+          date: data.date || "",
+          kickoff: data.kickoff || "",
+          opponent: data.opponent || "",
+          location: data.location || "",
+          competition: data.competition || "",
+          note: data.note || "",
+        });
+        setAttendance(
+          data.attendance ||
+            Object.fromEntries(players.map((name) => [name, "absent"]))
+        );
+      });
   }, []);
 
   const handleChange = (
@@ -36,7 +72,7 @@ export default function CMSPage() {
     await fetch("/api/next-game", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, attendance }),
     });
     setStatus("Saved! The fixtures page now shows your update.");
   };
@@ -138,11 +174,11 @@ export default function CMSPage() {
                 required
               >
                 <option value="">Select location</option>
-                <option value="Alexandria 66 voetbalclub, Leningradweg 12 Rotterdam">
-                  Alexandria 66 voetbalclub, Leningradweg 12 Rotterdam
+                <option value="Alexandria 66 voetbalclub">
+                  Alexandria 66 voetbalclub
                 </option>
-                <option value="Mumbai, India">
-                  Mumbai, India
+                <option value="SWIFT boys voetbalclub">
+                  SWIFT boys voetbalclub
                 </option>
               </select>
             </div>
@@ -171,6 +207,32 @@ export default function CMSPage() {
                 rows={3}
               />
             </div>
+            <div>
+              <label className="block font-semibold mb-1">Player Attendance</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {players.map((name) => (
+                  <div
+                    key={name}
+                    className="flex items-center justify-between gap-2 bg-gray-800 rounded px-2 py-1"
+                  >
+                    <span className="font-medium text-white w-24 sm:w-32 truncate">{name}</span>
+                    <select
+                      value={attendance[name]}
+                      onChange={(e) =>
+                        setAttendance({ ...attendance, [name]: e.target.value })
+                      }
+                      className="p-1 rounded bg-gray-900 border border-gray-600 text-white min-w-[90px] sm:min-w-[120px]"
+                    >
+                      <option value="absent">🔴 Absent</option>
+                      <option value="present">🟢 Present</option>
+                      <option value="not sure">🟠 Not sure</option>
+                      <option value="supporter">🔵 Supporter</option>
+                      <option value="coach">🔵 Coach</option>
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
             <button
               type="submit"
               className="bg-green-600 hover:bg-green-700 text-white px-10 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 min-w-[200px]"
@@ -184,3 +246,4 @@ export default function CMSPage() {
     </div>
   );
 }
+
