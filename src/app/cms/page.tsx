@@ -7,23 +7,26 @@ const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
 
 const players = [
-  "Alon",
-  "Victor",
-  "Rico",
-  "Kevin",
-  "Pim S🥸",
-  "Mitchell",
-  "Mart",
-  "Niek",
-  "Jordy",
-  "Lennert",
-  "Ka",
-  "Sven",
-  "Pim",
-  "Daan",
-  "Bouwhuis",
-  "Frank",
-  "Hans",
+  "#1 Alon",
+  "#12 Victor",
+  "#88 Rico",
+  "#32 Kevin",
+  "#26 Pim S🥸",
+  "#69 Mitchell",
+  "#57 Mart",
+  "#14 Niek",
+  "#10 Jordy",
+  "#19 Lennert",
+  "#22 Ka",
+  "#23 Sven",
+  "#9 Pim",
+  "#6 Bouwhuis",
+  "#7 Daan",
+  "#20 Sud",
+  "#00 Frank",
+  "#00 Boudewijn",
+  "#63 Hans",
+  "#5 Tim",
 ];
 
 export default function CMSPage() {
@@ -39,6 +42,9 @@ export default function CMSPage() {
   const [attendance, setAttendance] = useState<Record<string, string>>(
     Object.fromEntries(players.map((name) => [name, "absent"]))
   );
+  const [extraPlayers, setExtraPlayers] = useState<{ name: string; status: string }[]>(
+    [{ name: "", status: "absent" }]
+  );
 
   // Fetch current next game data on load
   useEffect(() => {
@@ -53,10 +59,29 @@ export default function CMSPage() {
           competition: data.competition || "",
           note: data.note || "",
         });
+
+        // Prefill attendance for main players
         setAttendance(
-          data.attendance ||
-            Object.fromEntries(players.map((name) => [name, "absent"]))
+          data.attendance
+            ? Object.fromEntries(
+                players.map((name) => [name, data.attendance[name] || "absent"])
+              )
+            : Object.fromEntries(players.map((name) => [name, "absent"]))
         );
+
+        // Prefill extraPlayers for names not in the main players list
+        if (data.attendance) {
+          const extra = Object.entries(data.attendance)
+            .filter(([name]) => !players.includes(name))
+            .map(([name, status]) => ({ name, status: String(status) }));
+          setExtraPlayers(
+            extra.length > 0
+              ? [...extra, { name: "", status: "absent" }]
+              : [{ name: "", status: "absent" }]
+          );
+        } else {
+          setExtraPlayers([{ name: "", status: "absent" }]);
+        }
       });
   }, []);
 
@@ -69,13 +94,35 @@ export default function CMSPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus("Saving...");
+
+    // Merge main attendance and extra players (only if name is filled)
+    const extraAttendance = Object.fromEntries(
+      extraPlayers
+        .filter((p) => p.name.trim() !== "")
+        .map((p) => [p.name.trim(), p.status])
+    );
+    const fullAttendance = { ...attendance, ...extraAttendance };
+
     await fetch("/api/next-game", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, attendance }),
+      body: JSON.stringify({ ...form, attendance: fullAttendance }),
     });
     setStatus("Saved! The fixtures page now shows your update.");
   };
+
+  function renderPlayerName(name: string) {
+    const match = name.match(/^(#\d+\s+)/);
+    if (match) {
+      return (
+        <>
+          <span className="font-bold text-yellow-400">{match[1]}</span>
+          {name.slice(match[1].length)}
+        </>
+      );
+    }
+    return name;
+  }
 
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
@@ -215,7 +262,7 @@ export default function CMSPage() {
                     key={name}
                     className="flex items-center justify-between gap-2 bg-gray-800 rounded px-2 py-1"
                   >
-                    <span className="font-medium text-white w-24 sm:w-32 truncate">{name}</span>
+                    <span className="font-medium text-white w-24 sm:w-32 truncate">{renderPlayerName(name)}</span>
                     <select
                       value={attendance[name]}
                       onChange={(e) =>
@@ -233,6 +280,64 @@ export default function CMSPage() {
                 ))}
               </div>
             </div>
+            <div className="mt-4">
+              <label className="block font-semibold mb-1">Add Additional Players (reserves)</label>
+              {extraPlayers.map((player, idx) => (
+                <div key={idx} className="flex items-center gap-2 mb-2">
+                  {/* Remove button in front, bigger and vertically centered */}
+                  {extraPlayers.length > 1 && idx < extraPlayers.length - 1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const filtered = extraPlayers.filter((_, i) => i !== idx);
+                        // Always keep at least one empty field
+                        setExtraPlayers(
+                          filtered.length === 0
+                            ? [{ name: "", status: "absent" }]
+                            : filtered
+                        );
+                      }}
+                      className="text-red-400 hover:text-red-600 font-extrabold text-2xl flex items-center justify-center px-2"
+                      title="Remove this player and all after"
+                      style={{ lineHeight: 1 }}
+                    >
+                      &times;
+                    </button>
+                  )}
+                  <input
+                    type="text"
+                    placeholder="Add player name"
+                    value={player.name}
+                    onChange={e => {
+                      const updated = [...extraPlayers];
+                      updated[idx].name = e.target.value;
+                      setExtraPlayers(updated);
+
+                      // If last field and not empty, add a new empty field
+                      if (idx === extraPlayers.length - 1 && e.target.value.trim() !== "") {
+                        setExtraPlayers([...updated, { name: "", status: "absent" }]);
+                      }
+                    }}
+                    className="p-1 rounded bg-gray-800 border border-gray-600 text-white flex-1"
+                  />
+                  <select
+                    value={player.status}
+                    onChange={e => {
+                      const updated = [...extraPlayers];
+                      updated[idx].status = e.target.value;
+                      setExtraPlayers(updated);
+                    }}
+                    className="p-1 rounded bg-gray-900 border border-gray-600 text-white min-w-[90px] sm:min-w-[120px]"
+                  >
+                    <option value="absent">🔴 Absent</option>
+                    <option value="present">🟢 Present</option>
+                    <option value="not sure">🟠 Not sure</option>
+                    <option value="supporter">🔵 Supporter</option>
+                    <option value="coach">🔵 Coach</option>
+                  </select>
+                </div>
+              ))}
+            </div>
             <button
               type="submit"
               className="bg-green-600 hover:bg-green-700 text-white px-10 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 min-w-[200px]"
@@ -246,4 +351,3 @@ export default function CMSPage() {
     </div>
   );
 }
-
