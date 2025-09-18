@@ -172,7 +172,7 @@ export default async function FixturesPage() {
       </section>
 
       {/* Next Game Update Section */}
-      <section className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800">
+      <section id="next-game" className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800">
         <div className="max-w-2xl w-full rounded-2xl p-6 sm:p-10 text-white text-center bg-gray-900 shadow-xl mx-auto">
           <h2
             className={`text-xl sm:text-2xl font-bold mb-4 ${robotoSlab.className}`}
@@ -263,7 +263,7 @@ export default async function FixturesPage() {
         </div>
 
         {/* Latest Game Results Section */}
-        <section className="w-full flex flex-col items-center py-8 px-4 bg-gray-900">
+        <section id="latest-result" className="w-full flex flex-col items-center py-8 px-4 bg-gray-900">
           <div className="max-w-2xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-800 shadow-xl mx-auto">
             <h2 className={`text-xl sm:text-2xl font-bold mb-6 text-center ${robotoSlab.className}`}>
               Latest Game Result
@@ -393,7 +393,7 @@ export default async function FixturesPage() {
         </section>
 
         {/* Powerleague Table Section */}
-        <div className="max-w-4xl w-full rounded-2xl p-6 sm:p-10 text-white text-center bg-gray-900 shadow-xl mx-auto mt-8">
+        <div id="league-table" className="max-w-4xl w-full rounded-2xl p-6 sm:p-10 text-white text-center bg-gray-900 shadow-xl mx-auto mt-8">
           <h2
             className={`text-xl sm:text-2xl font-bold mb-4 ${robotoSlab.className}`}
           >
