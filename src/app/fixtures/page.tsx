@@ -265,6 +265,16 @@ export default async function FixturesPage() {
                 <div key={name}>{name}</div>
               )) : <div className="text-gray-400">None</div>}
             </div>
+            {/* Action Button */}
+            <div className="mt-8 flex justify-center">
+              <a
+                href="/cms/nextgamedetails#player-availability"
+                className="px-6 py-3 rounded-lg bg-green-700 text-white font-semibold shadow border border-green-800 hover:bg-green-800 transition"
+                style={{ letterSpacing: "0.03em" }}
+              >
+                Submit your availability
+              </a>
+            </div>
           </div>
         </div>
 

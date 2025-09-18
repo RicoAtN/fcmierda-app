@@ -256,7 +256,7 @@ export default function NextGameDetailsPage() {
                 rows={3}
               />
             </div>
-            <div>
+            <div id="player-availability">
               <label className="block font-semibold mb-1">Player Attendance</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {players.map((name) => (
