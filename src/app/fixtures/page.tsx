@@ -56,6 +56,12 @@ async function getLatestMatchResult() {
   }
 }
 
+type GoalScorer = {
+  goalNumber?: string;
+  scorer: string;
+  assist?: string;
+};
+
 export default async function FixturesPage() {
   const nextGame = await getNextGameDirect();
   const latestResult = await getLatestMatchResult();
@@ -371,7 +377,7 @@ export default async function FixturesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {safeResult.goalScorers.map((g: any, idx: number) => (
+                  {safeResult.goalScorers.map((g: GoalScorer, idx: number) => (
                     <tr key={idx} className="bg-gray-900 rounded">
                       <td className="px-2 py-1 text-green-400 font-semibold">{g.goalNumber || "-"}</td>
                       <td className="px-2 py-1 text-white font-bold">{g.scorer || "-"}</td>
