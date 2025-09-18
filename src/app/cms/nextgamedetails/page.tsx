@@ -41,10 +41,10 @@ export default function NextGameDetailsPage() {
   });
   const [status, setStatus] = useState("");
   const [attendance, setAttendance] = useState<Record<string, string>>(
-    Object.fromEntries(players.map((name) => [name, "absent"]))
+    Object.fromEntries(players.map((name) => [name, "unknown"]))
   );
   const [extraPlayers, setExtraPlayers] = useState<{ name: string; status: string }[]>(
-    [{ name: "", status: "absent" }]
+    [{ name: "", status: "unknown" }]
   );
 
   const router = useRouter();
@@ -65,9 +65,9 @@ export default function NextGameDetailsPage() {
         setAttendance(
           data.attendance
             ? Object.fromEntries(
-                players.map((name) => [name, data.attendance[name] || "absent"])
+                players.map((name) => [name, data.attendance[name] || "unknown"])
               )
-            : Object.fromEntries(players.map((name) => [name, "absent"]))
+            : Object.fromEntries(players.map((name) => [name, "unknown"]))
         );
 
         if (data.attendance) {
@@ -76,11 +76,11 @@ export default function NextGameDetailsPage() {
             .map(([name, status]) => ({ name, status: String(status) }));
           setExtraPlayers(
             extra.length > 0
-              ? [...extra, { name: "", status: "absent" }]
-              : [{ name: "", status: "absent" }]
+              ? [...extra, { name: "", status: "unknown" }]
+              : [{ name: "", status: "unknown" }]
           );
         } else {
-          setExtraPlayers([{ name: "", status: "absent" }]);
+          setExtraPlayers([{ name: "", status: "unknown" }]);
         }
       });
   }, []);
@@ -272,6 +272,7 @@ export default function NextGameDetailsPage() {
                       }
                       className="p-1 rounded bg-gray-900 border border-gray-600 text-white min-w-[90px] sm:min-w-[120px]"
                     >
+                      <option value="unknown">⚪ Unknown</option>
                       <option value="absent">🔴 Absent</option>
                       <option value="present">🟢 Present</option>
                       <option value="not sure">🟠 Not sure</option>
