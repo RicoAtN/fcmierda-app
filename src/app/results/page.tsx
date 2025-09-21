@@ -65,6 +65,12 @@ function getYoutubeEmbedUrl(url: string) {
   return videoId ? `https://www.youtube.com/embed/${videoId}` : "";
 }
 
+type GoalScorer = {
+  goalNumber?: number | string;
+  scorer?: string;
+  assist?: string;
+};
+
 export default async function ResultsPage() {
   const latestResults = await getLatestMatchResults(3);
 
@@ -256,7 +262,7 @@ export default async function ResultsPage() {
                     : safeResult.attendance
                     ? JSON.parse(safeResult.attendance)
                     : []
-                  ).map((name: string, idx) => (
+                  ).map((name: string, idx: number) => (
                     <span key={idx} className="bg-gray-900 rounded px-2 py-1 text-white text-xs w-full text-center">{name}</span>
                   ))}
                 </div>
@@ -277,7 +283,7 @@ export default async function ResultsPage() {
                     : safeResult.support_coach
                     ? JSON.parse(safeResult.support_coach)
                     : []
-                  ).map((name: string, idx) => (
+                  ).map((name: string, idx: number) => (
                     <span key={idx} className="bg-gray-900 rounded px-2 py-1 text-white text-xs">{name}</span>
                   ))}
                 </div>

@@ -6,6 +6,8 @@ import Footer from "@/components/Footer"; // Add this import at the top
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
 
+type SquadIdx = number;
+
 export default function TeamPage() {
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
