@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu"; // <-- Import your Menu component
+import Footer from "@/components/Footer";
+
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -104,9 +106,11 @@ export default function Home() {
               Others catch the fever, but FC Mierda catches trophies.
             </span>
             <br /><br />
-            <span className="text-yellow-300 font-semibold">🏆 2025 Summer Champions</span><br />
-            <span className="text-yellow-300 font-semibold">🏆 2025 Most goals</span><br />
-            <span className="text-yellow-300 font-semibold">🏆 2024 Spring Champions</span><br />
+            <span className="text-yellow-300 font-semibold">🏆 Powerleague 2025 Summer Champions</span><br />
+            <span className="text-yellow-300 font-semibold">🏆 Powerleague 2024 Summer Champions</span><br />
+            <span className="text-yellow-300 font-semibold">🏆 Powerleague 2023 Winter Champions</span><br />
+            <span className="text-yellow-300 font-semibold">🏆 Footy 2022 Summer Champions</span><br />
+            <span className="text-yellow-300 font-semibold">🏆 Footy 2022 Spring Champions</span><br />
             <span className="font-bold text-white">
               ...and many more!
             </span>
@@ -126,17 +130,18 @@ export default function Home() {
           </h2>
           <p className={`text-base sm:text-lg ${montserrat.className}`}>
             Want to relive every goal, epic save, and legendary moment from FC Mierda?
-            On our <span className="text-green-400 font-semibold">Kanaal+</span> page you can watch all the highlights, match recaps, and unforgettable plays.<br /><br />
+            On our <span className="text-green-400 font-semibold">Results</span> page you can watch all the highlights, match recaps, and unforgettable plays.<br /><br />
             Be a true fan—never miss a single moment of FC Mierda magic!
           </p>
           <Link
-            href="/kanaalplus"
+            href="/results"
             className="inline-block mt-8 bg-green-500 hover:bg-green-600 text-white font-extrabold text-xl px-10 py-4 rounded-full shadow-lg transition-all duration-200"
           >
-            Watch all highlights on Mierda Kanaal+
+            Watch our match recaps here!
           </Link>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }

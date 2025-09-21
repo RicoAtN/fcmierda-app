@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu"; // Import the reusable Menu component
+import Footer from "@/components/Footer"; // Add this import at the top
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -101,6 +102,8 @@ export default function TeamPage() {
           </p>
         </div>
       </section>
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

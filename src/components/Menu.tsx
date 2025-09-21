@@ -26,7 +26,7 @@ export default function Menu() {
           <Link href="/fixtures" className="text-gray-900 font-semibold text-xs sm:text-lg hover:text-green-600 transition-colors px-2 sm:px-4">Fixtures</Link>
         </li>
         <li>
-          <Link href="/kanaalplus" className="text-gray-900 font-semibold text-xs sm:text-lg hover:text-green-600 transition-colors px-2 sm:px-4">Kanaal+</Link>
+          <Link href="/results" className="text-gray-900 font-semibold text-xs sm:text-lg hover:text-green-600 transition-colors px-2 sm:px-4">Results</Link>
         </li>
         <li>
           <Link href="/team" className="text-gray-900 font-semibold text-xs sm:text-lg hover:text-green-600 transition-colors px-2 sm:px-4">

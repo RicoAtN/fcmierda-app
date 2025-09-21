@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
+import Footer from "@/components/Footer"; // Add this import at the top
 import { useRouter } from "next/navigation";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
@@ -348,6 +349,8 @@ export default function NextGameDetailsPage() {
           </form>
         </div>
       </section>
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

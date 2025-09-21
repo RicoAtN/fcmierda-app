@@ -1,5 +1,6 @@
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
+import Footer from "@/components/Footer"; // Add this import at the top
 import { Pool } from "pg";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
@@ -441,6 +442,9 @@ export default async function FixturesPage() {
           </a>
         </div>
       </section>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
