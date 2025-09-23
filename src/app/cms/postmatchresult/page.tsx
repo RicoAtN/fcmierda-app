@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
 
-function safeArray(val: any): string[] {
+function safeArray(val: unknown): string[] {
   if (Array.isArray(val)) return val;
   if (typeof val === "string" && val.trim().startsWith("[")) {
     try {
@@ -211,8 +211,8 @@ export default function PostMatchResultPage() {
     setEditStatus("Saving...");
     // Only save filled goal scorers
     const filteredGoalScorers = (editForm.goal_scorers || []).filter(
-      (g: any) => g.scorer && g.scorer.trim() !== ""
-    );
+  (g: GoalScorer) => g.scorer && g.scorer.trim() !== ""
+);
     // Get timestamp in GMT+1 (Europe/Amsterdam)
     const now = new Date();
     const amsTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Amsterdam" }));
