@@ -123,7 +123,7 @@ export default function NextGameDetailsPage() {
     setStatus("Saved! The fixtures page now shows your update.");
     // Redirect to fixtures page after save
     setTimeout(() => {
-      router.push("/fixtures");
+      router.push("/fixtures#next-game");
     }, 1200);
   };
 

@@ -2,11 +2,24 @@
 import { useState, useEffect } from "react";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
-import Footer from "@/components/Footer"; // Add this import at the top
+import Footer from "@/components/Footer";
 import { useRouter } from "next/navigation";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
+
+function safeArray(val: any): string[] {
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string" && val.trim().startsWith("[")) {
+    try {
+      const arr = JSON.parse(val);
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 
 export default function PostMatchResultPage() {
   const router = useRouter();
@@ -29,6 +42,15 @@ export default function PostMatchResultPage() {
     { scorer: string; assist: string; goalNumber: string }[]
   >([{ scorer: "", assist: "", goalNumber: "" }]);
   const [status, setStatus] = useState("");
+
+  // New state for all match results and selected match
+  const [allResults, setAllResults] = useState<any[]>([]);
+  const [selectedResult, setSelectedResult] = useState<any | null>(null);
+
+  // Edit mode state
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState<any>(null);
+  const [editStatus, setEditStatus] = useState("");
 
   // Fetch last match info from next-game DB
   useEffect(() => {
@@ -53,6 +75,23 @@ export default function PostMatchResultPage() {
         });
       });
   }, []);
+
+  // Fetch all match results from Neon on mount
+  useEffect(() => {
+    fetch("/api/match-result?all=true")
+      .then((res) => res.json())
+      .then((data) => {
+        setAllResults(data || []);
+        if (data && data.length > 0) setSelectedResult(data[0]);
+      });
+  }, []);
+
+  // When selecting a result, reset edit mode and form
+  useEffect(() => {
+    setEditMode(false);
+    setEditForm(selectedResult ? { ...selectedResult } : null);
+    setEditStatus("");
+  }, [selectedResult]);
 
   // Handle dynamic goal scorer fields
   const handleGoalScorerChange = (
@@ -120,6 +159,88 @@ export default function PostMatchResultPage() {
     setStatus("Saved! The match result is now stored.");
   };
 
+  // Handle edit form changes
+  function handleEditChange(field: string, value: any) {
+    setEditForm((prev: any) => ({ ...prev, [field]: value }));
+  }
+
+  // Handle edit goal scorers
+  function handleEditGoalScorerChange(idx: number, field: string, value: string) {
+    setEditForm((prev: any) => {
+      const updated = [...(prev.goal_scorers || [])];
+      updated[idx][field] = value;
+      return { ...prev, goal_scorers: updated };
+    });
+  }
+
+  // Remove goal scorer row
+  function removeEditGoalScorer(idx: number) {
+    setEditForm((prev: any) => ({
+      ...prev,
+      goal_scorers: prev.goal_scorers.filter((_: any, i: number) => i !== idx),
+    }));
+  }
+
+  // Save edited match result
+  async function handleEditSave() {
+    setEditStatus("Saving...");
+    // Only save filled goal scorers
+    const filteredGoalScorers = (editForm.goal_scorers || []).filter(
+      (g: any) => g.scorer && g.scorer.trim() !== ""
+    );
+    // Get timestamp in GMT+1 (Europe/Amsterdam)
+    const now = new Date();
+    const amsTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Amsterdam" }));
+    const hour = amsTime.getHours().toString().padStart(2, "0");
+    const minute = amsTime.getMinutes().toString().padStart(2, "0");
+    const day = amsTime.toLocaleString("en-US", { weekday: "short", timeZone: "Europe/Amsterdam" });
+    const date = amsTime.getDate().toString().padStart(2, "0");
+    const month = (amsTime.getMonth() + 1).toString().padStart(2, "0");
+    const year = amsTime.getFullYear();
+    const lastEdited = `${hour}:${minute} ${day} ${date}-${month}-${year}`;
+
+    await fetch("/api/match-result", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...editForm,
+        goal_scorers: filteredGoalScorers,
+        lastEdited,
+      }),
+    });
+
+    setEditStatus("Saved! The match result has been updated.");
+    setEditMode(false);
+
+    // Refresh all results
+    fetch("/api/match-result?all=true")
+      .then((res) => res.json())
+      .then((data) => {
+        setAllResults(data || []);
+        // Find and select the updated result
+        const updated = data.find((r: any) => r.id === editForm.id);
+        setSelectedResult(updated || null);
+      });
+  }
+
+  // Update this function to always ensure an empty row at the end in edit mode
+  useEffect(() => {
+    if (editMode && editForm && Array.isArray(editForm.goal_scorers)) {
+      const last = editForm.goal_scorers[editForm.goal_scorers.length - 1];
+      if (!last || (last.scorer && last.scorer.trim() !== "")) {
+        setEditForm((prev: any) => ({
+          ...prev,
+          goal_scorers: [
+            ...(prev.goal_scorers || []),
+            { scorer: "", assist: "", goalNumber: "" },
+          ],
+        }));
+      }
+    }
+    // Only run when editMode or editForm changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editMode, editForm]);
+
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
       <Menu />
@@ -143,16 +264,14 @@ export default function PostMatchResultPage() {
               textTransform: "uppercase",
             }}
           >
-            Post Match Result
+            Manage Match Results
           </h1>
           <p
             className={`text-base sm:text-lg text-white font-medium mb-6 drop-shadow-lg ${montserrat.className}`}
             style={{ maxWidth: 600 }}
           >
-            Here you can post the result of the last game, including the score,
-            who scored the goals, and who provided the assists. Fill in all
-            relevant match information below to keep track of team performance
-            and statistics.
+            Besides posting new match results, you can also edit past match results here.<br />
+            Keep your team’s history up to date by filling in or correcting all relevant match information.
           </p>
           <button
             type="button"
@@ -163,7 +282,30 @@ export default function PostMatchResultPage() {
           </button>
         </div>
       </section>
-      <section className="w-full flex flex-col items-center gap-8 py-8 px-2 sm:px-4 bg-gray-800">
+      <section className="w-full flex justify-center items-center py-2 px-2 sm:px-4 bg-gray-900">
+        <div className="flex gap-4 max-w-2xl w-full justify-center">
+          <button
+            onClick={() => {
+              document.getElementById("fill-last-match")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded font-semibold shadow border border-green-900 transition"
+          >
+            Fill-in Last Match Result
+          </button>
+          <button
+            onClick={() => {
+              document.getElementById("edit-match-results")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded font-semibold shadow border border-blue-900 transition"
+          >
+            Edit Match Results
+          </button>
+        </div>
+      </section>
+      <section
+        id="fill-last-match"
+        className="w-full flex flex-col items-center gap-8 py-8 px-2 sm:px-4 bg-gray-800"
+      >
         <div className="max-w-2xl w-full rounded-2xl p-4 sm:p-8 text-white text-left bg-gray-900 shadow-xl mx-auto">
           <h2
             className={`text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-center ${robotoSlab.className}`}
@@ -371,7 +513,316 @@ export default function PostMatchResultPage() {
           </form>
         </div>
       </section>
-      {/* Footer */}
+      {/* Edit Past Match Results Section */}
+      <section
+        id="edit-match-results"
+        className="w-full flex flex-col items-center gap-8 py-8 px-2 sm:px-4 bg-gray-900"
+      >
+        <div className="max-w-5xl w-full flex flex-col sm:flex-row gap-8 mx-auto">
+          {/* List of past results */}
+          <div className="flex-1">
+            <h2 className="text-xl sm:text-2xl font-bold mb-2 text-center text-green-400">
+              Edit Match Results
+            </h2>
+            <div className="text-center mb-4 font-bold text-base bg-gray-800/80 py-2 px-4 rounded shadow-sm">
+              Pick the match you want to edit
+            </div>
+            <div
+              className="bg-gray-900 rounded-xl shadow-lg border border-gray-800 overflow-y-auto"
+              style={{ maxHeight: 340, minHeight: 180 }}
+            >
+              <table className="min-w-full text-base">
+                <thead>
+                  <tr className="bg-gray-800">
+                    <th className="py-3 px-4 text-left text-green-300 font-semibold border-b border-gray-800">Date</th>
+                    <th className="py-3 px-4 text-left text-green-300 font-semibold border-b border-gray-800">Opponent</th>
+                    <th className="py-3 px-4 text-left text-green-300 font-semibold border-b border-gray-800">Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allResults.map((result, idx) => (
+                    <tr
+                      key={result.id || idx}
+                      className={`cursor-pointer transition ${
+                        selectedResult && selectedResult.id === result.id
+                          ? "bg-green-950/80 text-green-200 font-semibold"
+                          : "hover:bg-gray-800"
+                      }`}
+                      onClick={() => setSelectedResult(result)}
+                    >
+                      <td className="py-2 px-4 border-b border-gray-800">{result.date}</td>
+                      <td className="py-2 px-4 border-b border-gray-800">{result.opponent}</td>
+                      <td className="py-2 px-4 border-b border-gray-800 capitalize">
+                        {result.gameResult || result.game_result || "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {/* Details of selected match */}
+          <div className="flex-1">
+            {selectedResult ? (
+              <div className="bg-gray-800 rounded-lg shadow-xl p-6">
+                <h3 className="text-lg sm:text-xl font-bold mb-4 text-center">
+                  Edit Match Details
+                </h3>
+                {!editMode ? (
+                  <>
+                    <div className="mb-2">
+                      <strong>Date:</strong> {selectedResult.date}
+                    </div>
+                    <div className="mb-2">
+                      <strong>Opponent:</strong> {selectedResult.opponent}
+                    </div>
+                    <div className="mb-2">
+                      <strong>Location:</strong> {selectedResult.location}
+                    </div>
+                    <div className="mb-2">
+                      <strong>Competition:</strong> {selectedResult.competition}
+                    </div>
+                    <div className="mb-2">
+                      <strong>Game Result:</strong>{" "}
+                      <span className="capitalize">{selectedResult.gameResult || selectedResult.game_result || "-"}</span>
+                    </div>
+                    <div className="mb-2">
+                      <strong>Score:</strong>{" "}
+                      <span className="text-green-400 font-bold">{selectedResult.goals_fcmierda ?? selectedResult.goalsFCMierda ?? "-"}</span>
+                      {" - "}
+                      <span className="text-red-400 font-bold">{selectedResult.goals_opponent ?? selectedResult.goalsOpponent ?? "-"}</span>
+                    </div>
+                    <div className="mb-2">
+                      <strong>Attendance:</strong>{" "}
+                      {safeArray(selectedResult.attendance).length}
+                      <div className="mt-1 grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1">
+                        {safeArray(selectedResult.attendance).map((name: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="bg-gray-900 rounded px-2 py-1 text-white text-xs break-words"
+                            style={{ wordBreak: "break-word" }}
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mb-2">
+                      <strong>Support/Coach:</strong>{" "}
+                      {safeArray(selectedResult.support_coach).length}
+                      <div className="mt-1 grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1">
+                        {safeArray(selectedResult.support_coach).map((name: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="bg-gray-900 rounded px-2 py-1 text-white text-xs break-words"
+                            style={{ wordBreak: "break-word" }}
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mb-2">
+                      <strong>Goals & Assists:</strong>
+                      {selectedResult.goal_scorers && selectedResult.goal_scorers.length > 0 ? (
+                        <div className="overflow-x-auto mt-2">
+                          <table className="min-w-full text-sm border-separate border-spacing-y-2">
+                            <thead>
+                              <tr>
+                                <th className="text-left text-gray-400 font-semibold px-2">Goal</th>
+                                <th className="text-left text-gray-400 font-semibold px-2">Scorer</th>
+                                <th className="text-left text-gray-400 font-semibold px-2">Assist</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedResult.goal_scorers.map((g: any, idx: number) => (
+                                <tr key={idx} className="bg-gray-900 rounded">
+                                  <td className="px-2 py-1 text-green-400 font-semibold">{g.goalNumber || "-"}</td>
+                                  <td className="px-2 py-1 text-white font-bold">{g.scorer || "-"}</td>
+                                  <td className="px-2 py-1 text-blue-300">{g.assist || <span className="text-gray-500">-</span>}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="text-gray-400 text-left mt-2">No goal details available.</div>
+                      )}
+                    </div>
+                    <div className="mb-2">
+                      <strong>Last Edited:</strong> {selectedResult.lastedited || selectedResult.lastEdited || "-"}
+                    </div>
+                    <button
+                      className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      onClick={() => {
+                        setEditMode(true);
+                        setEditForm({ ...selectedResult });
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </>
+                ) : (
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      handleEditSave();
+                    }}
+                    className="space-y-3"
+                  >
+                    <div>
+                      <label className="block font-semibold mb-1">Date</label>
+                      <input
+                        type="date"
+                        value={editForm.date || ""}
+                        onChange={e => handleEditChange("date", e.target.value)}
+                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1">Opponent</label>
+                      <input
+                        type="text"
+                        value={editForm.opponent || ""}
+                        onChange={e => handleEditChange("opponent", e.target.value)}
+                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1">Location</label>
+                      <input
+                        type="text"
+                        value={editForm.location || ""}
+                        onChange={e => handleEditChange("location", e.target.value)}
+                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1">Competition</label>
+                      <input
+                        type="text"
+                        value={editForm.competition || ""}
+                        onChange={e => handleEditChange("competition", e.target.value)}
+                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1">Game Result</label>
+                      <select
+                        value={editForm.gameResult || editForm.game_result || ""}
+                        onChange={e => handleEditChange("gameResult", e.target.value)}
+                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
+                        required
+                      >
+                        <option value="">Select result</option>
+                        <option value="win">Win</option>
+                        <option value="draw">Draw</option>
+                        <option value="loss">Loss</option>
+                      </select>
+                    </div>
+                    <div className="flex gap-2 sm:gap-4 items-end justify-between w-full">
+                      <div className="flex flex-col items-center flex-1">
+                        <label className="block font-semibold mb-1 text-center">
+                          FC Mierda
+                        </label>
+                        <input
+                          type="number"
+                          value={editForm.goals_fcmierda ?? editForm.goalsFCMierda ?? 0}
+                          onChange={e => handleEditChange("goals_fcmierda", Number(e.target.value))}
+                          className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white text-center"
+                        />
+                      </div>
+                      <div className="flex flex-col items-center flex-1">
+                        <label className="block font-semibold mb-1 text-center">
+                          {editForm.opponent || "Opponent"}
+                        </label>
+                        <input
+                          type="number"
+                          value={editForm.goals_opponent ?? editForm.goalsOpponent ?? 0}
+                          onChange={e => handleEditChange("goals_opponent", Number(e.target.value))}
+                          className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white text-center"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1">
+                        FC Mierda Goal Scorers & Assists
+                      </label>
+                      {(editForm.goal_scorers || [{ scorer: "", assist: "", goalNumber: "" }]).map((g: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="flex flex-col sm:flex-row gap-2 mb-2 items-center w-full"
+                        >
+                          <input
+                            type="text"
+                            placeholder="Goal scorer"
+                            value={g.scorer}
+                            onChange={e =>
+                              handleEditGoalScorerChange(idx, "scorer", e.target.value)
+                            }
+                            className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Assist (optional)"
+                            value={g.assist}
+                            onChange={e =>
+                              handleEditGoalScorerChange(idx, "assist", e.target.value)
+                            }
+                            className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Goal 1-0, 2-0, 1-1, etc."
+                            value={g.goalNumber}
+                            onChange={e =>
+                              handleEditGoalScorerChange(idx, "goalNumber", e.target.value)
+                            }
+                            className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
+                          />
+                          {(editForm.goal_scorers || []).length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeEditGoalScorer(idx)}
+                              className="text-red-400 hover:text-red-600 font-extrabold text-2xl px-2"
+                              title="Remove this goal"
+                              style={{ lineHeight: 1 }}
+                            >
+                              &times;
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="submit"
+                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      className="ml-4 bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      onClick={() => setEditMode(false)}
+                    >
+                      Cancel
+                    </button>
+                    <div className="mt-2 text-green-400">{editStatus}</div>
+                  </form>
+                )}
+              </div>
+            ) : (
+              <div className="bg-gray-800 rounded-lg shadow-xl p-6 text-gray-400 text-center">
+                Select a match result to view details.
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
       <Footer />
     </div>
   );
