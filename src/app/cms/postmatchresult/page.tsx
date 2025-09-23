@@ -21,6 +21,26 @@ function safeArray(val: any): string[] {
   return [];
 }
 
+type GoalScorer = { scorer: string; assist: string; goalNumber: string };
+type MatchResult = {
+  id: number;
+  date: string;
+  opponent: string;
+  location: string;
+  competition: string;
+  attendance: string[] | string;
+  support_coach: string[] | string;
+  goals_fcmierda?: number;
+  goalsFCMierda?: number;
+  goals_opponent?: number;
+  goalsOpponent?: number;
+  gameResult?: string;
+  game_result?: string;
+  goal_scorers: GoalScorer[];
+  lastEdited?: string;
+  lastedited?: string;
+};
+
 export default function PostMatchResultPage() {
   const router = useRouter();
 
@@ -44,12 +64,12 @@ export default function PostMatchResultPage() {
   const [status, setStatus] = useState("");
 
   // New state for all match results and selected match
-  const [allResults, setAllResults] = useState<any[]>([]);
-  const [selectedResult, setSelectedResult] = useState<any | null>(null);
+  const [allResults, setAllResults] = useState<MatchResult[]>([]);
+  const [selectedResult, setSelectedResult] = useState<MatchResult | null>(null);
 
   // Edit mode state
   const [editMode, setEditMode] = useState(false);
-  const [editForm, setEditForm] = useState<any>(null);
+  const [editForm, setEditForm] = useState<MatchResult | null>(null);
   const [editStatus, setEditStatus] = useState("");
 
   // Fetch last match info from next-game DB
@@ -160,13 +180,14 @@ export default function PostMatchResultPage() {
   };
 
   // Handle edit form changes
-  function handleEditChange(field: string, value: any) {
-    setEditForm((prev: any) => ({ ...prev, [field]: value }));
+  function handleEditChange(field: keyof MatchResult, value: unknown) {
+    setEditForm((prev) => prev ? { ...prev, [field]: value } : prev);
   }
 
   // Handle edit goal scorers
-  function handleEditGoalScorerChange(idx: number, field: string, value: string) {
-    setEditForm((prev: any) => {
+  function handleEditGoalScorerChange(idx: number, field: keyof GoalScorer, value: string) {
+    setEditForm((prev) => {
+      if (!prev) return prev;
       const updated = [...(prev.goal_scorers || [])];
       updated[idx][field] = value;
       return { ...prev, goal_scorers: updated };
@@ -175,14 +196,18 @@ export default function PostMatchResultPage() {
 
   // Remove goal scorer row
   function removeEditGoalScorer(idx: number) {
-    setEditForm((prev: any) => ({
-      ...prev,
-      goal_scorers: prev.goal_scorers.filter((_: any, i: number) => i !== idx),
-    }));
+    setEditForm((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        goal_scorers: prev.goal_scorers.filter((_, i) => i !== idx),
+      };
+    });
   }
 
   // Save edited match result
   async function handleEditSave() {
+    if (!editForm) return;
     setEditStatus("Saving...");
     // Only save filled goal scorers
     const filteredGoalScorers = (editForm.goal_scorers || []).filter(
@@ -218,7 +243,7 @@ export default function PostMatchResultPage() {
       .then((data) => {
         setAllResults(data || []);
         // Find and select the updated result
-        const updated = data.find((r: any) => r.id === editForm.id);
+        const updated = data.find((r: MatchResult) => r.id === editForm.id);
         setSelectedResult(updated || null);
       });
   }
@@ -228,16 +253,15 @@ export default function PostMatchResultPage() {
     if (editMode && editForm && Array.isArray(editForm.goal_scorers)) {
       const last = editForm.goal_scorers[editForm.goal_scorers.length - 1];
       if (!last || (last.scorer && last.scorer.trim() !== "")) {
-        setEditForm((prev: any) => ({
+        setEditForm((prev) => prev ? {
           ...prev,
           goal_scorers: [
             ...(prev.goal_scorers || []),
             { scorer: "", assist: "", goalNumber: "" },
           ],
-        }));
+        } : prev);
       }
     }
-    // Only run when editMode or editForm changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editMode, editForm]);
 
@@ -674,7 +698,7 @@ export default function PostMatchResultPage() {
                       <label className="block font-semibold mb-1">Date</label>
                       <input
                         type="date"
-                        value={editForm.date || ""}
+                        value={editForm?.date || ""}
                         onChange={e => handleEditChange("date", e.target.value)}
                         className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
                         required
@@ -684,7 +708,7 @@ export default function PostMatchResultPage() {
                       <label className="block font-semibold mb-1">Opponent</label>
                       <input
                         type="text"
-                        value={editForm.opponent || ""}
+                        value={editForm?.opponent || ""}
                         onChange={e => handleEditChange("opponent", e.target.value)}
                         className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
                         required
@@ -694,7 +718,7 @@ export default function PostMatchResultPage() {
                       <label className="block font-semibold mb-1">Location</label>
                       <input
                         type="text"
-                        value={editForm.location || ""}
+                        value={editForm?.location || ""}
                         onChange={e => handleEditChange("location", e.target.value)}
                         className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
                         required
@@ -704,7 +728,7 @@ export default function PostMatchResultPage() {
                       <label className="block font-semibold mb-1">Competition</label>
                       <input
                         type="text"
-                        value={editForm.competition || ""}
+                        value={editForm?.competition || ""}
                         onChange={e => handleEditChange("competition", e.target.value)}
                         className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
                         required
@@ -713,7 +737,7 @@ export default function PostMatchResultPage() {
                     <div>
                       <label className="block font-semibold mb-1">Game Result</label>
                       <select
-                        value={editForm.gameResult || editForm.game_result || ""}
+                        value={editForm?.gameResult || editForm?.game_result || ""}
                         onChange={e => handleEditChange("gameResult", e.target.value)}
                         className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
                         required
@@ -731,18 +755,18 @@ export default function PostMatchResultPage() {
                         </label>
                         <input
                           type="number"
-                          value={editForm.goals_fcmierda ?? editForm.goalsFCMierda ?? 0}
+                          value={editForm?.goals_fcmierda ?? editForm?.goalsFCMierda ?? 0}
                           onChange={e => handleEditChange("goals_fcmierda", Number(e.target.value))}
                           className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white text-center"
                         />
                       </div>
                       <div className="flex flex-col items-center flex-1">
                         <label className="block font-semibold mb-1 text-center">
-                          {editForm.opponent || "Opponent"}
+                          {editForm?.opponent || "Opponent"}
                         </label>
                         <input
                           type="number"
-                          value={editForm.goals_opponent ?? editForm.goalsOpponent ?? 0}
+                          value={editForm?.goals_opponent ?? editForm?.goalsOpponent ?? 0}
                           onChange={e => handleEditChange("goals_opponent", Number(e.target.value))}
                           className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white text-center"
                         />
@@ -752,7 +776,7 @@ export default function PostMatchResultPage() {
                       <label className="block font-semibold mb-1">
                         FC Mierda Goal Scorers & Assists
                       </label>
-                      {(editForm.goal_scorers || [{ scorer: "", assist: "", goalNumber: "" }]).map((g: any, idx: number) => (
+                      {(editForm?.goal_scorers || [{ scorer: "", assist: "", goalNumber: "" }]).map((g, idx) => (
                         <div
                           key={idx}
                           className="flex flex-col sm:flex-row gap-2 mb-2 items-center w-full"
@@ -784,7 +808,7 @@ export default function PostMatchResultPage() {
                             }
                             className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
                           />
-                          {(editForm.goal_scorers || []).length > 1 && (
+                          {(editForm?.goal_scorers?.length ?? 0) > 1 && (
                             <button
                               type="button"
                               onClick={() => removeEditGoalScorer(idx)}
