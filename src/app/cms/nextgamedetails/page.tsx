@@ -119,7 +119,12 @@ export default function NextGameDetailsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...form, attendance: fullAttendance, timestamp }),
     });
+
     setStatus("Saved! The fixtures page now shows your update.");
+    // Redirect to fixtures page after save
+    setTimeout(() => {
+      router.push("/fixtures");
+    }, 1200);
   };
 
   function renderPlayerName(name: string) {
