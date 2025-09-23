@@ -166,9 +166,9 @@ export default function PostMatchResultPage() {
       <section className="w-full flex flex-col items-center gap-8 py-8 px-2 sm:px-4 bg-gray-800">
         <div className="max-w-2xl w-full rounded-2xl p-4 sm:p-8 text-white text-left bg-gray-900 shadow-xl mx-auto">
           <h2
-            className={`text-lg sm:text-xl font-bold mb-3 sm:mb-4 ${robotoSlab.className}`}
+            className={`text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-center ${robotoSlab.className}`}
           >
-            Last Match Details
+            Fill-in Last Match Details
           </h2>
           <div className="mb-6 space-y-2">
             <div>
