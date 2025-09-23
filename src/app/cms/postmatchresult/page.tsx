@@ -659,7 +659,7 @@ export default function PostMatchResultPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {selectedResult.goal_scorers.map((g: any, idx: number) => (
+                              {selectedResult.goal_scorers.map((g: GoalScorer, idx: number) => (
                                 <tr key={idx} className="bg-gray-900 rounded">
                                   <td className="px-2 py-1 text-green-400 font-semibold">{g.goalNumber || "-"}</td>
                                   <td className="px-2 py-1 text-white font-bold">{g.scorer || "-"}</td>
