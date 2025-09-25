@@ -590,11 +590,24 @@ export default function PostMatchResultPage() {
           <div className="flex-1">
             {selectedResult ? (
               <div className="bg-gray-900 rounded-2xl shadow-xl p-6 text-white">
-                <h3 className="text-lg sm:text-xl font-bold mb-4 text-center">
+                {/* Add this for consistent header styling */}
+                <div className="text-center mb-4 font-bold text-base bg-gray-800/80 py-2 px-4 rounded shadow-sm text-white">
                   Edit Match Details
-                </h3>
+                </div>
                 {!editMode ? (
                   <>
+                    {/* Move the Edit button above the date field */}
+                    <div className="mb-6 flex justify-center">
+                      <button
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        onClick={() => {
+                          setEditMode(true);
+                          setEditForm({ ...selectedResult });
+                        }}
+                      >
+                        Edit here
+                      </button>
+                    </div>
                     <div className="mb-2">
                       <strong>Date:</strong> <span className="text-green-300">{selectedResult.date}</span>
                     </div>
@@ -697,18 +710,6 @@ export default function PostMatchResultPage() {
                     </div>
                     <div className="mb-2">
                       <strong>Last Edited:</strong> <span className="text-gray-300">{selectedResult.lastedited || selectedResult.lastEdited || "-"}</span>
-                    </div>
-                    {/* Move the Edit button below all details */}
-                    <div className="mt-6 flex justify-center">
-                      <button
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        onClick={() => {
-                          setEditMode(true);
-                          setEditForm({ ...selectedResult });
-                        }}
-                      >
-                        Edit here
-                      </button>
                     </div>
                   </>
                 ) : (

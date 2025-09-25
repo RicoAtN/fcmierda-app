@@ -1,8 +1,9 @@
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import { Pool } from "pg";
-import Image from "next/image";
 import Footer from "@/components/Footer";
+import React from "react";
+import ClientMatchResults from "./ClientMatchResults";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -86,6 +87,11 @@ type MatchResult = {
   goals_fcmierda?: number | string;
   goals_opponent?: number | string;
   youtube?: string;
+  location?: string;
+  competition?: string;
+  attendance?: string[] | string;
+  support_coach?: string[] | string;
+  goal_scorers?: GoalScorer[] | string;
 };
 
 export default async function ResultsPage() {
@@ -128,57 +134,8 @@ export default async function ResultsPage() {
         </div>
       </section>
 
-      {/* All Results Table Section */} 
-      <section className="w-full flex flex-col items-center py-8 px-2 bg-gray-900">
-        <div className="max-w-4xl w-full mx-auto mb-8">
-          <h2 className={`text-xl sm:text-2xl font-bold mb-6 text-center ${robotoSlab.className}`}>
-            All Match Results
-          </h2>
-          <div className="overflow-x-auto rounded-lg shadow">
-            <table className="min-w-full text-sm sm:text-base border-separate border-spacing-y-2">
-              <thead>
-                <tr className="bg-gray-800">
-                  <th className="px-2 py-2 text-left text-green-300 font-semibold whitespace-nowrap">Date</th>
-                  <th className="px-2 py-2 text-left text-green-300 font-semibold whitespace-nowrap">Opponent</th>
-                  <th className="px-2 py-2 text-left text-green-300 font-semibold whitespace-nowrap">Result</th>
-                  <th className="px-2 py-2 text-center text-green-300 font-semibold whitespace-nowrap">Score</th>
-                  <th className="px-2 py-2 text-center text-green-300 font-semibold whitespace-nowrap">Video</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allResults.map((result: MatchResult) => (
-                  <tr key={result.id} className="bg-gray-900 rounded hover:bg-green-950/40 transition">
-                    <td className="px-2 py-2 whitespace-nowrap">
-                      {result.date
-                        ? formatShortDate(result.date)
-                        : "-"}
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap">{result.opponent}</td>
-                    <td className="px-2 py-2 capitalize whitespace-nowrap">
-                      {result.game_result === "win" && <span className="px-2 py-1 rounded bg-green-600 text-white font-bold">Win</span>}
-                      {result.game_result === "draw" && <span className="px-2 py-1 rounded bg-amber-500 text-white font-bold">Draw</span>}
-                      {result.game_result === "loss" && <span className="px-2 py-1 rounded bg-red-600 text-white font-bold">Loss</span>}
-                      {!["win", "draw", "loss"].includes(result.game_result || "") && (
-                        <span className="px-2 py-1 rounded bg-gray-700 text-white font-bold">{result.game_result}</span>
-                      )}
-                    </td>
-                    <td className="px-2 py-2 text-center whitespace-nowrap">
-                      {(result.goals_fcmierda ?? "-") + " - " + (result.goals_opponent ?? "-")}
-                    </td>
-                    <td className="px-2 py-2 text-center whitespace-nowrap">
-                      {result.youtube ? (
-                        <span className="px-2 py-1 rounded bg-green-600 text-white font-bold">Yes</span>
-                      ) : (
-                        <span className="px-2 py-1 rounded bg-gray-700 text-white font-bold">No</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+      {/* All Results Table Section and Details */}
+      <ClientMatchResults allResults={allResults} />
 
       <Footer />
     </div>
