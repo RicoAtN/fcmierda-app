@@ -78,6 +78,16 @@ type GoalScorer = {
   assist?: string;
 };
 
+type MatchResult = {
+  id: number;
+  date: string;
+  opponent: string;
+  game_result?: string;
+  goals_fcmierda?: number | string;
+  goals_opponent?: number | string;
+  youtube?: string;
+};
+
 export default async function ResultsPage() {
   const latestResult = await getLatestResult();
   const allResults = await getAllResults();
@@ -136,7 +146,7 @@ export default async function ResultsPage() {
                 </tr>
               </thead>
               <tbody>
-                {allResults.map((result: any) => (
+                {allResults.map((result: MatchResult) => (
                   <tr key={result.id} className="bg-gray-900 rounded hover:bg-green-950/40 transition">
                     <td className="px-2 py-2 whitespace-nowrap">
                       {result.date

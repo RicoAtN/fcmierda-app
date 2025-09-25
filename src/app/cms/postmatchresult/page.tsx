@@ -39,6 +39,7 @@ type MatchResult = {
   goal_scorers: GoalScorer[];
   lastEdited?: string;
   lastedited?: string;
+  youtube?: string; // <-- Add this line
 };
 
 export default function PostMatchResultPage() {
@@ -548,7 +549,7 @@ export default function PostMatchResultPage() {
             <h2 className="text-xl sm:text-2xl font-bold mb-2 text-center text-green-400">
               Edit Match Results
             </h2>
-            <div className="text-center mb-4 font-bold text-base bg-gray-800/80 py-2 px-4 rounded shadow-sm">
+            <div className="text-center mb-4 font-bold text-base bg-gray-800/80 py-2 px-4 rounded shadow-sm text-white">
               Pick the match you want to edit
             </div>
             <div
@@ -570,7 +571,7 @@ export default function PostMatchResultPage() {
                       className={`cursor-pointer transition ${
                         selectedResult && selectedResult.id === result.id
                           ? "bg-green-950/80 text-green-200 font-semibold"
-                          : "hover:bg-gray-800"
+                          : "hover:bg-gray-800 text-white"
                       }`}
                       onClick={() => setSelectedResult(result)}
                     >
@@ -588,27 +589,40 @@ export default function PostMatchResultPage() {
           {/* Details of selected match */}
           <div className="flex-1">
             {selectedResult ? (
-              <div className="bg-gray-800 rounded-lg shadow-xl p-6">
+              <div className="bg-gray-900 rounded-2xl shadow-xl p-6 text-white">
                 <h3 className="text-lg sm:text-xl font-bold mb-4 text-center">
                   Edit Match Details
                 </h3>
                 {!editMode ? (
                   <>
                     <div className="mb-2">
-                      <strong>Date:</strong> {selectedResult.date}
+                      <strong>Date:</strong> <span className="text-green-300">{selectedResult.date}</span>
                     </div>
                     <div className="mb-2">
-                      <strong>Opponent:</strong> {selectedResult.opponent}
+                      <strong>Opponent:</strong> <span className="text-red-300">{selectedResult.opponent}</span>
                     </div>
                     <div className="mb-2">
-                      <strong>Location:</strong> {selectedResult.location}
+                      <strong>Location:</strong> <span className="text-white">{selectedResult.location}</span>
                     </div>
                     <div className="mb-2">
-                      <strong>Competition:</strong> {selectedResult.competition}
+                      <strong>Competition:</strong> <span className="text-white">{selectedResult.competition}</span>
                     </div>
                     <div className="mb-2">
                       <strong>Game Result:</strong>{" "}
-                      <span className="capitalize">{selectedResult.gameResult || selectedResult.game_result || "-"}</span>
+                      {["win"].includes(selectedResult.gameResult || selectedResult.game_result || "") && (
+                        <span className="px-2 py-1 rounded bg-green-600 text-white font-bold">Win</span>
+                      )}
+                      {["draw"].includes(selectedResult.gameResult || selectedResult.game_result || "") && (
+                        <span className="px-2 py-1 rounded bg-amber-500 text-white font-bold">Draw</span>
+                      )}
+                      {["loss", "lost"].includes(selectedResult.gameResult || selectedResult.game_result || "") && (
+                        <span className="px-2 py-1 rounded bg-red-600 text-white font-bold">Loss</span>
+                      )}
+                      {!["win", "draw", "loss", "lost"].includes(selectedResult.gameResult || selectedResult.game_result || "") && (
+                        <span className="px-2 py-1 rounded bg-gray-700 text-white font-bold">
+                          {selectedResult.gameResult || selectedResult.game_result || "-"}
+                        </span>
+                      )}
                     </div>
                     <div className="mb-2">
                       <strong>Score:</strong>{" "}
@@ -618,12 +632,12 @@ export default function PostMatchResultPage() {
                     </div>
                     <div className="mb-2">
                       <strong>Attendance:</strong>{" "}
-                      {safeArray(selectedResult.attendance).length}
+                      <span className="text-green-300">{safeArray(selectedResult.attendance).length}</span>
                       <div className="mt-1 grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1">
                         {safeArray(selectedResult.attendance).map((name: string, idx: number) => (
                           <span
                             key={idx}
-                            className="bg-gray-900 rounded px-2 py-1 text-white text-xs break-words"
+                            className="bg-gray-800 rounded px-2 py-1 text-white text-xs break-words"
                             style={{ wordBreak: "break-word" }}
                           >
                             {name}
@@ -633,12 +647,12 @@ export default function PostMatchResultPage() {
                     </div>
                     <div className="mb-2">
                       <strong>Support/Coach:</strong>{" "}
-                      {safeArray(selectedResult.support_coach).length}
+                      <span className="text-blue-300">{safeArray(selectedResult.support_coach).length}</span>
                       <div className="mt-1 grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1">
                         {safeArray(selectedResult.support_coach).map((name: string, idx: number) => (
                           <span
                             key={idx}
-                            className="bg-gray-900 rounded px-2 py-1 text-white text-xs break-words"
+                            className="bg-gray-800 rounded px-2 py-1 text-white text-xs break-words"
                             style={{ wordBreak: "break-word" }}
                           >
                             {name}
@@ -674,17 +688,28 @@ export default function PostMatchResultPage() {
                       )}
                     </div>
                     <div className="mb-2">
-                      <strong>Last Edited:</strong> {selectedResult.lastedited || selectedResult.lastEdited || "-"}
+                      <strong>Video:</strong>{" "}
+                      {selectedResult.youtube ? (
+                        <span className="text-green-400 break-all">{selectedResult.youtube}</span>
+                      ) : (
+                        <span className="text-gray-400">No video link</span>
+                      )}
                     </div>
-                    <button
-                      className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      onClick={() => {
-                        setEditMode(true);
-                        setEditForm({ ...selectedResult });
-                      }}
-                    >
-                      Edit
-                    </button>
+                    <div className="mb-2">
+                      <strong>Last Edited:</strong> <span className="text-gray-300">{selectedResult.lastedited || selectedResult.lastEdited || "-"}</span>
+                    </div>
+                    {/* Move the Edit button below all details */}
+                    <div className="mt-6 flex justify-center">
+                      <button
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        onClick={() => {
+                          setEditMode(true);
+                          setEditForm({ ...selectedResult });
+                        }}
+                      >
+                        Edit here
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <form
@@ -743,9 +768,9 @@ export default function PostMatchResultPage() {
                         required
                       >
                         <option value="">Select result</option>
-                        <option value="win">Win</option>
-                        <option value="draw">Draw</option>
-                        <option value="loss">Loss</option>
+                        <option value="win" className="text-green-600">Win</option>
+                        <option value="draw" className="text-amber-500">Draw</option>
+                        <option value="loss" className="text-red-600">Loss</option>
                       </select>
                     </div>
                     <div className="flex gap-2 sm:gap-4 items-end justify-between w-full">
@@ -821,6 +846,17 @@ export default function PostMatchResultPage() {
                           )}
                         </div>
                       ))}
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1">Video Link (YouTube)</label>
+                      <input
+                        type="text"
+                        value={editForm?.youtube || ""}
+                        onChange={e => handleEditChange("youtube", e.target.value)}
+                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
+                        placeholder="Paste YouTube link here"
+                      />
+                      <span className="text-gray-400 text-xs">Paste the full YouTube URL for the match video.</span>
                     </div>
                     <button
                       type="submit"

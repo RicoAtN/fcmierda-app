@@ -58,7 +58,7 @@ export default function CMSPage() {
               onClick={() => router.push("/cms/postmatchresult")}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-bold text-lg shadow transition-all duration-150 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
-              Post Match Results
+              Post or Edit Match Results
             </button>
           </div>
         </div>
