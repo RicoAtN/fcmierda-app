@@ -55,12 +55,12 @@ function parseGoalScorers(goalScorers: GoalScorer[] | string | undefined): GoalS
   return [];
 }
 
-function safeArray(val: any): string[] {
-  if (Array.isArray(val)) return val;
+function safeArray(val: unknown): string[] {
+  if (Array.isArray(val)) return val as string[];
   if (typeof val === "string" && val.trim().startsWith("[")) {
     try {
       const arr = JSON.parse(val);
-      return Array.isArray(arr) ? arr : [];
+      return Array.isArray(arr) ? arr as string[] : [];
     } catch {
       return [];
     }
