@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ClientAnalytics from "./analytics/ClientAnalytics";
-import { Analytics } from "@vercel/analytics/react";
+import { Analytics } from '@vercel/analytics/next';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,14 +49,18 @@ export const metadata: Metadata = {
   themeColor: "#006400",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
+      <head>
+        <title>Next.js</title>
+      </head>
       <body>
         {children}
-        {/* client-only duration + custom events */}
-        <ClientAnalytics />
-        {/* Vercel built-in pageview tracking */}
         <Analytics />
       </body>
     </html>
