@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import ClientAnalytics from "./analytics/ClientAnalytics";
+import { Analytics } from "@vercel/analytics/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,11 +20,19 @@ export const metadata: Metadata = {
     icon: "/FCMierda-team-logo.png",
   },
   description: "Welcome to the official website of FC Mierda. Get the latest game recaps, results, and more.",
-  keywords: ["football", "soccer", "FC Mierda", "team", "Rotterdam football team", "Powerleague"],
+  keywords: [
+    "football",
+    "soccer",
+    "FC Mierda",
+    "team",
+    "Rotterdam football team",
+    "Powerleague",
+  ],
   authors: [{ name: "FC Mierda", url: "https://fc-mierda.nl" }],
   openGraph: {
     title: "FC Mierda - Official Website",
-    description: "Follow FC Mierda for the latest news, fixtures, and results. We're the slightly below average football team from Rotterdam playing in the Powerleague.",
+    description:
+      "Follow FC Mierda for the latest news, fixtures, and results. We're the slightly below average football team from Rotterdam playing in the Powerleague.",
     url: "https://fcmierda.nl",
     siteName: "FC Mierda",
     images: [
@@ -39,17 +49,15 @@ export const metadata: Metadata = {
   themeColor: "#006400",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body>
         {children}
+        {/* client-only duration + custom events */}
+        <ClientAnalytics />
+        {/* Vercel built-in pageview tracking */}
+        <Analytics />
       </body>
     </html>
   );
