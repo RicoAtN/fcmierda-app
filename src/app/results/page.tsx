@@ -122,7 +122,7 @@ export default async function ResultsPage() {
             className={`text-lg sm:text-xl text-white font-medium mb-8 drop-shadow-lg ${montserrat.className}`}
             style={{ maxWidth: 600 }}
           >
-            Here you can find the latest result of FC Mierda. Relive the match, check the score, and watch the video summary if available.
+            Here you can find the latest result of FC Mierda. Relive the match, check the score, and watch the video summary if available. <b>Click on the match below for more details.</b>
           </p>
         </div>
       </section>

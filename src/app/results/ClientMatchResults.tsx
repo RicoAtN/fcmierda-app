@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { Roboto_Slab } from "next/font/google";
+import { useRouter } from "next/navigation";
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 
 type GoalScorer = {
@@ -76,11 +77,55 @@ export default function ClientMatchResults({
   rowsToShow?: number;
 }) {
   const [selectedId, setSelectedId] = React.useState<number | null>(
-    allResults.length > 0 ? allResults[0].id : null
+    allResults && allResults.length > 0 ? allResults[0].id : null
   );
 
-  const selectedResult =
-    allResults.find((r) => r.id === selectedId) || allResults[0];
+  // ensure selectedResult is defined based on selectedId (fallback to first result)
+  const selectedResult: MatchResult | undefined =
+    (allResults || []).find((r) => r.id === selectedId) || (allResults && allResults[0]);
+
+  // ref not strictly required here but kept in case you want to use it later
+  const detailsRef = React.useRef<HTMLElement | null>(null);
+  const router = useRouter();
+
+  // If page loaded with a hash like #match-123, select that match and scroll
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash || "";
+    const match = hash.match(/#match-(\d+)/);
+    if (match) {
+      const id = Number(match[1]);
+      if (!Number.isNaN(id)) {
+        setSelectedId(id);
+        // slight delay to allow DOM render
+        setTimeout(() => {
+          const el = document.getElementById("match-details");
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleSelectAndScroll(id: number) {
+    setSelectedId(id);
+    // update URL hash without navigation
+    try {
+      const newHash = `#match-${id}`;
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, "", newHash);
+      } else {
+        window.location.hash = newHash;
+      }
+    } catch {
+      /* ignore in non-browser env */
+    }
+    // smooth scroll to details section
+    setTimeout(() => {
+      const el = document.getElementById("match-details");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  }
 
   if (!allResults || allResults.length === 0) {
     return (
@@ -104,7 +149,11 @@ export default function ClientMatchResults({
           <div className="rounded-lg shadow overflow-hidden bg-gray-800">
             {/* Desktop table (sm and up) */}
             <div className="hidden sm:block">
-              <div className="overflow-y-auto" style={{ maxHeight: `${(rowsToShow || 5) * ROW_HEIGHT_PX}px` }}>
+              {/* scrollable rows container - desktop */}
+              <div
+                className="overflow-y-auto custom-scrollbar"
+                style={{ maxHeight: `${(rowsToShow || 5) * ROW_HEIGHT_PX}px` }}
+              >
                 <table className="min-w-full w-full text-sm table-fixed">
                   <colgroup>
                     <col style={{ width: "18%" }} />
@@ -113,15 +162,17 @@ export default function ClientMatchResults({
                     <col style={{ width: "16%" }} />
                     <col style={{ width: "8%" }} />
                   </colgroup>
-                  <thead className="bg-gray-900 text-green-300 text-sm font-semibold">
+
+                  <thead className="text-green-300 text-sm font-semibold">
                     <tr>
-                      <th className="px-3 py-2 text-left">Date</th>
-                      <th className="px-3 py-2 text-left">Opponent</th>
-                      <th className="px-3 py-2 text-left">Result</th>
-                      <th className="px-3 py-2 text-center">Score</th>
-                      <th className="px-3 py-2 text-center">Video</th>
+                      <th className="px-3 py-2 text-left sticky top-0 z-20 bg-gray-900">Date</th>
+                      <th className="px-3 py-2 text-left sticky top-0 z-20 bg-gray-900">Opponent</th>
+                      <th className="px-3 py-2 text-left sticky top-0 z-20 bg-gray-900">Result</th>
+                      <th className="px-3 py-2 text-center sticky top-0 z-20 bg-gray-900">Score</th>
+                      <th className="px-3 py-2 text-center sticky top-0 z-20 bg-gray-900">Video</th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {allResults.map((result) => {
                       const isSelected = selectedId === result.id;
@@ -129,7 +180,7 @@ export default function ClientMatchResults({
                       return (
                         <tr
                           key={result.id}
-                          onClick={() => setSelectedId(result.id)}
+                          onClick={() => handleSelectAndScroll(result.id)}
                           className={`cursor-pointer border-b border-gray-700 ${isSelected ? "bg-green-900/60" : "hover:bg-green-950/20"}`}
                           style={{ height: ROW_HEIGHT_PX }}
                         >
@@ -164,14 +215,17 @@ export default function ClientMatchResults({
 
             {/* Mobile stacked cards (under sm) */}
             <div className="sm:hidden">
-              <div className="overflow-y-auto" style={{ maxHeight: `${(rowsToShow || 5) * (ROW_HEIGHT_PX + 24)}px` }}>
+              <div
+                className="overflow-y-auto custom-scrollbar"
+                style={{ maxHeight: `${(rowsToShow || 5) * (ROW_HEIGHT_PX + 24)}px` }}
+              >
                 {allResults.map((result) => {
                   const isSelected = selectedId === result.id;
                   const lower = (result.game_result || "").toLowerCase();
                   return (
                     <button
                       key={result.id}
-                      onClick={() => setSelectedId(result.id)}
+                      onClick={() => handleSelectAndScroll(result.id)}
                       className={`w-full text-left px-4 py-3 border-b border-gray-700 ${isSelected ? "bg-green-900/60" : "hover:bg-green-950/20"}`}
                     >
                       <div className="flex justify-between items-start gap-2">
@@ -202,44 +256,45 @@ export default function ClientMatchResults({
 
       {/* Details Section */}
       {selectedResult && (
-        <section className="w-full flex flex-col items-center py-8 px-4 bg-gray-900">
+        <section id="match-details" ref={detailsRef} className="w-full flex flex-col items-center py-8 px-4 bg-gray-900">
           <div className="max-w-2xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-800 shadow-xl mx-auto mb-8">
-            {/* Title */}
-            <div className="text-2xl sm:text-3xl font-bold text-white mb-2 text-center">
-              <span className="text-green-400">FC Mierda</span> vs <br />
-              <span className="text-red-400">{selectedResult.opponent}</span>
-            </div>
-            {/* Score */}
-            <div className="mb-4 text-center">
+            {/* Date */}
+            <h2 className={`text-xl sm:text-2xl font-bold mb-6 text-center ${robotoSlab.className}`}>
+              {selectedResult.date
+                ? new Date(selectedResult.date).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })
+                : "-"}
+            </h2>
+
+            {/* Match Title & Score */}
+            <div className="mb-6 text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-white mb-2">
+                <span className="text-green-400">FC Mierda</span> vs <br />
+                <span className="text-red-400">{selectedResult.opponent}</span>
+              </div>
+
               <div className="text-3xl sm:text-4xl font-extrabold text-green-300">
                 {selectedResult.goals_fcmierda ?? "-"}
                 <span className="mx-3 text-white font-normal">-</span>
                 <span className="text-red-400">{selectedResult.goals_opponent ?? "-"}</span>
               </div>
-              <div className="mt-2 py-3">
-                {selectedResult.game_result === "win" && (
-                  <span className="px-4 py-2 rounded bg-green-600 text-white font-bold">Win</span>
-                )}
-                {selectedResult.game_result === "draw" && (
-                  <span className="px-4 py-2 rounded bg-amber-500 text-white font-bold">Draw</span>
-                )}
-                {selectedResult.game_result === "loss" && (
-                  <span className="px-4 py-2 rounded bg-red-600 text-white font-bold">Loss</span>
-                )}
-                {!["win", "draw", "loss"].includes(selectedResult.game_result || "") && (
-                  <span className="px-4 py-2 rounded bg-gray-700 text-white font-bold">{selectedResult.game_result}</span>
-                )}
-              </div>
-              <h2 className={`text-xl sm:text-2xl font-bold mb-6 py-3 text-center ${robotoSlab.className}`}>
-                {selectedResult.date
-                  ? new Date(selectedResult.date).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                    })
-                  : "-"}
-              </h2>
             </div>
+
+            {/* Result */}
+            <div className="mb-4 text-center">
+              {selectedResult.game_result === "win" && (
+                <span className="px-4 py-2 rounded bg-green-600 text-white font-bold">Win</span>
+              )}
+              {selectedResult.game_result === "draw" && (
+                <span className="px-4 py-2 rounded bg-amber-500 text-white font-bold">Draw</span>
+              )}
+              {["loss", "lost"].includes((selectedResult.game_result || "").toLowerCase()) && (
+                <span className="px-4 py-2 rounded bg-red-600 text-white font-bold">Loss</span>
+              )}
+              {!selectedResult.game_result && (
+                <span className="px-4 py-2 rounded bg-gray-700 text-white font-bold">-</span>
+              )}
+            </div>
+
             {/* Goals & Assists */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-2 text-green-300">Goals & Assists</h3>
@@ -256,9 +311,9 @@ export default function ClientMatchResults({
                     <tbody>
                       {parseGoalScorers(selectedResult.goal_scorers).map((g: GoalScorer, idx: number) => (
                         <tr key={idx} className="bg-gray-900 rounded">
-                          <td className="px-2 py-1 text-green-400 font-semibold">{g.goalNumber || "-"}</td>
-                          <td className="px-2 py-1 text-white font-bold">{g.scorer || "-"}</td>
-                          <td className="px-2 py-1 text-blue-300">{g.assist || <span className="text-gray-500">-</span>}</td>
+                          <td className="px-2 py-1 text-green-400 font-semibold">{g.goalNumber ?? "-"}</td>
+                          <td className="px-2 py-1 text-white font-bold">{g.scorer ?? "-"}</td>
+                          <td className="px-2 py-1 text-blue-300">{g.assist ?? <span className="text-gray-500">-</span>}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -268,6 +323,7 @@ export default function ClientMatchResults({
                 <div className="text-gray-400 text-left">No goal details available.</div>
               )}
             </div>
+
             {/* Youtube Video */}
             <div className="mb-6 flex flex-col items-center">
               {selectedResult.youtube ? (
@@ -281,41 +337,41 @@ export default function ClientMatchResults({
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
-                  ></iframe>
+                  />
                 </div>
               ) : (
-                <div className="text-gray-400 text-center text-base py-6">
-                  No video summary available yet.<br />
-                </div>
+                <div className="text-gray-400 text-center text-base py-6">No video summary available yet.</div>
               )}
             </div>
+
             {/* Extra Info */}
             <div className="mb-6 flex flex-col gap-2">
               <div className="flex flex-row items-center gap-2">
                 <span className="font-semibold text-green-300 min-w-[110px]">Location:</span>
-                <span className="text-white">{selectedResult.location || "-"}</span>
+                <span className="text-white">{selectedResult.location ?? "-"}</span>
               </div>
+
               <div className="flex flex-row items-center gap-2">
                 <span className="font-semibold text-green-300 min-w-[110px]">Competition:</span>
-                <span className="text-white">{selectedResult.competition || "-"}</span>
+                <span className="text-white">{selectedResult.competition ?? "-"}</span>
               </div>
+
               <div className="flex flex-row items-center gap-2">
                 <span className="font-semibold text-green-300 min-w-[110px]">Attendance:</span>
-                <span className="text-white font-bold">
-                  {safeArray(selectedResult.attendance).length}
-                </span>
+                <span className="text-white font-bold">{safeArray(selectedResult.attendance).length}</span>
               </div>
+
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                 {safeArray(selectedResult.attendance).map((name: string, idx: number) => (
                   <span key={idx} className="bg-gray-900 rounded px-2 py-1 text-white text-xs w-full text-center">{name}</span>
                 ))}
               </div>
+
               <div className="flex flex-row items-center gap-2 mt-2">
                 <span className="font-semibold text-blue-300 min-w-[110px]">Supporter/Coach:</span>
-                <span className="text-white font-bold">
-                  {safeArray(selectedResult.support_coach).length}
-                </span>
+                <span className="text-white font-bold">{safeArray(selectedResult.support_coach).length}</span>
               </div>
+
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                 {safeArray(selectedResult.support_coach).map((name: string, idx: number) => (
                   <span key={idx} className="bg-gray-900 rounded px-2 py-1 text-white text-xs">{name}</span>

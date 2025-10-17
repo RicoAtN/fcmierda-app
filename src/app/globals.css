@@ -24,3 +24,36 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Sleek custom scrollbar (Chromium + Firefox) */
+.custom-scrollbar {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124,130,139,0.75) transparent; /* greyer thumb */
+}
+
+/* WebKit browsers */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  /* greyer, subtle gradient */
+  background: linear-gradient(180deg, rgba(156,163,175,0.95), rgba(107,114,128,0.95));
+  border-radius: 9999px;
+  box-shadow: 0 2px 6px rgba(2,6,23,0.35);
+  border: 2px solid rgba(30,41,59,0.0);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  filter: brightness(0.98);
+  transform: translateZ(0);
+}
+
+/* optional very subtle rounded overlay for track on dark BG */
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
