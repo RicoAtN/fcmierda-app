@@ -30,18 +30,12 @@ async function getLatestResult() {
 
 // Fetch all match results from Neon DB
 async function getAllResults() {
-  let client;
-  try {
-    client = await pool.connect();
-    const res = await client.query(
-      "SELECT * FROM match_result ORDER BY date DESC, id DESC"
-    );
-    return res.rows;
-  } catch {
-    return [];
-  } finally {
-    if (client) client.release();
-  }
+  const { rows } = await pool.query(
+    `SELECT *
+     FROM match_result
+     ORDER BY date DESC`
+  );
+  return rows;
 }
 
 function formatLongDate(dateString: string) {
@@ -95,7 +89,6 @@ type MatchResult = {
 };
 
 export default async function ResultsPage() {
-  const latestResult = await getLatestResult();
   const allResults = await getAllResults();
 
   return (
