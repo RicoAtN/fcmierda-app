@@ -297,7 +297,6 @@ export default function ClientMatchResults({
 
             {/* Goals & Assists */}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-2 text-green-300">Goals & Assists</h3>
               {parseGoalScorers(selectedResult.goal_scorers).length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm border-separate border-spacing-y-2">
