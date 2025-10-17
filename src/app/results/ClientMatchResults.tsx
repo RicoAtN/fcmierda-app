@@ -68,7 +68,13 @@ function safeArray(val: unknown): string[] {
   return [];
 }
 
-export default function ClientMatchResults({ allResults }: { allResults: MatchResult[] }) {
+export default function ClientMatchResults({
+  allResults,
+  rowsToShow = 5,
+}: {
+  allResults: MatchResult[];
+  rowsToShow?: number;
+}) {
   const [selectedId, setSelectedId] = React.useState<number | null>(
     allResults.length > 0 ? allResults[0].id : null
   );
@@ -84,6 +90,8 @@ export default function ClientMatchResults({ allResults }: { allResults: MatchRe
     );
   }
 
+  const ROW_HEIGHT_PX = 56; // desktop row height (adjust if needed)
+
   return (
     <>
       {/* Table */}
@@ -92,52 +100,102 @@ export default function ClientMatchResults({ allResults }: { allResults: MatchRe
           <h2 className={`text-xl sm:text-2xl font-bold mb-6 text-center ${robotoSlab.className}`}>
             All Match Results
           </h2>
-          <div className="overflow-x-auto rounded-lg shadow">
-            <table className="min-w-full text-sm sm:text-base border-separate border-spacing-y-2">
-              <thead>
-                <tr className="bg-gray-800">
-                  <th className="px-2 py-2 text-left text-green-300 font-semibold whitespace-nowrap">Date</th>
-                  <th className="px-2 py-2 text-left text-green-300 font-semibold whitespace-nowrap">Opponent</th>
-                  <th className="px-2 py-2 text-left text-green-300 font-semibold whitespace-nowrap">Result</th>
-                  <th className="px-2 py-2 text-center text-green-300 font-semibold whitespace-nowrap">Score</th>
-                  <th className="px-2 py-2 text-center text-green-300 font-semibold whitespace-nowrap">Video</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allResults.map((result: MatchResult) => (
-                  <tr
-                    key={result.id}
-                    className={`bg-gray-900 rounded hover:bg-green-950/40 transition cursor-pointer ${
-                      selectedId === result.id ? "bg-green-900/80" : ""
-                    }`}
-                    onClick={() => setSelectedId(result.id)}
-                  >
-                    <td className="px-2 py-2 whitespace-nowrap">
-                      {result.date ? formatShortDate(result.date) : "-"}
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap">{result.opponent}</td>
-                    <td className="px-2 py-2 capitalize whitespace-nowrap">
-                      {result.game_result === "win" && <span className="px-2 py-1 rounded bg-green-600 text-white font-bold">Win</span>}
-                      {result.game_result === "draw" && <span className="px-2 py-1 rounded bg-amber-500 text-white font-bold">Draw</span>}
-                      {result.game_result === "loss" && <span className="px-2 py-1 rounded bg-red-600 text-white font-bold">Loss</span>}
-                      {!["win", "draw", "loss"].includes(result.game_result || "") && (
-                        <span className="px-2 py-1 rounded bg-gray-700 text-white font-bold">{result.game_result}</span>
-                      )}
-                    </td>
-                    <td className="px-2 py-2 text-center whitespace-nowrap">
-                      {(result.goals_fcmierda ?? "-") + " - " + (result.goals_opponent ?? "-")}
-                    </td>
-                    <td className="px-2 py-2 text-center whitespace-nowrap">
-                      {result.youtube ? (
-                        <span className="px-2 py-1 rounded bg-green-600 text-white font-bold">Yes</span>
-                      ) : (
-                        <span className="px-2 py-1 rounded bg-gray-700 text-white font-bold">No</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          <div className="rounded-lg shadow overflow-hidden bg-gray-800">
+            {/* Desktop table (sm and up) */}
+            <div className="hidden sm:block">
+              <div className="overflow-y-auto" style={{ maxHeight: `${(rowsToShow || 5) * ROW_HEIGHT_PX}px` }}>
+                <table className="min-w-full w-full text-sm table-fixed">
+                  <colgroup>
+                    <col style={{ width: "18%" }} />
+                    <col style={{ width: "42%" }} />
+                    <col style={{ width: "16%" }} />
+                    <col style={{ width: "16%" }} />
+                    <col style={{ width: "8%" }} />
+                  </colgroup>
+                  <thead className="bg-gray-900 text-green-300 text-sm font-semibold">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Date</th>
+                      <th className="px-3 py-2 text-left">Opponent</th>
+                      <th className="px-3 py-2 text-left">Result</th>
+                      <th className="px-3 py-2 text-center">Score</th>
+                      <th className="px-3 py-2 text-center">Video</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allResults.map((result) => {
+                      const isSelected = selectedId === result.id;
+                      const lower = (result.game_result || "").toLowerCase();
+                      return (
+                        <tr
+                          key={result.id}
+                          onClick={() => setSelectedId(result.id)}
+                          className={`cursor-pointer border-b border-gray-700 ${isSelected ? "bg-green-900/60" : "hover:bg-green-950/20"}`}
+                          style={{ height: ROW_HEIGHT_PX }}
+                        >
+                          <td className="px-3 text-white align-middle">{result.date ? formatShortDate(result.date) : "-"}</td>
+                          <td className="px-3 text-white align-middle">{result.opponent ?? "-"}</td>
+                          <td className="px-3 align-middle">
+                            {lower === "win" && <span className="px-2 py-1 rounded bg-green-600 text-white font-bold">Win</span>}
+                            {lower === "draw" && <span className="px-2 py-1 rounded bg-amber-500 text-white font-bold">Draw</span>}
+                            {["loss", "lost"].includes(lower) && <span className="px-2 py-1 rounded bg-red-600 text-white font-bold">Loss</span>}
+                            {!result.game_result && <span className="px-2 py-1 rounded bg-gray-700 text-white font-bold">-</span>}
+                            {result.game_result && !["win","draw","loss","lost"].includes(lower) && (
+                              <span className="px-2 py-1 rounded bg-gray-700 text-white font-bold">{result.game_result}</span>
+                            )}
+                          </td>
+                          <td className="px-3 text-center align-middle text-white">
+                            {(result.goals_fcmierda ?? "-") + " - " + (result.goals_opponent ?? "-")}
+                          </td>
+                          <td className="px-3 text-center align-middle">
+                            {result.youtube ? (
+                              <span className="px-2 py-1 rounded bg-green-600 text-white font-bold">Yes</span>
+                            ) : (
+                              <span className="px-2 py-1 rounded bg-gray-700 text-white font-bold">No</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile stacked cards (under sm) */}
+            <div className="sm:hidden">
+              <div className="overflow-y-auto" style={{ maxHeight: `${(rowsToShow || 5) * (ROW_HEIGHT_PX + 24)}px` }}>
+                {allResults.map((result) => {
+                  const isSelected = selectedId === result.id;
+                  const lower = (result.game_result || "").toLowerCase();
+                  return (
+                    <button
+                      key={result.id}
+                      onClick={() => setSelectedId(result.id)}
+                      className={`w-full text-left px-4 py-3 border-b border-gray-700 ${isSelected ? "bg-green-900/60" : "hover:bg-green-950/20"}`}
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex-1">
+                          <div className="text-base font-semibold text-white">{result.opponent ?? "-"}</div>
+                          <div className="text-xs text-gray-300 mt-1">{result.date ? formatShortDate(result.date) : "-"}</div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <div className="text-sm text-gray-300">
+                            {(result.goals_fcmierda ?? "-") + " - " + (result.goals_opponent ?? "-")}
+                          </div>
+                          <div className="mt-2">
+                            {lower === "win" && <span className="px-2 py-1 rounded bg-green-600 text-white font-bold">Win</span>}
+                            {lower === "draw" && <span className="px-2 py-1 rounded bg-amber-500 text-white font-bold">Draw</span>}
+                            {["loss", "lost"].includes(lower) && <span className="px-2 py-1 rounded bg-red-600 text-white font-bold">Loss</span>}
+                            {!result.game_result && <span className="px-2 py-1 rounded bg-gray-700 text-white font-bold">-</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </section>

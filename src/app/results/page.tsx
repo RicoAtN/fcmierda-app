@@ -128,7 +128,7 @@ export default async function ResultsPage() {
       </section>
 
       {/* All Results Table Section and Details */}
-      <ClientMatchResults allResults={allResults} />
+      <ClientMatchResults allResults={allResults} rowsToShow={5} />
 
       <Footer />
     </div>
