@@ -2,39 +2,39 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-/* runtime-safe sender that accepts multiple shapes the package may expose */
+type TrackFn = (name: string, payload?: Record<string, unknown>) => void;
+
+/** runtime-safe sender that handles multiple shapes the @vercel/analytics package may expose */
 async function sendVercelEvent(name: string, payload?: Record<string, unknown>) {
   try {
     const mod = await import("@vercel/analytics");
     const modObj = mod as unknown as Record<string, unknown>;
 
-    // named export `event(name, payload)`
     const evt = modObj["event"];
     if (typeof evt === "function") {
-      (evt as Function)(name, payload);
+      (evt as unknown as TrackFn)(name, payload);
       return;
     }
 
-    // default export might be a function: `default(name, payload)`
     const def = modObj["default"];
     if (typeof def === "function") {
-      (def as Function)(name, payload);
+      (def as unknown as TrackFn)(name, payload);
       return;
     }
 
-    // or default.track(name, payload) / track(name, payload)
     if (def && typeof (def as Record<string, unknown>)["track"] === "function") {
       const t = (def as Record<string, unknown>)["track"];
-      (t as Function)(name, payload);
+      (t as unknown as TrackFn)(name, payload);
       return;
     }
+
     const track = modObj["track"];
     if (typeof track === "function") {
-      (track as Function)(name, payload);
+      (track as unknown as TrackFn)(name, payload);
       return;
     }
   } catch {
-    // ignore - analytics package may not be available locally or types differ
+    // ignore - package shape may differ or not be available in this environment
   }
 }
 
@@ -54,7 +54,6 @@ export default function ClientAnalytics() {
       prevPathRef.current = pathname;
       startRef.current = Date.now();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   useEffect(() => {
