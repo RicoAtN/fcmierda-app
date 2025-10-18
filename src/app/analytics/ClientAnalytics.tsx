@@ -6,27 +6,31 @@ import { useEffect, useRef } from "react";
 async function sendVercelEvent(name: string, payload?: Record<string, unknown>) {
   try {
     const mod = await import("@vercel/analytics");
-    const anyMod = mod as unknown as Record<string, unknown>;
+    const modObj = mod as unknown as Record<string, unknown>;
 
     // named export `event(name, payload)`
-    if (typeof (anyMod as any).event === "function") {
-      (anyMod as any).event(name, payload);
+    const evt = modObj["event"];
+    if (typeof evt === "function") {
+      (evt as Function)(name, payload);
       return;
     }
 
     // default export might be a function: `default(name, payload)`
-    if (typeof (anyMod as any).default === "function") {
-      (anyMod as any).default(name, payload);
+    const def = modObj["default"];
+    if (typeof def === "function") {
+      (def as Function)(name, payload);
       return;
     }
 
-    // or default.export.track(name, payload) / track(name, payload)
-    if ((anyMod as any).default && typeof (anyMod as any).default.track === "function") {
-      (anyMod as any).default.track(name, payload);
+    // or default.track(name, payload) / track(name, payload)
+    if (def && typeof (def as Record<string, unknown>)["track"] === "function") {
+      const t = (def as Record<string, unknown>)["track"];
+      (t as Function)(name, payload);
       return;
     }
-    if (typeof (anyMod as any).track === "function") {
-      (anyMod as any).track(name, payload);
+    const track = modObj["track"];
+    if (typeof track === "function") {
+      (track as Function)(name, payload);
       return;
     }
   } catch {
