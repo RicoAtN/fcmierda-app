@@ -73,6 +73,9 @@ export default function PostMatchResultPage() {
   const [editForm, setEditForm] = useState<MatchResult | null>(null);
   const [editStatus, setEditStatus] = useState("");
 
+  // attendance add-field state
+  const [newAttendanceName, setNewAttendanceName] = useState("");
+
   // Fetch last match info from next-game DB
   useEffect(() => {
     fetch("/api/next-game")
@@ -107,12 +110,46 @@ export default function PostMatchResultPage() {
       });
   }, []);
 
-  // When selecting a result, reset edit mode and form
+  // When selecting a result, reset edit mode and form and normalize arrays
   useEffect(() => {
     setEditMode(false);
-    setEditForm(selectedResult ? { ...selectedResult } : null);
+    if (selectedResult) {
+      setEditForm({
+        ...selectedResult,
+        attendance: safeArray(selectedResult.attendance),
+        support_coach: safeArray(selectedResult.support_coach),
+        goal_scorers: Array.isArray(selectedResult.goal_scorers) ? selectedResult.goal_scorers : [],
+      });
+    } else {
+      setEditForm(null);
+    }
     setEditStatus("");
+    setNewAttendanceName("");
   }, [selectedResult]);
+
+  // Attendance handlers for edit form
+  function handleEditAttendanceChange(idx: number, value: string) {
+    setEditForm((prev) => {
+      if (!prev) return prev;
+      const arr = safeArray(prev.attendance);
+      arr[idx] = value;
+      return { ...prev, attendance: arr };
+    });
+  }
+  function addEditAttendance(name?: string) {
+    setEditForm((prev) => {
+      if (!prev) return prev;
+      const arr = safeArray(prev.attendance);
+      return { ...prev, attendance: [...arr, name ?? ""] };
+    });
+  }
+  function removeEditAttendance(idx: number) {
+    setEditForm((prev) => {
+      if (!prev) return prev;
+      const arr = safeArray(prev.attendance).filter((_, i) => i !== idx);
+      return { ...prev, attendance: arr };
+    });
+  }
 
   // Handle dynamic goal scorer fields
   const handleGoalScorerChange = (
@@ -212,8 +249,12 @@ export default function PostMatchResultPage() {
     setEditStatus("Saving...");
     // Only save filled goal scorers
     const filteredGoalScorers = (editForm.goal_scorers || []).filter(
-  (g: GoalScorer) => g.scorer && g.scorer.trim() !== ""
-);
+      (g: GoalScorer) => g.scorer && g.scorer.trim() !== ""
+    );
+    // normalize attendance/support_coach
+    const attendanceArr = safeArray(editForm.attendance).map((s) => (s || "").trim()).filter(Boolean);
+    const supportArr = safeArray(editForm.support_coach).map((s) => (s || "").trim()).filter(Boolean);
+
     // Get timestamp in GMT+1 (Europe/Amsterdam)
     const now = new Date();
     const amsTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Amsterdam" }));
@@ -231,6 +272,8 @@ export default function PostMatchResultPage() {
       body: JSON.stringify({
         ...editForm,
         goal_scorers: filteredGoalScorers,
+        attendance: attendanceArr,
+        support_coach: supportArr,
         lastEdited,
       }),
     });
@@ -848,6 +891,52 @@ export default function PostMatchResultPage() {
                         </div>
                       ))}
                     </div>
+                    {/* Attendance editor */}
+                    <div>
+                      <label className="block font-semibold mb-1">Player Attendance</label>
+                      <div className="space-y-2">
+                        {(safeArray(editForm?.attendance) || []).map((name: string, idx: number) => (
+                          <div key={idx} className="flex gap-2 items-center">
+                            <input
+                              type="text"
+                              value={name}
+                              onChange={(e) => handleEditAttendanceChange(idx, e.target.value)}
+                              className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+                              placeholder="Player name"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeEditAttendance(idx)}
+                              className="text-red-400 hover:text-red-600 px-2 py-1 rounded border border-red-700"
+                              aria-label={`Remove ${name}`}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                        <div className="flex gap-2 items-center mt-2">
+                          <input
+                            type="text"
+                            value={newAttendanceName}
+                            onChange={(e) => setNewAttendanceName(e.target.value)}
+                            className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
+                            placeholder="Add new player name"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (newAttendanceName.trim() === "") return;
+                              addEditAttendance(newAttendanceName.trim());
+                              setNewAttendanceName("");
+                            }}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
                     <div>
                       <label className="block font-semibold mb-1">Video Link (YouTube)</label>
                       <input
