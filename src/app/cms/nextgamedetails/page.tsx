@@ -36,7 +36,7 @@ export default function NextGameDetailsPage() {
     date: "",
     kickoff: "",
     opponent: "",
-    location: "Alexandria 66 voetbalclub, Rotterdam",
+    location: "Alexandria 66 Rotterdam",
     competition: "",
     note: "",
   });
@@ -44,9 +44,8 @@ export default function NextGameDetailsPage() {
   const [attendance, setAttendance] = useState<Record<string, string>>(
     Object.fromEntries(players.map((name) => [name, "unknown"]))
   );
-  const [extraPlayers, setExtraPlayers] = useState<{ name: string; status: string }[]>(
-    [{ name: "", status: "unknown" }]
-  );
+  const [extraPlayers, setExtraPlayers] = useState<{ name: string; status: string }[]>([{ name: "", status: "unknown" }]);
+  // const [showClearInfo, setShowClearInfo] = useState(false);
 
   const router = useRouter();
 
@@ -58,7 +57,7 @@ export default function NextGameDetailsPage() {
           date: data.date || "",
           kickoff: data.kickoff || "",
           opponent: data.opponent || "",
-          location: "Alexandria 66 voetbalclub, Rotterdam",
+          location: "Alexandria 66 Rotterdam",
           competition: data.competition || "",
           note: data.note || "",
         });
@@ -127,6 +126,21 @@ export default function NextGameDetailsPage() {
     }, 1200);
   };
 
+  // clear all fields and reset attendance to "unknown"
+  function handleClear() {
+    setForm({
+      date: "",
+      kickoff: "",
+      opponent: "",
+      location: "",
+      competition: "",
+      note: "",
+    });
+    setAttendance(Object.fromEntries(players.map((name) => [name, "unknown"])));
+    setExtraPlayers([{ name: "", status: "unknown" }]);
+    setStatus("");
+  }
+
   function renderPlayerName(name: string) {
     const match = name.match(/^(#\d+\s+)/);
     if (match) {
@@ -139,7 +153,7 @@ export default function NextGameDetailsPage() {
     }
     return name;
   }
-
+  
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
       <Menu />
@@ -185,6 +199,20 @@ export default function NextGameDetailsPage() {
           <h2 className={`text-xl sm:text-2xl font-bold mb-4 ${robotoSlab.className}`}>
             Next Game Details
           </h2>
+          <div className="mb-4 flex flex-col items-center">
+            <div>
+              <button
+                type="button"
+                onClick={handleClear}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-semibold text-sm shadow transition-all duration-150 border border-red-700 focus:outline-none focus:ring-2 focus:ring-red-400"
+              >
+                Clear all fields
+              </button>
+            </div>
+            <p className="mt-2 text-sm text-gray-300 max-w-xl text-center">
+              Click "Clear all fields" to reset the form when you want to add a completely new next game. This will empty all inputs and reset player attendance to "unknown". After clearing, fill in the new match details and press "Save Next Game".
+            </p>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4 text-left">
             <div>
               <label className="block font-semibold mb-1">Date</label>
@@ -234,7 +262,7 @@ export default function NextGameDetailsPage() {
             <div>
               <label className="block font-semibold mb-1">Location</label>
               <div className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white font-semibold">
-                Alexandria 66 voetbalclub, Rotterdam
+                Alexandria 66 Rotterdam
               </div>
             </div>
             <div>
