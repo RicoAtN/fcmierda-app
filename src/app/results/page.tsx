@@ -134,3 +134,5 @@ export default async function ResultsPage() {
     </div>
   );
 }
+
+export const dynamic = "force-dynamic";
