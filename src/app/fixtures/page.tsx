@@ -192,9 +192,8 @@ export default async function FixturesPage() {
           </h2>
 
           <p className={`text-base sm:text-lg ${montserrat.className}`}>
-           Get ready! FC Mierda faces {safeGame.opponent} in the next round.
-            Come support us and don&apos;t
-            miss the action!
+          <span className="font-semibold text-green-300"></span>{" "}
+              {safeGame.note}
           </p>
           <br />
           <div className="mb-4 text-left text-sm sm:text-base">
@@ -223,10 +222,6 @@ export default async function FixturesPage() {
             <div>
               <span className="font-semibold text-green-300">Competition:</span>{" "}
               {safeGame.competition}
-            </div>
-            <div>
-              <span className="font-semibold text-green-300">Note:</span>{" "}
-              {safeGame.note}
             </div>
           </div>
 
@@ -262,7 +257,7 @@ export default async function FixturesPage() {
             {/* Action Button */}
             <div className="mt-8 flex justify-center">
               <a
-                href="/cms/nextgamedetails#player-availability"
+                href="/cms/nextgameplayeravailability#player-availability"
                 className="px-6 py-3 rounded-lg bg-green-700 text-white font-semibold shadow border border-green-800 hover:bg-green-800 transition"
                 style={{ letterSpacing: "0.03em" }}
               >
