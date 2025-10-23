@@ -146,11 +146,8 @@ export default async function FixturesPage() {
             className={`text-lg sm:text-xl text-white font-medium mb-8 drop-shadow-lg ${montserrat.className}`}
             style={{ maxWidth: 600 }}
           >
-            Here you can find FC Mierda&apos;s latest schedule: where we play, when, and against who.
-            <br />
-            <span className="block mt-2">
-              Click on what you need to find: <span className="font-semibold text-green-300">Next game details</span>, <span className="font-semibold text-blue-300">Last game result</span>, or <span className="font-semibold text-yellow-300">League table</span>.
-            </span>
+            Here you can find FC Mierda&apos;s latest schedule and league table standings.
+          
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mt-2">
             <a

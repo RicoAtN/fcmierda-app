@@ -18,6 +18,23 @@ export default function Menu() {
           />
         </Link>
       </div>
+
+      {/* Admin login icon on the very right (no white circle background) */}
+      <div className="absolute right-4 sm:right-12 top-1/2 -translate-y-1/2 flex items-center">
+        <Link href="/cms" aria-label="Admin CMS" title="Admin CMS">
+          <div className="w-14 h-14 flex items-center justify-center transition">
+            <Image
+              src="/admin-logo.png"
+              alt="Admin"
+              width={44}
+              height={44}
+              className="object-contain"
+              priority
+            />
+          </div>
+        </Link>
+      </div>
+
       <ul className="flex flex-wrap justify-center gap-3 sm:gap-12 bg-white/40 backdrop-blur-md px-2 sm:px-10 py-2 sm:py-4 rounded-2xl max-w-[98vw] shadow-lg">
         <li>
           <Link href="/" className="text-gray-900 font-semibold text-xs sm:text-lg hover:text-green-600 transition-colors px-2 sm:px-4">Home</Link>
