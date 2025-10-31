@@ -31,6 +31,17 @@ const players = [
   "#5 Tim",
 ];
 
+// parse into objects: { raw, number, name, key }
+// key is the internal identifier (name-only) used for attendance state and API payload
+const playersData = players.map((raw) => {
+  const m = raw.match(/^(#\d+)\s*(.*)$/);
+  const number = m ? m[1] : "";
+  const name = m ? m[2] : raw;
+  // key normalised to name (keeps punctuation/emoji) but trimmed
+  const key = name.trim();
+  return { raw, number, name, key };
+});
+
 export default function NextGameDetailsPage() {
   const [form, setForm] = useState({
     date: "",
@@ -41,8 +52,9 @@ export default function NextGameDetailsPage() {
     note: "",
   });
   const [status, setStatus] = useState("");
+  // attendance keyed by cleaned name (playersData[].key) — numbers removed from keys
   const [attendance, setAttendance] = useState<Record<string, string>>(
-    Object.fromEntries(players.map((name) => [name, "unknown"]))
+    Object.fromEntries(playersData.map((p) => [p.key, "unknown"]))
   );
   const router = useRouter();
 
@@ -59,10 +71,16 @@ export default function NextGameDetailsPage() {
           note: data.note || "",
         });
 
+        // support both old keyed-by-raw and new keyed-by-name attendance payloads
+        const incoming = data.attendance || {};
         setAttendance(
-          data.attendance
-            ? Object.fromEntries(players.map((name) => [name, data.attendance[name] || "unknown"]))
-            : Object.fromEntries(players.map((name) => [name, "unknown"]))
+          Object.fromEntries(
+            playersData.map((p) => [
+              p.key,
+              // prefer name-keyed payload, fall back to raw-keyed legacy payload
+              incoming[p.key] ?? incoming[p.raw] ?? "unknown",
+            ])
+          )
         );
       })
       .catch(() => {
@@ -99,17 +117,16 @@ export default function NextGameDetailsPage() {
     }
   };
 
-  function renderPlayerName(name: string) {
-    const match = name.match(/^(#\d+\s+)/);
-    if (match) {
+  function renderPlayerNameObj(p: { number: string; name: string; raw: string }) {
+    if (p.number) {
       return (
         <>
-          <span className="font-bold text-yellow-400">{match[1]}</span>
-          {name.slice(match[1].length)}
+          <span className="font-bold text-yellow-400">{p.number} </span>
+          {p.name}
         </>
       );
     }
-    return name;
+    return p.name;
   }
 
   return (
@@ -183,15 +200,17 @@ export default function NextGameDetailsPage() {
           <form onSubmit={handleSubmit} className="space-y-4 text-left">
             <div id="player-availability">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {players.map((name) => (
+                {playersData.map((p) => (
                   <div
-                    key={name}
+                    key={p.raw}
                     className="flex items-center justify-between gap-2 bg-gray-800 rounded px-2 py-1"
                   >
-                    <span className="font-medium text-white w-28 sm:w-32 truncate">{renderPlayerName(name)}</span>
+                    <span className="font-medium text-white w-28 sm:w-32 truncate">
+                      {renderPlayerNameObj(p)}
+                    </span>
                     <select
-                      value={attendance[name]}
-                      onChange={(e) => setAttendance({ ...attendance, [name]: e.target.value })}
+                      value={attendance[p.key] ?? "unknown"}
+                      onChange={(e) => setAttendance({ ...attendance, [p.key]: e.target.value })}
                       className="p-1 rounded bg-gray-900 border border-gray-600 text-white min-w-[90px] sm:min-w-[120px]"
                     >
                       <option value="unknown">⚪ Unknown</option>
