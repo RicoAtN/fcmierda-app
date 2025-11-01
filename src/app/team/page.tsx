@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
@@ -9,7 +9,7 @@ const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
 
 type Player = {
-  id: string;
+  player_id: string;
   number?: string;
   name: string;
   nickname?: string;
@@ -19,10 +19,18 @@ type Player = {
   highlights?: string[];
 };
 
+type PlayerStats = {
+  player_id: number;
+  match_played: number;
+  goals: number;
+  assists: number;
+  clean_sheets: number;
+};
+
 const TEAM: Player[] = [
   // Management
   {
-    id: "hans-mgr",
+    player_id: "99",
     name: "Hans",
     nickname: "Maestro",
     role: "Head Coach",
@@ -31,7 +39,7 @@ const TEAM: Player[] = [
 
   // Goalkeepers
   {
-    id: "alon",
+    player_id: "1",
     number: "#1",
     name: "Alon",
     nickname: "Alon d'Or",
@@ -40,7 +48,7 @@ const TEAM: Player[] = [
     // photo: "/players/alon.jpg",
   },
   {
-    id: "victor",
+    player_id: "12",
     number: "#12",
     name: "Victor",
     nickname: "Turbokwek",
@@ -51,7 +59,7 @@ const TEAM: Player[] = [
 
   // Defenders
   {
-    id: "rico",
+    player_id: "88",
     number: "#88",
     name: "Rico",
     nickname: "Grey Wall",
@@ -60,7 +68,7 @@ const TEAM: Player[] = [
     photo: "/players/rico.png",
   },
   {
-    id: "pim-s",
+    player_id: "26",
     number: "#26",
     name: "Pim S 🥸",
     nickname: "Snorremans",
@@ -69,7 +77,7 @@ const TEAM: Player[] = [
     // photo: "/players/pim-s.jpg",
   },
   {
-    id: "kevin",
+    player_id: "32",
     number: "#32",
     name: "Kevin",
     nickname: "Oyabun",
@@ -78,7 +86,7 @@ const TEAM: Player[] = [
     // photo: "/players/kevin.jpg",
   },
   {
-    id: "mitchell",
+    player_id: "69",
     number: "#69",
     name: "Mitchell",
     nickname: "Satoshi",
@@ -87,7 +95,7 @@ const TEAM: Player[] = [
     // photo: "/players/mitchell.jpg",
   },
   {
-    id: "marten",
+    player_id: "4",
     number: "#4",
     name: "Marten Kraaij",
     nickname: "Kraaij",
@@ -96,7 +104,7 @@ const TEAM: Player[] = [
     // photo: "/players/marten.jpg",
   },
   {
-    id: "bouwhuis",
+    player_id: "6",
     number: "#6",
     name: "Bouwhuis",
     nickname: "Senderos",
@@ -107,7 +115,7 @@ const TEAM: Player[] = [
 
   // Midfielders
   {
-    id: "mart",
+    player_id: "57",
     number: "#57",
     name: "Mart",
     nickname: "WingWizard",
@@ -116,7 +124,7 @@ const TEAM: Player[] = [
     // photo: "/players/mart.jpg",
   },
   {
-    id: "niek",
+    player_id: "14",
     number: "#14",
     name: "Niek",
     nickname: "Bearzerker",
@@ -125,7 +133,7 @@ const TEAM: Player[] = [
     // photo: "/players/niek.jpg",
   },
   {
-    id: "jordy",
+    player_id: "10",
     number: "#10",
     name: "Jordy (CAPTAIN)",
     nickname: "Kapiteni",
@@ -134,7 +142,7 @@ const TEAM: Player[] = [
     // photo: "/players/jordy.jpg",
   },
   {
-    id: "lennert",
+    player_id: "19",
     number: "#19",
     name: "Lennert",
     nickname: "Len",
@@ -143,7 +151,7 @@ const TEAM: Player[] = [
     // photo: "/players/lennert.jpg",
   },
   {
-    id: "ka",
+    player_id: "22",
     number: "#22",
     name: "Ka",
     nickname: "Jake",
@@ -152,7 +160,7 @@ const TEAM: Player[] = [
     // photo: "/players/ka.jpg",
   },
   {
-    id: "daan",
+    player_id: "7",
     number: "#7",
     name: "Daan",
     nickname: "Koetje",
@@ -161,7 +169,7 @@ const TEAM: Player[] = [
     // photo: "/players/daan.jpg",
   },
   {
-    id: "sud",
+    player_id: "20",
     number: "#20",
     name: "Marten Sud",
     nickname: "Zilveren Vos",
@@ -172,7 +180,7 @@ const TEAM: Player[] = [
 
   // Attackers
   {
-    id: "sven",
+    player_id: "23",
     number: "#23",
     name: "Sven",
     nickname: "Zuenna",
@@ -181,7 +189,7 @@ const TEAM: Player[] = [
     // photo: "/players/sven.jpg",
   },
   {
-    id: "pim9",
+    player_id: "9",
     number: "#9",
     name: "Pim",
     nickname: "Inzaghi",
@@ -202,10 +210,34 @@ const CATEGORIES = [
 export default function TeamPage() {
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("All");
-  const [selectedId, setSelectedId] = useState<string | null>(TEAM[1]?.id ?? null); // default to Alon
+  const [selectedId, setSelectedId] = useState<string | null>(TEAM[1]?.player_id ?? null); // default to Alon
 
   // ref for the bio/detail panel to scroll into view
   const bioRef = useRef<HTMLDivElement | null>(null);
+
+  // Fetch stats on the client and map by string(player_id)
+  const [stats, setStats] = useState<PlayerStats[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/player-statistics", { cache: "no-store" });
+        const { data } = (await res.json()) as { data: PlayerStats[] };
+        if (!cancelled) setStats(data ?? []);
+      } catch (e) {
+        console.error("Failed to load player statistics", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const statsMap = useMemo(() => {
+    const m = new Map<string, PlayerStats>();
+    for (const s of stats) m.set(String(s.player_id), s);
+    return m;
+  }, [stats]);
 
   const countsByCategory = useMemo(() => {
     const map = new Map<string, number>();
@@ -230,7 +262,7 @@ export default function TeamPage() {
     });
   }, [query, roleFilter]);
 
-  const selected = useMemo(() => TEAM.find((p) => p.id === selectedId) ?? TEAM[1] ?? null, [selectedId]);
+  const selected = useMemo(() => TEAM.find((p) => p.player_id === selectedId) ?? TEAM[1] ?? null, [selectedId]);
 
   // centralised selection handler — sets selection and scrolls bio into view
   function handleSelect(id: string) {
@@ -291,11 +323,11 @@ export default function TeamPage() {
 
               <ul className="divide-y divide-gray-700 max-h-[60vh] overflow-auto">
                 {filtered.map((p) => {
-                  const active = p.id === selectedId;
+                  const active = p.player_id === selectedId;
                   return (
-                    <li key={p.id}>
+                    <li key={p.player_id}>
                       <button
-                        onClick={() => handleSelect(p.id)}
+                        onClick={() => handleSelect(p.player_id)}
                         className={`w-full text-left flex items-center gap-3 p-3 rounded-md transition ${
                           active ? "bg-gradient-to-r from-green-700/20 to-transparent ring-1 ring-green-500" : "hover:bg-gray-700/40"
                         }`}
@@ -307,7 +339,6 @@ export default function TeamPage() {
 
                         {/* avatar */}
                         {p.photo ? (
-                          // eslint-disable-next-line jsx-a11y/alt-text
                           <div className="w-14 h-14 relative rounded-full overflow-hidden flex-shrink-0">
                             <Image src={p.photo} alt={p.name} fill className="object-cover" />
                           </div>
@@ -343,7 +374,6 @@ export default function TeamPage() {
                 <div className="flex flex-col sm:flex-row gap-6">
                   <div className="flex-shrink-0 relative">
                     {selected.photo ? (
-                      // eslint-disable-next-line jsx-a11y/alt-text
                       <div className="relative">
                         <Image src={selected.photo} width={280} height={280} className="rounded-xl object-cover" alt={selected.name} />
                       </div>
@@ -371,6 +401,34 @@ export default function TeamPage() {
                     </div>
 
                     <p className="mt-4 text-gray-200 leading-relaxed">{selected.bio || "No bio available."}</p>
+
+                    {/* Stats block */}
+                    {(() => {
+                      const s = statsMap.get(selected.player_id);
+                      return (
+                        <div className="mt-6">
+                          <h4 className="text-sm text-gray-300 font-semibold mb-2">Statistics</h4>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div className="bg-black/20 rounded-md p-3 text-center">
+                              <div className="text-xs text-gray-400">Matches</div>
+                              <div className="text-lg font-bold text-green-300">{s?.match_played ?? 0}</div>
+                            </div>
+                            <div className="bg-black/20 rounded-md p-3 text-center">
+                              <div className="text-xs text-gray-400">Goals</div>
+                              <div className="text-lg font-bold text-green-300">{s?.goals ?? 0}</div>
+                            </div>
+                            <div className="bg-black/20 rounded-md p-3 text-center">
+                              <div className="text-xs text-gray-400">Assists</div>
+                              <div className="text-lg font-bold text-green-300">{s?.assists ?? 0}</div>
+                            </div>
+                            <div className="bg-black/20 rounded-md p-3 text-center">
+                              <div className="text-xs text-gray-400">Clean sheets</div>
+                              <div className="text-lg font-bold text-green-300">{s?.clean_sheets ?? 0}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {selected.highlights?.length ? (
                       <div className="mt-6">
