@@ -25,6 +25,8 @@ type PlayerStats = {
   goals: number;
   assists: number;
   clean_sheets: number;
+  goals_involvement?: number; // add this
+  average_goals_per_match?: number; // <- added
 };
 
 const TEAM: Player[] = [
@@ -405,10 +407,22 @@ export default function TeamPage() {
                     {/* Stats block */}
                     {(() => {
                       const s = statsMap.get(selected.player_id);
+                      const role = (selected.role || "").toLowerCase();
+                      const isCoach = role.includes("coach");
+                      if (isCoach) return null; // no stats for head coach
+
+                      const isMidfielder = role.includes("midfield");
+                      const isAttacker = role.includes("striker") || role.includes("forward") || role.includes("attack");
+
+                      // show clean sheets only for goalkeepers and defenders
+                      const showCleanSheets = !isMidfielder && !isAttacker && (role.includes("goalkeeper") || role.includes("defend"));
+                      const showGoalsInvolvement = isMidfielder;
+                      const showAvgGPM = isAttacker;
+
                       return (
                         <div className="mt-6">
                           <h4 className="text-sm text-gray-300 font-semibold mb-2">Statistics</h4>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className={`grid grid-cols-2 ${showCleanSheets || showGoalsInvolvement || showAvgGPM ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-3`}>
                             <div className="bg-black/20 rounded-md p-3 text-center">
                               <div className="text-xs text-gray-400">Matches</div>
                               <div className="text-lg font-bold text-green-300">{s?.match_played ?? 0}</div>
@@ -421,10 +435,24 @@ export default function TeamPage() {
                               <div className="text-xs text-gray-400">Assists</div>
                               <div className="text-lg font-bold text-green-300">{s?.assists ?? 0}</div>
                             </div>
-                            <div className="bg-black/20 rounded-md p-3 text-center">
-                              <div className="text-xs text-gray-400">Clean sheets</div>
-                              <div className="text-lg font-bold text-green-300">{s?.clean_sheets ?? 0}</div>
-                            </div>
+                            {showCleanSheets && (
+                              <div className="bg-black/20 rounded-md p-3 text-center">
+                                <div className="text-xs text-gray-400">Clean sheets</div>
+                                <div className="text-lg font-bold text-green-300">{s?.clean_sheets ?? 0}</div>
+                              </div>
+                            )}
+                            {showGoalsInvolvement && (
+                              <div className="bg-black/20 rounded-md p-3 text-center">
+                                <div className="text-xs text-gray-400">Goals involvement</div>
+                                <div className="text-lg font-bold text-green-300">{s?.goals_involvement ?? 0}</div>
+                              </div>
+                            )}
+                            {showAvgGPM && (
+                              <div className="bg-black/20 rounded-md p-3 text-center">
+                                <div className="text-xs text-gray-400">Avg goals p/m</div>
+                                <div className="text-lg font-bold text-green-300">{(s?.average_goals_per_match ?? 0).toFixed(2)}</div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
