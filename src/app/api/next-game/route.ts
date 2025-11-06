@@ -1,57 +1,92 @@
-import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "pg";
+import { NextResponse } from "next/server";
+import { neon } from "@neondatabase/serverless";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const EMPTY_GAME = {
-  date: "",
-  kickoff: "",
-  opponent: "",
-  location: "",
-  competition: "",
-  note: ""
-};
-
-console.log("DATABASE_URL:", process.env.DATABASE_URL);
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  let client;
   try {
-    client = await pool.connect();
-    const res = await client.query("SELECT * FROM next_game ORDER BY id DESC LIMIT 1");
-    return NextResponse.json(res.rows[0] || {});
-  } catch (e) {
-    return NextResponse.json(EMPTY_GAME);
-  } finally {
-    if (client) client.release();
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      console.error("DATABASE_URL is not set");
+      return NextResponse.json({}, { status: 500 });
+    }
+
+    const sql = neon(dbUrl);
+    const rows = await sql`
+      SELECT id, date, kickoff, opponent, location, competition, note, attendance, created_at, updated_at
+      FROM next_game
+      ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id DESC
+      LIMIT 1;
+    `;
+    const row = rows[0];
+
+    const attendance =
+      row?.attendance && typeof row.attendance === "string"
+        ? JSON.parse(row.attendance)
+        : row?.attendance || {};
+
+    return NextResponse.json(
+      {
+        date: row?.date ?? "",
+        kickoff: row?.kickoff ?? "",
+        opponent: row?.opponent ?? "",
+        location: row?.location ?? "Alexandria 66 Rotterdam",
+        competition: row?.competition ?? "",
+        note: row?.note ?? "",
+        attendance,
+      },
+      { status: 200 }
+    );
+  } catch (err) {
+    console.error("GET /api/next-game failed", err);
+    return NextResponse.json({}, { status: 500 });
   }
 }
 
-export async function POST(req: NextRequest) {
-  let client;
+export async function POST(req: Request) {
   try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      console.error("DATABASE_URL is not set");
+      return NextResponse.json({}, { status: 500 });
+    }
+
+    const sql = neon(dbUrl);
     const body = await req.json();
-    client = await pool.connect();
-    await client.query(
-      `INSERT INTO next_game (date, kickoff, opponent, location, competition, note, attendance, timestamp)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [
-        body.date || "",
-        body.kickoff || "",
-        body.opponent || "",
-        body.location || "",
-        body.competition || "",
-        body.note || "",
-        JSON.stringify(body.attendance || {}),
-        body.timestamp || "", // <-- Make sure this is included
-      ]
-    );
-    return NextResponse.json({ success: true });
-  } catch (e) {
-    return NextResponse.json({ success: false, error: String(e) });
-  } finally {
-    if (client) client.release();
+    const { date, kickoff, opponent, location, competition, note, attendance } = body || {};
+
+    await sql`
+      WITH latest AS (
+        SELECT id
+        FROM next_game
+        ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id DESC
+        LIMIT 1
+      ),
+      updated AS (
+        UPDATE next_game
+        SET
+          date = ${date},
+          kickoff = ${kickoff},
+          opponent = ${opponent},
+          location = ${location},
+          competition = ${competition},
+          note = ${note},
+          attendance = ${JSON.stringify(attendance || {})}::jsonb,
+          updated_at = NOW()
+        WHERE id IN (SELECT id FROM latest)
+        RETURNING id
+      )
+      INSERT INTO next_game (date, kickoff, opponent, location, competition, note, attendance, created_at, updated_at)
+      SELECT
+        ${date}, ${kickoff}, ${opponent}, ${location}, ${competition}, ${note},
+        ${JSON.stringify(attendance || {})}::jsonb,
+        NOW(), NOW()
+      WHERE NOT EXISTS (SELECT 1 FROM updated);
+    `;
+
+    return NextResponse.json({ ok: true }, { status: 200 });
+  } catch (err) {
+    console.error("POST /api/next-game failed", err);
+    return NextResponse.json({}, { status: 500 });
   }
 }

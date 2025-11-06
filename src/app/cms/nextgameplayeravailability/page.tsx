@@ -42,6 +42,9 @@ const playersData = players.map((raw) => {
   return { raw, number, name, key };
 });
 
+// Add a small type for substitutes
+type Substitute = { name: string; status: string };
+
 export default function NextGameDetailsPage() {
   const [form, setForm] = useState({
     date: "",
@@ -57,6 +60,9 @@ export default function NextGameDetailsPage() {
     Object.fromEntries(playersData.map((p) => [p.key, "unknown"]))
   );
   const router = useRouter();
+
+  // substitutes (at least one empty row)
+  const [subs, setSubs] = useState<Substitute[]>([{ name: "", status: "unknown" }]);
 
   useEffect(() => {
     fetch("/api/next-game")
@@ -82,13 +88,52 @@ export default function NextGameDetailsPage() {
             ])
           )
         );
+
+        // derive substitutes = any keys not belonging to known players
+        const knownKeys = new Set<string>([
+          ...playersData.map((p) => p.key),
+          ...playersData.map((p) => p.raw),
+        ]);
+        const incomingSubs: Substitute[] = Object.entries(incoming)
+          .filter(([k]) => !knownKeys.has(k))
+          .map(([name, status]) => ({ name, status: String(status || "unknown") }));
+
+        // ensure an extra empty row if the last loaded one is filled
+        const initialSubs =
+          incomingSubs.length ? incomingSubs : [{ name: "", status: "unknown" }];
+        setSubs(ensureTrailingEmptyRow([...initialSubs]));
       })
       .catch(() => {
         // ignore fetch errors silently
       });
   }, []);
 
-  // Save attendance only
+  // ensure there is always an empty row at the end when last row is filled
+  function ensureTrailingEmptyRow(next: Substitute[]) {
+    const last = next[next.length - 1];
+    const lastFilled =
+      (last?.name?.trim()?.length ?? 0) > 0 ||
+      (last?.status && last.status !== "unknown");
+    if (lastFilled) next.push({ name: "", status: "unknown" });
+    return next;
+  }
+
+  function updateSub(i: number, patch: Partial<Substitute>) {
+    setSubs((prev) => {
+      const next = prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s));
+      return ensureTrailingEmptyRow([...next]);
+    });
+  }
+
+  function removeSub(i: number) {
+    setSubs((prev) => {
+      const next = prev.filter((_, idx) => idx !== i);
+      const ensured = next.length ? ensureTrailingEmptyRow([...next]) : [{ name: "", status: "unknown" }];
+      return ensured;
+    });
+  }
+
+  // Save attendance (players + substitutes merged)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus("Saving...");
@@ -105,14 +150,28 @@ export default function NextGameDetailsPage() {
     const timestamp = `${hour}:${minute} ${day} ${date}-${month}-${year}`;
 
     try {
+      // keep only rows that have a name or a non-unknown status
+      const cleanedSubs = subs
+        .filter(
+          (s) =>
+            (s.name?.trim()?.length ?? 0) > 0 ||
+            (s.status && s.status !== "unknown")
+        )
+        .map((s) => ({ name: s.name.trim(), status: s.status || "unknown" }));
+
+      const mergedAttendance: Record<string, string> = { ...attendance };
+      for (const s of cleanedSubs) {
+        if (s.name) mergedAttendance[s.name] = s.status;
+      }
+
       await fetch("/api/next-game", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, attendance, timestamp }),
+        body: JSON.stringify({ ...form, attendance: mergedAttendance, timestamp }),
       });
       setStatus("Saved! Your availability has been recorded.");
       setTimeout(() => router.push("/fixtures#next-game"), 900);
-    } catch (err) {
+    } catch {
       setStatus("Failed to save. Try again.");
     }
   };
@@ -220,6 +279,46 @@ export default function NextGameDetailsPage() {
                       <option value="supporter">🔵 Supporter</option>
                       <option value="coach">🔵 Coach</option>
                     </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Substitutes section */}
+            <div className="pt-6 border-t border-gray-700">
+              <h3 className="text-lg font-semibold mb-3">Substitutes</h3>
+              <div className="space-y-2">
+                {subs.map((s, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-gray-800 rounded px-2 py-2">
+                    <input
+                      type="text"
+                      value={s.name}
+                      onChange={(e) => updateSub(i, { name: e.target.value })}
+                      placeholder="Substitute name"
+                      className="flex-1 p-2 rounded bg-gray-900 border border-gray-600 text-white"
+                    />
+                    <select
+                      value={s.status ?? "unknown"}
+                      onChange={(e) => updateSub(i, { status: e.target.value })}
+                      className="p-2 rounded bg-gray-900 border border-gray-600 text-white min-w-[140px]"
+                    >
+                      <option value="unknown">⚪ Unknown</option>
+                      <option value="present">🟢 Present</option>
+                      <option value="absent">🔴 Absent</option>
+                      <option value="not sure">🟠 Not sure</option>
+                      <option value="supporter">🔵 Supporter</option>
+                    </select>
+                    {subs.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeSub(i)}
+                        className="px-2 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white"
+                        aria-label="Remove substitute"
+                        title="Remove"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

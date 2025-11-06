@@ -31,6 +31,15 @@ const players = [
   "#5 Tim",
 ];
 
+// parse into objects: { raw, number, name, key } — key is normalized name (no number)
+const playersData = players.map((raw) => {
+  const m = raw.match(/^(#\d+)\s*(.*)$/);
+  const number = m ? m[1] : "";
+  const name = m ? m[2] : raw;
+  const key = name.trim();
+  return { raw, number, name, key };
+});
+
 export default function NextGameDetailsPage() {
   const [form, setForm] = useState({
     date: "",
@@ -41,8 +50,9 @@ export default function NextGameDetailsPage() {
     note: "",
   });
   const [status, setStatus] = useState("");
+  // attendance keyed by normalized name (playersData[].key)
   const [attendance, setAttendance] = useState<Record<string, string>>(
-    Object.fromEntries(players.map((name) => [name, "unknown"]))
+    Object.fromEntries(playersData.map((p) => [p.key, "unknown"]))
   );
   const [extraPlayers, setExtraPlayers] = useState<{ name: string; status: string }[]>([{ name: "", status: "unknown" }]);
   // const [showClearInfo, setShowClearInfo] = useState(false);
@@ -62,26 +72,33 @@ export default function NextGameDetailsPage() {
           note: data.note || "",
         });
 
+        const incoming = data.attendance || {};
+
+        // Map known players by normalized key (fallback to legacy raw key if present)
         setAttendance(
-          data.attendance
-            ? Object.fromEntries(
-                players.map((name) => [name, data.attendance[name] || "unknown"])
-              )
-            : Object.fromEntries(players.map((name) => [name, "unknown"]))
+          Object.fromEntries(
+            playersData.map((p) => [
+              p.key,
+              incoming[p.key] ?? incoming[p.raw] ?? "unknown",
+            ])
+          )
         );
 
-        if (data.attendance) {
-          const extra = Object.entries(data.attendance)
-            .filter(([name]) => !players.includes(name))
-            .map(([name, status]) => ({ name, status: String(status) }));
-          setExtraPlayers(
-            extra.length > 0
-              ? [...extra, { name: "", status: "unknown" }]
-              : [{ name: "", status: "unknown" }]
-          );
-        } else {
-          setExtraPlayers([{ name: "", status: "unknown" }]);
-        }
+        // Unknown names in attendance -> extra players (substitutes)
+        const knownKeys = new Set<string>([
+          ...playersData.map((p) => p.key),
+          ...playersData.map((p) => p.raw),
+        ]);
+
+        const extra = Object.entries(incoming)
+          .filter(([name]) => !knownKeys.has(name))
+          .map(([name, status]) => ({ name, status: String(status) }));
+
+        setExtraPlayers(
+          extra.length > 0
+            ? [...extra, { name: "", status: "unknown" }]
+            : [{ name: "", status: "unknown" }]
+        );
       });
   }, []);
 
@@ -113,17 +130,19 @@ export default function NextGameDetailsPage() {
     const year = amsTime.getFullYear();
     const timestamp = `${hour}:${minute} ${day} ${date}-${month}-${year}`;
 
-    await fetch("/api/next-game", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, attendance: fullAttendance, timestamp }),
-    });
-
-    setStatus("Saved! The fixtures page now shows your update.");
-    // Redirect to fixtures page after save
-    setTimeout(() => {
-      router.push("/fixtures#next-game");
-    }, 1200);
+    try {
+      const res = await fetch("/api/next-game", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, attendance: fullAttendance, timestamp }),
+      });
+      if (!res.ok) throw new Error(`Save failed (${res.status})`);
+      setStatus("Saved! The fixtures page now shows your update.");
+      setTimeout(() => router.push("/fixtures#next-game"), 1200);
+    } catch (err: any) {
+      console.error(err);
+      setStatus(err?.message || "Failed to save. Try again.");
+    }
   };
 
   // clear all fields and reset attendance to "unknown"
@@ -141,19 +160,18 @@ export default function NextGameDetailsPage() {
     setStatus("");
   }
 
-  function renderPlayerName(name: string) {
-    const match = name.match(/^(#\d+\s+)/);
-    if (match) {
-      return (
-        <>
-          <span className="font-bold text-yellow-400">{match[1]}</span>
-          {name.slice(match[1].length)}
-        </>
-      );
-    }
-    return name;
+  // helper to render number in yellow and name after it
+  function renderPlayerNameObj(p: { number: string; name: string }) {
+    return p.number ? (
+      <>
+        <span className="font-bold text-yellow-400">{p.number} </span>
+        {p.name}
+      </>
+    ) : (
+      p.name
+    );
   }
-  
+
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
       <Menu />
@@ -235,6 +253,7 @@ export default function NextGameDetailsPage() {
                 required
               >
                 <option value="">Select a time</option>
+                <option value="18:30">18:30</option>
                 <option value="19:30">19:30</option>
                 <option value="20:30">20:30</option>
                 <option value="21:30">21:30</option>
@@ -275,8 +294,8 @@ export default function NextGameDetailsPage() {
                 required
               >
                 <option value="">Select competition</option>
-                <option value="Powerleague 7vs7 division 1">Powerleague 7vs7 division 1 - September 2025</option>
-                <option value="Powerleague 7vs7 division 2">Powerleague 7vs7 division 2 - July 2025</option>
+                <option value="Powerleague 7vs7 division 1 - September 2025">Division 1 Powerleague - September 2025</option>
+                <option value="Powerleague 7vs7 division 2 - July 2025">Division 2 Powerleague - July 2025</option>
               </select>
             </div>
             <div>
@@ -293,16 +312,18 @@ export default function NextGameDetailsPage() {
             <div id="player-availability">
               <label className="block font-semibold mb-1">Player Attendance</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {players.map((name) => (
+                {playersData.map((p) => (
                   <div
-                    key={name}
+                    key={p.raw}
                     className="flex items-center justify-between gap-2 bg-gray-800 rounded px-2 py-1"
                   >
-                    <span className="font-medium text-white w-24 sm:w-32 truncate">{renderPlayerName(name)}</span>
+                    <span className="font-medium text-white w-24 sm:w-32 truncate">
+                      {renderPlayerNameObj(p)}
+                    </span>
                     <select
-                      value={attendance[name]}
+                      value={attendance[p.key] ?? "unknown"}
                       onChange={(e) =>
-                        setAttendance({ ...attendance, [name]: e.target.value })
+                        setAttendance({ ...attendance, [p.key]: e.target.value })
                       }
                       className="p-1 rounded bg-gray-900 border border-gray-600 text-white min-w-[90px] sm:min-w-[120px]"
                     >
