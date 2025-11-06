@@ -142,23 +142,17 @@ export default function NextGameDetailsPage() {
       if (!res.ok) throw new Error(`Save failed (${res.status})`);
       setStatus("Saved! The fixtures page now shows your update.");
       setTimeout(() => router.push("/fixtures#next-game"), 1200);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setStatus(err?.message || "Failed to save. Try again.");
+      const message = err instanceof Error ? err.message : "Failed to save. Try again.";
+      setStatus(message);
     }
   };
 
   // clear all fields and reset attendance to "unknown"
   function handleClear() {
-    setForm({
-      date: "",
-      kickoff: "",
-      opponent: "",
-      location: "",
-      competition: "",
-      note: "",
-    });
-    setAttendance(Object.fromEntries(players.map((name) => [name, "unknown"])));
+    setForm({ date: "", kickoff: "", opponent: "", location: "", competition: "", note: "" });
+    setAttendance(Object.fromEntries(playersData.map((p) => [p.key, "unknown"])));
     setExtraPlayers([{ name: "", status: "unknown" }]);
     setStatus("");
   }
