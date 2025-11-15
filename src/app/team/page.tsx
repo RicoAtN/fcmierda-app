@@ -1,5 +1,6 @@
 "use client";
-import { useState, useMemo, useRef, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useMemo, useRef } from "react";
 import Image from "next/image";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
@@ -27,6 +28,19 @@ type PlayerStats = {
   clean_sheets: number;
   goals_involvement?: number; // add this
   average_goals_per_match?: number; // <- added
+  average_goals_conceded_per_match?: number; // <- new
+};
+
+type TeamStats = {
+  match_played: number;
+  clean_sheets: number;
+  total_wins: number;
+  total_losses: number;
+  total_draws: number;
+  goals_scored: number;
+  average_goals_per_match: number;
+  goals_conceded: number;
+  average_goals_conceded_per_match: number;
 };
 
 const TEAM: Player[] = [
@@ -235,6 +249,34 @@ export default function TeamPage() {
     };
   }, []);
 
+  // Fetch team statistics
+  const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
+  const [teamStatsError, setTeamStatsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/team-statistics", { cache: "no-store" });
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          throw new Error(errJson?.error || `HTTP ${res.status}`);
+        }
+        const { data } = (await res.json()) as { data: TeamStats };
+        if (!cancelled) {
+          setTeamStats(data);
+          setTeamStatsError(null);
+        }
+      } catch (e: any) {
+        console.error("Failed to load team statistics", e);
+        if (!cancelled) setTeamStatsError(e?.message || "Failed to load");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const statsMap = useMemo(() => {
     const m = new Map<string, PlayerStats>();
     for (const s of stats) m.set(String(s.player_id), s);
@@ -279,10 +321,93 @@ export default function TeamPage() {
       <Menu />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
+        {/* Team statistics section */}
+        <section className="mb-8 bg-gray-800 rounded-xl p-5 shadow">
+                  <header className="mb-6 text-center">
+          <h1 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>Team statistics</h1>
+          <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
+            Mierda’s overall statistics for the recent period. 
+          </p>
+        </header>
+
+          {teamStatsError && (
+            <div className="mt-3 text-sm text-red-400">Error: {teamStatsError}</div>
+          )}
+
+          {(() => {
+            const ts = teamStats;
+            const fmtInt = (n?: number) => String(n ?? 0);
+            const fmtAvg = (n?: number) => (n ?? 0).toFixed(2);
+
+            const Tile = ({ label, value }: { label: string; value: string | number }) => (
+              <div className="bg-black/20 rounded-lg p-3 w-full flex flex-col items-center text-center">
+                <div className="text-base sm:text-lg font-semibold text-green-300 leading-tight tabular-nums tracking-tight">
+                  {value}
+                </div>
+                <div className="mt-2 text-sm sm:text-base text-gray-300 leading-5 whitespace-normal break-words">
+                  {label}
+                </div>
+              </div>
+            );
+
+            if (!ts && !teamStatsError) {
+              // simple loading skeleton
+              return (
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="bg-black/20 rounded-lg p-3 h-20 animate-pulse" />
+                  ))}
+                </div>
+              );
+            }
+
+            return (
+              <div className="mt-4 space-y-5">
+                {/* Results */}
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">Results</div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <Tile label="Matches played" value={fmtInt(ts?.match_played)} />
+                    <Tile label="Wins" value={fmtInt(ts?.total_wins)} />
+                    <Tile label="Draws" value={fmtInt(ts?.total_draws)} />
+                    <Tile label="Losses" value={fmtInt(ts?.total_losses)} />
+                  </div>
+                </div>
+
+                {/* Averages */}
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">Averages</div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <Tile label="Avg goals p/m" value={fmtAvg(ts?.average_goals_per_match)} />
+                    <Tile label="Avg conceded p/m" value={fmtAvg(ts?.average_goals_conceded_per_match)} />
+                  </div>
+                </div>
+
+                {/* Totals */}
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">Totals</div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <Tile label="Goals scored" value={fmtInt(ts?.goals_scored)} />
+                    <Tile label="Goals against" value={fmtInt(ts?.goals_conceded)} />
+                  </div>
+                </div>
+
+                {/* Defence */}
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">Defence</div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <Tile label="Clean sheets" value={fmtInt(ts?.clean_sheets)} />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </section>
+
         <header className="mb-6 text-center">
           <h1 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>Meet the Team</h1>
           <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
-            Know the squad: quick bios, roles and call signs. Tap or click a player to view a focused profile.
+            Know the squad: their bio, profile, and stats. Tap or click a player to view their profile and see how many goals and assists they have.
           </p>
         </header>
 
@@ -409,50 +534,50 @@ export default function TeamPage() {
                       const s = statsMap.get(selected.player_id);
                       const role = (selected.role || "").toLowerCase();
                       const isCoach = role.includes("coach");
-                      if (isCoach) return null; // no stats for head coach
+                      if (isCoach) return null;
 
                       const isMidfielder = role.includes("midfield");
                       const isAttacker = role.includes("striker") || role.includes("forward") || role.includes("attack");
+                      const isKeeperOrDef = role.includes("goalkeeper") || role.includes("defend");
 
-                      // show clean sheets only for goalkeepers and defenders
-                      const showCleanSheets = !isMidfielder && !isAttacker && (role.includes("goalkeeper") || role.includes("defend"));
-                      const showGoalsInvolvement = isMidfielder;
-                      const showAvgGPM = isAttacker;
+                      const StatTile = ({ label, value }: { label: string; value: string | number }) => (
+                        <div className="bg-black/20 rounded-lg p-3 w-full flex flex-col items-center text-center">
+                          <div className="text-lg sm:text-xl font-semibold text-green-300 leading-tight tabular-nums tracking-tight">
+                            {value}
+                          </div>
+                          <div className="mt-2 text-sm sm:text-base text-gray-300 leading-5 whitespace-normal break-words">
+                            {label}
+                          </div>
+                        </div>
+                      );
+
+                      const fmtInt = (n: number | undefined) => String(n ?? 0);
+                      const fmtAvg = (n: number | undefined) => (n ?? 0).toFixed(2);
+
+                      const tiles: { label: string; value: string | number }[] = [
+                        { label: "Matches", value: fmtInt(s?.match_played) },
+                        { label: "Goals", value: fmtInt(s?.goals) },
+                        { label: "Assists", value: fmtInt(s?.assists) },
+                      ];
+
+                      if (isKeeperOrDef) {
+                        tiles.push({ label: "Clean sheets", value: fmtInt(s?.clean_sheets) });
+                        tiles.push({ label: "Avg conceded p/m", value: fmtAvg(s?.average_goals_conceded_per_match) });
+                      }
+                      if (isMidfielder) {
+                        tiles.push({ label: "Goals involvement", value: fmtInt(s?.goals_involvement) });
+                      }
+                      if (isAttacker) {
+                        tiles.push({ label: "Avg goals p/m", value: fmtAvg(s?.average_goals_per_match) });
+                      }
 
                       return (
                         <div className="mt-6">
                           <h4 className="text-sm text-gray-300 font-semibold mb-2">Statistics</h4>
-                          <div className={`grid grid-cols-2 ${showCleanSheets || showGoalsInvolvement || showAvgGPM ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-3`}>
-                            <div className="bg-black/20 rounded-md p-3 text-center">
-                              <div className="text-xs text-gray-400">Matches</div>
-                              <div className="text-lg font-bold text-green-300">{s?.match_played ?? 0}</div>
-                            </div>
-                            <div className="bg-black/20 rounded-md p-3 text-center">
-                              <div className="text-xs text-gray-400">Goals</div>
-                              <div className="text-lg font-bold text-green-300">{s?.goals ?? 0}</div>
-                            </div>
-                            <div className="bg-black/20 rounded-md p-3 text-center">
-                              <div className="text-xs text-gray-400">Assists</div>
-                              <div className="text-lg font-bold text-green-300">{s?.assists ?? 0}</div>
-                            </div>
-                            {showCleanSheets && (
-                              <div className="bg-black/20 rounded-md p-3 text-center">
-                                <div className="text-xs text-gray-400">Clean sheets</div>
-                                <div className="text-lg font-bold text-green-300">{s?.clean_sheets ?? 0}</div>
-                              </div>
-                            )}
-                            {showGoalsInvolvement && (
-                              <div className="bg-black/20 rounded-md p-3 text-center">
-                                <div className="text-xs text-gray-400">Goals involvement</div>
-                                <div className="text-lg font-bold text-green-300">{s?.goals_involvement ?? 0}</div>
-                              </div>
-                            )}
-                            {showAvgGPM && (
-                              <div className="bg-black/20 rounded-md p-3 text-center">
-                                <div className="text-xs text-gray-400">Avg goals p/m</div>
-                                <div className="text-lg font-bold text-green-300">{(s?.average_goals_per_match ?? 0).toFixed(2)}</div>
-                              </div>
-                            )}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-stretch content-stretch">
+                            {tiles.map((t, i) => (
+                              <StatTile key={i} label={t.label} value={t.value} />
+                            ))}
                           </div>
                         </div>
                       );
