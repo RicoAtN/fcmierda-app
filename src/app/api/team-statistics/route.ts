@@ -59,8 +59,9 @@ export async function GET() {
       };
 
     return NextResponse.json({ data }, { status: 200 });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to load team statistics";
     console.error("Team statistics API error:", err);
-    return NextResponse.json({ error: err?.message || "Failed to load team statistics" }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

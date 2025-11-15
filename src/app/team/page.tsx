@@ -260,16 +260,17 @@ export default function TeamPage() {
         const res = await fetch("/api/team-statistics", { cache: "no-store" });
         if (!res.ok) {
           const errJson = await res.json().catch(() => ({}));
-          throw new Error(errJson?.error || `HTTP ${res.status}`);
+          throw new Error((errJson as { error?: string })?.error || `HTTP ${res.status}`);
         }
         const { data } = (await res.json()) as { data: TeamStats };
         if (!cancelled) {
           setTeamStats(data);
           setTeamStatsError(null);
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "Failed to load";
         console.error("Failed to load team statistics", e);
-        if (!cancelled) setTeamStatsError(e?.message || "Failed to load");
+        if (!cancelled) setTeamStatsError(message);
       }
     })();
     return () => {
