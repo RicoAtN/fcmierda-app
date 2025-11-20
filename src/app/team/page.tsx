@@ -317,13 +317,6 @@ export default function TeamPage() {
     }, 120);
   }
 
-  function scrollTo(id: string) {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }
-
   const filteredStats = useMemo(() => {
     return stats.filter(s => {
       const teamPlayer = TEAM.find(p => String(p.player_id) === String(s.player_id));
@@ -351,62 +344,20 @@ export default function TeamPage() {
       .slice(0,5),
     [filteredStats]
   );
-  const topMatches = useMemo(
-    () => [...filteredStats].sort((a,b)=> (b.match_played||0)-(a.match_played||0)).slice(0,5),
-    [filteredStats]
-  );
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <Menu />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
-        {/* Page overview / quick navigation */}
-        <section className="mb-10 bg-gray-800 rounded-xl p-6 shadow">
-          <h1 className={`text-3xl sm:text-4xl font-extrabold mb-4 text-center ${robotoSlab.className}`}>FC Mierda team overview</h1>
-          <p className={`text-sm sm:text-base text-gray-300 leading-relaxed text-center ${montserrat.className}`}>
-            This page gives you a complete snapshot of FC Mierda: team-wide performance metrics, standout individual performers,
-            and detailed profiles for every squad member.
-          </p>
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <button
-              onClick={() => scrollTo("team-stats")}
-              className="group flex flex-col items-start rounded-lg border border-green-600/40 bg-green-600/10 px-4 py-3 hover:bg-green-600/20 transition"
-            >
-              <span className="text-sm font-semibold text-green-300">Team statistics</span>
-              <span className="mt-1 text-xs text-gray-300">
-                Core results, averages and totals for the current recorded period.
-              </span>
-            </button>
-            <button
-              onClick={() => scrollTo("top-performers")}
-              className="group flex flex-col items-start rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-4 py-3 hover:bg-indigo-500/20 transition"
-            >
-              <span className="text-sm font-semibold text-indigo-300">All-time top performers</span>
-              <span className="mt-1 text-xs text-gray-300">
-                Leading goal scorers, assist providers, efficiency and match appearance leaders.
-              </span>
-            </button>
-            <button
-              onClick={() => scrollTo("meet-team")}
-              className="group flex flex-col items-start rounded-lg border border-gray-500/40 bg-gray-500/10 px-4 py-3 hover:bg-gray-500/20 transition"
-            >
-              <span className="text-sm font-semibold text-gray-200">Meet the team</span>
-              <span className="mt-1 text-xs text-gray-300">
-                Individual player bios, roles, call signs and up-to-date personal stats.
-              </span>
-            </button>
-          </div>
-        </section>
-
         {/* Team statistics section */}
-        <section id="team-stats" className="mb-8 bg-gray-800 rounded-xl p-5 shadow">
-          <header className="mb-6 text-center">
-            <h1 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>Team statistics</h1>
-            <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
-              Mierda’s overall statistics for the recent period.
-            </p>
-          </header>
+        <section className="mb-8 bg-gray-800 rounded-xl p-5 shadow">
+                  <header className="mb-6 text-center">
+          <h1 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>Team statistics</h1>
+          <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
+            Mierda’s overall statistics for the recent period. 
+          </p>
+        </header>
 
           {teamStatsError && (
             <div className="mt-3 text-sm text-red-400">Error: {teamStatsError}</div>
@@ -483,11 +434,11 @@ export default function TeamPage() {
         </section>
 
         {/* All-time top performers section */}
-        <section id="top-performers" className="mb-8 bg-gray-800 rounded-xl p-5 shadow">
+        <section className="mb-8 bg-gray-800 rounded-xl p-5 shadow">
           <header className="mb-6 text-center">
             <h2 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>All-time top performers</h2>
             <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
-              Leading FC Mierda performers (data since June 2025 – full historic expansion in progress).
+              Leading FC Mierda performers (data since June 2025 - all‑time history still in progress).
             </p>
           </header>
 
@@ -496,8 +447,7 @@ export default function TeamPage() {
               { heading: "Top goal scorers", list: topGoals, valueKey: "goals" as const },
               { heading: "Top assists", list: topAssists, valueKey: "assists" as const },
               { heading: "Top avg goals p/m", list: topAvgGoals, valueKey: "average_goals_per_match" as const, isAvg: true },
-              { heading: "Lowest avg goals conceded p/m", list: topAvgConceded, valueKey: "average_goals_conceded_per_match" as const, isAvg: true },
-              { heading: "Most matches played", list: topMatches, valueKey: "match_played" as const }
+              { heading: "Lowest avg goals conceded p/m", list: topAvgConceded, valueKey: "average_goals_conceded_per_match" as const, isAvg: true }
             ].map((block, i) => (
               <div key={i}>
                 <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">{block.heading}</div>
@@ -506,8 +456,8 @@ export default function TeamPage() {
                     const player = TEAM.find(p => String(p.player_id) === String(ps.player_id));
                     const name = player?.name ?? `Player ${ps.player_id}`;
                     if (name.toLowerCase().includes("player")) return null;
-                    const valRaw = (ps as any)[block.valueKey];
-                    const val = block.isAvg ? (valRaw ?? 0).toFixed(2) : String(valRaw ?? 0);
+                    const raw = getStatValue(ps, block.valueKey);
+                    const val = block.isAvg ? raw.toFixed(2) : String(raw);
                     return (
                       <li
                         key={ps.player_id}
@@ -530,10 +480,10 @@ export default function TeamPage() {
           </div>
         </section>
 
-        <header id="meet-team" className="mb-6 text-center">
+        <header className="mb-6 text-center">
           <h1 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>Meet the Team</h1>
           <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
-            Detailed player profiles with roles, bios, call signs and current performance statistics.
+            Know the squad: their bio, profile, and stats. Tap or click a player to view their profile and see how many goals and assists they have.
           </p>
         </header>
 
@@ -734,4 +684,20 @@ export default function TeamPage() {
       <Footer />
     </div>
   );
+}
+
+type StatKey =
+  | "goals"
+  | "assists"
+  | "average_goals_per_match"
+  | "average_goals_conceded_per_match";
+
+function getStatValue(ps: PlayerStats, key: StatKey): number {
+  switch (key) {
+    case "goals": return ps.goals ?? 0;
+    case "assists": return ps.assists ?? 0;
+    case "average_goals_per_match": return ps.average_goals_per_match ?? 0;
+    case "average_goals_conceded_per_match": return ps.average_goals_conceded_per_match ?? 0;
+    default: return 0;
+  }
 }
