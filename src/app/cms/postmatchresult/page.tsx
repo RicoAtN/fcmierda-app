@@ -180,41 +180,49 @@ export default function PostMatchResultPage() {
     e.preventDefault();
     setStatus("Saving...");
 
-    // Only save filled goal scorers
-    const filteredGoalScorers = goalScorers.filter(
-      (g) => g.scorer.trim() !== ""
-    );
+    const filteredGoalScorers = goalScorers.filter(g => g.scorer.trim() !== "");
 
-    // Get timestamp in GMT+1 (Europe/Amsterdam) in format HH:MM DAY DATE
     const now = new Date();
     const amsTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Amsterdam" }));
     const hour = amsTime.getHours().toString().padStart(2, "0");
     const minute = amsTime.getMinutes().toString().padStart(2, "0");
-    const day = amsTime.toLocaleString("en-US", { weekday: "short", timeZone: "Europe/Amsterdam" }); // e.g. Mon, Tue
+    const day = amsTime.toLocaleString("en-US", { weekday: "short", timeZone: "Europe/Amsterdam" });
     const date = amsTime.getDate().toString().padStart(2, "0");
     const month = (amsTime.getMonth() + 1).toString().padStart(2, "0");
     const year = amsTime.getFullYear();
     const timestamp = `${hour}:${minute} ${day} ${date}-${month}-${year}`;
 
-    await fetch("/api/match-result", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        date: lastMatch.date,
-        opponent: lastMatch.opponent,
-        location: lastMatch.location,
-        competition: lastMatch.competition,
-        attendance: lastMatch.attendance,
-        supportCoach: lastMatch.supportCoach,
-        goalsFCMierda,
-        goalsOpponent,
-        gameResult,
-        goalScorers: filteredGoalScorers,
-        timestamp, // <-- add timestamp to payload
-      }),
-    });
+    try {
+      const res = await fetch("/api/match-result", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: lastMatch.date,
+          opponent: lastMatch.opponent,
+            location: lastMatch.location,
+          competition: lastMatch.competition,
+          attendance: lastMatch.attendance,
+          supportCoach: lastMatch.supportCoach,
+          goalsFCMierda,
+          goalsOpponent,
+          gameResult,
+          goalScorers: filteredGoalScorers,
+          timestamp
+        }),
+      });
 
-    setStatus("Saved! The match result is now stored.");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setStatus(err.error ? `Error: ${err.error}` : `Error: ${res.status}`);
+        return;
+      }
+
+      setStatus("Saved! Redirecting...");
+      router.push("/results");
+    } catch (err) {
+      setStatus("Network error while saving.");
+      console.error(err);
+    }
   };
 
   // Handle edit form changes
