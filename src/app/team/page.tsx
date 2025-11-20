@@ -492,43 +492,67 @@ export default function TeamPage() {
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              { heading: "Top goal scorers", list: topGoals, valueKey: "goals" as const },
-              { heading: "Top assists", list: topAssists, valueKey: "assists" as const },
-              { heading: "Top avg goals p/m", list: topAvgGoals, valueKey: "average_goals_per_match" as const, isAvg: true },
-              { heading: "Lowest avg goals conceded p/m", list: topAvgConceded, valueKey: "average_goals_conceded_per_match" as const, isAvg: true },
-              { heading: "Most matches played", list: topMatches, valueKey: "match_played" as const }
-            ].map((block, i) => (
-              <div key={i}>
-                <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">{block.heading}</div>
-                <ul className="space-y-2">
-                  {block.list.map((ps, idx) => {
-                    const player = TEAM.find(p => String(p.player_id) === String(ps.player_id));
-                    const name = player?.name ?? `Player ${ps.player_id}`;
-                    if (name.toLowerCase().includes("player")) return null;
-                    const valRaw = (ps as any)[block.valueKey];
-                    const val = block.isAvg ? (valRaw ?? 0).toFixed(2) : String(valRaw ?? 0);
-                    return (
-                      <li
-                        key={ps.player_id}
-                        className="flex items-center justify-between bg-black/20 rounded-md px-3 py-2 text-sm"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="text-gray-400 w-5">{idx + 1}.</span>
-                          <span className="font-medium truncate">{name}</span>
-                        </div>
-                        <span className="font-semibold text-green-300 tabular-nums">{val}</span>
-                      </li>
-                    );
-                  })}
-                  {block.list.length === 0 && (
-                    <li className="text-xs text-gray-500">No data.</li>
-                  )}
-                </ul>
-              </div>
-            ))}
+            {(() => {
+              type StatKey =
+                | "goals"
+                | "assists"
+                | "average_goals_per_match"
+                | "average_goals_conceded_per_match"
+                | "match_played";
+
+              interface StatBlock {
+                heading: string;
+                list: PlayerStats[];
+                valueKey: StatKey;
+                isAvg?: boolean;
+              }
+
+              const getValue = (ps: PlayerStats, key: StatKey) => {
+                const v = ps[key];
+                return typeof v === "number" ? v : 0;
+              };
+
+              const blocks: StatBlock[] = [
+                { heading: "Top goal scorers", list: topGoals, valueKey: "goals" },
+                { heading: "Top assists", list: topAssists, valueKey: "assists" },
+                { heading: "Top avg goals p/m", list: topAvgGoals, valueKey: "average_goals_per_match", isAvg: true },
+                { heading: "Lowest avg goals conceded p/m", list: topAvgConceded, valueKey: "average_goals_conceded_per_match", isAvg: true },
+                { heading: "Most matches played", list: topMatches, valueKey: "match_played" }
+              ];
+
+              return blocks.map((block, i) => (
+                <div key={i}>
+                  <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">{block.heading}</div>
+                  <ul className="space-y-2">
+                    {block.list.map((ps, idx) => {
+                      const player = TEAM.find(p => String(p.player_id) === String(ps.player_id));
+                      const name = player?.name ?? `Player ${ps.player_id}`;
+                      if (name.toLowerCase().includes("player")) return null;
+                      const raw = getValue(ps, block.valueKey);
+                      const val = block.isAvg ? raw.toFixed(2) : String(raw);
+                      return (
+                        <li
+                          key={ps.player_id}
+                          className="flex items-center justify-between bg-black/20 rounded-md px-3 py-2 text-sm"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-gray-400 w-5">{idx + 1}.</span>
+                            <span className="font-medium truncate">{name}</span>
+                          </div>
+                          <span className="font-semibold text-green-300 tabular-nums">{val}</span>
+                        </li>
+                      );
+                    })}
+                    {block.list.length === 0 && (
+                      <li className="text-xs text-gray-500">No data.</li>
+                    )}
+                  </ul>
+                </div>
+              ));
+            })()}
           </div>
-        </section>
+
+        </section> {/* <-- added closing tag for top-performers section */}
 
         <header id="meet-team" className="mb-6 text-center">
           <h1 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>Meet the Team</h1>
@@ -734,20 +758,4 @@ export default function TeamPage() {
       <Footer />
     </div>
   );
-}
-
-type StatKey =
-  | "goals"
-  | "assists"
-  | "average_goals_per_match"
-  | "average_goals_conceded_per_match";
-
-function getStatValue(ps: PlayerStats, key: StatKey): number {
-  switch (key) {
-    case "goals": return ps.goals ?? 0;
-    case "assists": return ps.assists ?? 0;
-    case "average_goals_per_match": return ps.average_goals_per_match ?? 0;
-    case "average_goals_conceded_per_match": return ps.average_goals_conceded_per_match ?? 0;
-    default: return 0;
-  }
 }
