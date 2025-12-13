@@ -169,6 +169,31 @@ export default function NextGameDetailsPage() {
     );
   }
 
+  // Add: DB-driven lists
+  type OpponentRow = { team_id: string; team_name: string };
+  type CompetitionRow = { competition_id: string; competition_name: string };
+  const [opponents, setOpponents] = useState<OpponentRow[]>([]);
+  const [competitions, setCompetitions] = useState<CompetitionRow[]>([]);
+
+  useEffect(() => {
+    // Load opponents
+    (async () => {
+      try {
+        const res = await fetch("/api/opponents", { cache: "no-store" });
+        const json = await res.json();
+        if (res.ok && Array.isArray(json.data)) setOpponents(json.data);
+      } catch {}
+    })();
+    // Load competition
+    (async () => {
+      try {
+        const res = await fetch("/api/competition", { cache: "no-store" });
+        const json = await res.json();
+        if (res.ok && Array.isArray(json.data)) setCompetitions(json.data);
+      } catch {}
+    })();
+  }, []);
+
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
       <Menu />
@@ -266,13 +291,9 @@ export default function NextGameDetailsPage() {
                 required
               >
                 <option value="">Select opponent</option>
-                <option value="ABC-Positief">ABC-Positief</option>
-                <option value="Alexandria '66 team Rutjes">Alexandria '66 team Rutjes</option>
-                <option value="FC Degradatiekandidaten">FC Degradatiekandidaten</option>
-                <option value="Maghreb United">Maghreb United</option>
-                <option value="NO GAME">NO GAME</option>
-                <option value="Ramnous Rotterdam">Ramnous Rotterdam</option>
-                <option value="Spartans">Spartans</option>
+                {opponents.map((o) => (
+                  <option key={o.team_id} value={o.team_name}>{o.team_name}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -291,8 +312,9 @@ export default function NextGameDetailsPage() {
                 required
               >
                 <option value="">Select competition</option>
-                <option value="Powerleague 7vs7 division 1 - September 2025">Division 1 Powerleague - September 2025</option>
-                <option value="Powerleague 7vs7 division 2 - July 2025">Division 2 Powerleague - July 2025</option>
+                {competitions.map((c) => (
+                  <option key={c.competition_id} value={c.competition_name}>{c.competition_name}</option>
+                ))}
               </select>
             </div>
             <div>
