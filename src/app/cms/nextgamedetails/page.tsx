@@ -416,12 +416,39 @@ export default function NextGameDetailsPage() {
                 </div>
               ))}
             </div>
-            <button
-              type="submit"
-              className="bg-green-600 hover:bg-green-700 text-white px-10 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 min-w-[200px]"
-            >
-              Save Next Game
-            </button>
+            <div className="flex items-center justify-end gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() =>
+                  setForm(prev => ({
+                    ...prev,
+                    opponent: "",
+                    // keep read-only fields intact
+                    competition: prev.competition,
+                    location: prev.location,
+                    date: "",
+                    kickoff: "",
+                    note: "",
+                  }))
+                }
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 transition-shadow shadow-md"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span>Reset</span>
+              </button>
+
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition-shadow shadow-lg shadow-blue-600/30"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Save</span>
+              </button>
+            </div>
             <div className="mt-2 text-green-400">{status}</div>
           </form>
         </div>

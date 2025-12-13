@@ -33,7 +33,7 @@ export default function CMSPage() {
               textTransform: "uppercase",
             }}
           >
-            Schedule & Results CMS
+            Team Management page
           </h1>
           <p
             className={`text-lg sm:text-xl text-white font-medium mb-8 drop-shadow-lg ${montserrat.className}`}
@@ -45,20 +45,42 @@ export default function CMSPage() {
               Update the next game details with attendance or post the result of a played match with relevant match details.
             </span>
           </p>
-          <div className="flex gap-6 justify-center mt-4">
+          {/* Make buttons equal size */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 w-full">
             <button
               type="button"
               onClick={() => router.push("/cms/nextgamedetails")}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md font-bold text-lg shadow transition-all duration-150 border border-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-2xl bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 active:bg-blue-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 transition duration-200 ease-out hover:-translate-y-0.5 min-h-[44px]"
             >
-              Update Next Game Details
+              <svg className="h-5 w-5 flex-shrink-0 opacity-90" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M5 4h1a1 1 0 011 1v1h10V5a1 1 0 011-1h1v4H5V4zm0 6h14v10a1 1 0 01-1 1H6a1 1 0 01-1-1V10zm4 3a1 1 0 100 2h6a1 1 0 100-2H9z" />
+              </svg>
+              <span className="whitespace-nowrap">Update Next Game</span>
             </button>
+
             <button
               type="button"
               onClick={() => router.push("/cms/postmatchresult")}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-bold text-lg shadow transition-all duration-150 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-2xl bg-slate-700 text-white font-semibold shadow-sm hover:bg-slate-600 active:bg-slate-800 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition duration-200 ease-out hover:-translate-y-0.5 min-h-[44px]"
             >
-              Post or Edit Match Results
+              <svg className="h-5 w-5 flex-shrink-0 opacity-90" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M7 4h10a1 1 0 011 1v9a4 4 0 11-8 0H7a1 1 0 01-1-1V5a1 1 0 011-1zm6 10a2 2 0 104 0 2 2 0 00-4 0z" />
+              </svg>
+              <span className="whitespace-nowrap">Post/Edit Results</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/cms/competition")}
+              className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-2xl bg-teal-600 text-white font-semibold shadow-sm hover:bg-teal-500 active:bg-teal-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 transition duration-200 ease-out hover:-translate-y-0.5 min-h-[44px]"
+            >
+              {/* Icon: add + edit */}
+              <svg className="h-6 w-6 flex-shrink-0 opacity-90" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+                <path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25z" />
+                <path d="M20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+              </svg>
+              <span className="whitespace-nowrap">Add/Edit Competition</span>
             </button>
           </div>
         </div>
