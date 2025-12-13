@@ -4,6 +4,12 @@ import { neon, neonConfig } from "@neondatabase/serverless";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type CompetitionRow = {
+  competition_id: string;
+  competition_name: string;
+  opponents: string[];
+};
+
 export async function GET() {
   try {
     const dbUrl = process.env.DATABASE_URL;
@@ -13,26 +19,40 @@ export async function GET() {
     neonConfig.fetchConnectionCache = true;
     const sql = neon(dbUrl);
 
+    // Query without generic; cast after
     const res = await sql`
       SELECT competition_id, competition_name, opponents
       FROM competition
       ORDER BY competition_id DESC
       LIMIT 1;
     `;
+
     if (!Array.isArray(res) || res.length === 0) {
       return NextResponse.json({ data: null }, { status: 200 });
     }
 
-    const r: any = res[0];
-    const opponentsArray =
-      Array.isArray(r.opponents) ? (r.opponents as string[]) :
-      typeof r.opponents === "string" ? JSON.parse(r.opponents) :
-      [];
+    const r = res[0] as {
+      competition_id: string | number;
+      competition_name: string;
+      opponents: unknown;
+    };
 
-    const data = {
+    let opponents: string[] = [];
+    if (Array.isArray(r.opponents)) {
+      opponents = r.opponents as string[];
+    } else if (typeof r.opponents === "string") {
+      try {
+        const parsed = JSON.parse(r.opponents);
+        opponents = Array.isArray(parsed) ? (parsed as string[]) : [];
+      } catch {
+        opponents = [];
+      }
+    }
+
+    const data: CompetitionRow = {
       competition_id: String(r.competition_id),
-      competition_name: String(r.competition_name),
-      opponents: opponentsArray,
+      competition_name: r.competition_name,
+      opponents,
     };
 
     return NextResponse.json({ data }, { status: 200 });

@@ -43,8 +43,6 @@ const playersData = players.map((raw) => {
 type CompetitionRow = { competition_id: string; competition_name: string; opponents: string[] };
 
 export default function NextGameDetailsPage() {
-  const [competitions, setCompetitions] = useState<CompetitionRow[]>([]);
-  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string>("");
   const [latestCompetition, setLatestCompetition] = useState<CompetitionRow | null>(null);
   const [form, setForm] = useState({
     opponent: "",
@@ -118,7 +116,6 @@ export default function NextGameDetailsPage() {
           setForm(prev => ({
             ...prev,
             competition: c.competition_name,
-            // keep your location source (or set from competition if you have such a column)
             location: prev.location || "Alexandria 66 Rotterdam",
           }));
         } else {
