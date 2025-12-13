@@ -288,7 +288,7 @@ export default async function FixturesPage() {
             Rotterdam 7vs7.
           </p>
           <a
-            href="https://www.powerleague.com/nl/competitie?league_id=e62374e8-650a-9db1-e014-c00cc844e83f&division_id="
+            href="https://www.powerleague.com/nl/competitie?league_id=ae68d4cb-cbc3-20bc-e614-9061a8f1b5e1&division_id="
             target="_blank"
             rel="noopener noreferrer"
             className="text-green-300 font-bold underline"

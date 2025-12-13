@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer"; // Add this import at the top
@@ -40,13 +40,18 @@ const playersData = players.map((raw) => {
   return { raw, number, name, key };
 });
 
+type CompetitionRow = { competition_id: string; competition_name: string; opponents: string[] };
+
 export default function NextGameDetailsPage() {
+  const [competitions, setCompetitions] = useState<CompetitionRow[]>([]);
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string>("");
+  const [latestCompetition, setLatestCompetition] = useState<CompetitionRow | null>(null);
   const [form, setForm] = useState({
+    opponent: "",
+    competition: "",
+    location: "",
     date: "",
     kickoff: "",
-    opponent: "",
-    location: "Alexandria 66 Rotterdam",
-    competition: "",
     note: "",
   });
   const [status, setStatus] = useState("");
@@ -101,6 +106,31 @@ export default function NextGameDetailsPage() {
         );
       });
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/competition", { cache: "no-store" });
+        const json = await res.json();
+        if (res.ok && json.data) {
+          const c = json.data as CompetitionRow;
+          setLatestCompetition(c);
+          setForm(prev => ({
+            ...prev,
+            competition: c.competition_name,
+            // keep your location source (or set from competition if you have such a column)
+            location: prev.location || "Alexandria 66 Rotterdam",
+          }));
+        } else {
+          console.error("Failed to load competition:", json?.error);
+        }
+      } catch (e) {
+        console.error("Load latest competition failed:", e);
+      }
+    })();
+  }, []);
+
+  const currentOpponents = latestCompetition?.opponents ?? [];
 
   // Fix: strongly type change events (inputs, textarea, selects)
   const handleChange = (
@@ -168,31 +198,6 @@ export default function NextGameDetailsPage() {
       p.name
     );
   }
-
-  // Add: DB-driven lists
-  type OpponentRow = { team_id: string; team_name: string };
-  type CompetitionRow = { competition_id: string; competition_name: string };
-  const [opponents, setOpponents] = useState<OpponentRow[]>([]);
-  const [competitions, setCompetitions] = useState<CompetitionRow[]>([]);
-
-  useEffect(() => {
-    // Load opponents
-    (async () => {
-      try {
-        const res = await fetch("/api/opponents", { cache: "no-store" });
-        const json = await res.json();
-        if (res.ok && Array.isArray(json.data)) setOpponents(json.data);
-      } catch {}
-    })();
-    // Load competition
-    (async () => {
-      try {
-        const res = await fetch("/api/competition", { cache: "no-store" });
-        const json = await res.json();
-        if (res.ok && Array.isArray(json.data)) setCompetitions(json.data);
-      } catch {}
-    })();
-  }, []);
 
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
@@ -289,33 +294,35 @@ export default function NextGameDetailsPage() {
                 onChange={handleChange}
                 className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
                 required
+                disabled={!latestCompetition}
               >
-                <option value="">Select opponent</option>
-                {opponents.map((o) => (
-                  <option key={o.team_id} value={o.team_name}>{o.team_name}</option>
+                <option value="">{latestCompetition ? "Select opponent" : "Competition unavailable"}</option>
+                {currentOpponents.map((name) => (
+                  <option key={name} value={name}>{name}</option>
                 ))}
               </select>
             </div>
             <div>
               <label className="block font-semibold mb-1">Location</label>
-              <div className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white font-semibold">
-                Alexandria 66 Rotterdam
-              </div>
+              <input
+                type="text"
+                name="location"
+                value={form.location}
+                readOnly
+                disabled
+                className="w-full p-2 rounded bg-gray-700 border border-gray-600 text-white"
+              />
             </div>
             <div>
               <label className="block font-semibold mb-1">Competition</label>
-              <select
+              <input
+                type="text"
                 name="competition"
                 value={form.competition}
-                onChange={handleChange}
-                className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                required
-              >
-                <option value="">Select competition</option>
-                {competitions.map((c) => (
-                  <option key={c.competition_id} value={c.competition_name}>{c.competition_name}</option>
-                ))}
-              </select>
+                readOnly
+                disabled
+                className="w-full p-2 rounded bg-gray-700 border border-gray-600 text-white"
+              />
             </div>
             <div>
               <label className="block font-semibold mb-1">Note</label>
