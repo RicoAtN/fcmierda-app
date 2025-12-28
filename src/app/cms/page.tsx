@@ -44,21 +44,35 @@ export default function CMSPage() {
             <span className="font-semibold">
               Update the next game details with attendance or post the result of a played match with relevant match details.
             </span>
+            <br />
+            <br />
+            <span className="font-semibold">
+              Create or edit a competition to add opponent teams or update final standings.
+            </span>
           </p>
-          <div className="flex gap-6 justify-center mt-4">
+          <div className="w-full max-w-md flex flex-col gap-3 mt-6">
             <button
               type="button"
               onClick={() => router.push("/cms/nextgamedetails")}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md font-bold text-lg shadow transition-all duration-150 border border-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-green-300 transition min-h-[44px]"
             >
-              Update Next Game Details
+              Create or edit next game
             </button>
+
             <button
               type="button"
               onClick={() => router.push("/cms/postmatchresult")}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-bold text-lg shadow transition-all duration-150 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-blue-300 transition min-h-[44px]"
             >
-              Post or Edit Match Results
+              Create or edit match result
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/cms/competition")}
+              className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-yellow-300 transition min-h-[44px]"
+            >
+              Create or edit competition
             </button>
           </div>
         </div>
