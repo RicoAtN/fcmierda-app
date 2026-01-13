@@ -69,7 +69,7 @@ export default function CompetitionCMSPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/competitions", { cache: "no-store" });
+        const res = await fetch("/api/competition", { cache: "no-store" });
         const json = await res.json();
         if (res.ok && Array.isArray(json.data)) {
           setRows(json.data);

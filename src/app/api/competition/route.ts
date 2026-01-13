@@ -8,7 +8,25 @@ type CompetitionRow = {
   competition_id: string;
   competition_name: string;
   opponents: string[];
+  end_period?: string | null;
+  fcmierda_final_rank?: number | null;
+  competition_champion?: string | null;
 };
+
+function parseOpponents(opponentsValue: unknown): string[] {
+  if (Array.isArray(opponentsValue)) {
+    return opponentsValue as string[];
+  }
+  if (typeof opponentsValue === "string") {
+    try {
+      const parsed = JSON.parse(opponentsValue);
+      return Array.isArray(parsed) ? (parsed as string[]) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 
 export async function GET() {
   try {
@@ -19,41 +37,23 @@ export async function GET() {
     neonConfig.fetchConnectionCache = true;
     const sql = neon(dbUrl);
 
-    // Query without generic; cast after
     const res = await sql`
-      SELECT competition_id, competition_name, opponents
-      FROM competition
-      ORDER BY competition_id DESC
-      LIMIT 1;
+      SELECT competition_id, competition_name, opponents, end_period, fcmierda_final_rank, competition_champion
+      FROM competition ORDER BY competition_id DESC;
     `;
 
-    if (!Array.isArray(res) || res.length === 0) {
-      return NextResponse.json({ data: null }, { status: 200 });
+    if (!Array.isArray(res)) {
+      return NextResponse.json({ data: [] }, { status: 200 });
     }
 
-    const r = res[0] as {
-      competition_id: string | number;
-      competition_name: string;
-      opponents: unknown;
-    };
-
-    let opponents: string[] = [];
-    if (Array.isArray(r.opponents)) {
-      opponents = r.opponents as string[];
-    } else if (typeof r.opponents === "string") {
-      try {
-        const parsed = JSON.parse(r.opponents);
-        opponents = Array.isArray(parsed) ? (parsed as string[]) : [];
-      } catch {
-        opponents = [];
-      }
-    }
-
-    const data: CompetitionRow = {
-      competition_id: String(r.competition_id),
-      competition_name: r.competition_name,
-      opponents,
-    };
+    const data: CompetitionRow[] = res.map((row) => ({
+      competition_id: String(row.competition_id),
+      competition_name: row.competition_name,
+      opponents: parseOpponents(row.opponents),
+      end_period: row.end_period,
+      fcmierda_final_rank: row.fcmierda_final_rank,
+      competition_champion: row.competition_champion,
+    }));
 
     return NextResponse.json({ data }, { status: 200 });
   } catch (err) {

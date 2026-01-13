@@ -131,7 +131,7 @@ export default function Home() {
           <p className={`text-base sm:text-lg ${montserrat.className}`}>
             Want to relive every goal, epic save, and legendary moment from FC Mierda?
             On our <span className="text-green-400 font-semibold">Results</span> page you can watch all the highlights, match recaps, and unforgettable plays.<br /><br />
-            Be a true fan—never miss a single moment of FC Mierda magic!
+            Be a true fan and never miss a single moment of FC Mierda magic!
           </p>
           <Link
             href="/results"

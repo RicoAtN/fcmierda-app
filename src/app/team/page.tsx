@@ -51,6 +51,7 @@ const TEAM: Player[] = [
     nickname: "Maestro",
     role: "Head Coach",
     bio: "Maestro & Pirlo — tactical architect who prioritises possession, structured build-up and midfield control.",
+     photo: "/players/hans1OfficialPhoto.png",
   },
 
   // Goalkeepers
@@ -61,7 +62,7 @@ const TEAM: Player[] = [
     nickname: "Alon d'Or",
     role: "Goalkeeper",
     bio: "Alon d'Or — commanding presence in goal with quick reflexes, strong aerial control and excellent communication.",
-    // photo: "/players/alon.jpg",
+    photo: "/players/alonOfficialPhoto.png",
   },
   {
     player_id: "12",
@@ -81,7 +82,7 @@ const TEAM: Player[] = [
     nickname: "Grey Wall",
     role: "Defender",
     bio: "Grey Wall — composed central defender, excels in positioning, aerial duels and reading opposition attacks.",
-    photo: "/players/rico.png",
+    photo: "/players/ricoOfficialPhoto.png",
   },
   {
     player_id: "26",
@@ -99,7 +100,7 @@ const TEAM: Player[] = [
     nickname: "Oyabun",
     role: "Defender",
     bio: "Oyabun — physical defender who wins duels, reads the game well and provides stability at the back.",
-    // photo: "/players/kevin.jpg",
+    photo: "/players/kevinOfficialPhoto.png",
   },
   {
     player_id: "69",
@@ -108,7 +109,16 @@ const TEAM: Player[] = [
     nickname: "Satoshi",
     role: "Defender",
     bio: "Satoshi — quick and attentive fullback, reliable in recovery runs and one-on-one defending.",
-    // photo: "/players/mitchell.jpg",
+    photo: "/players/mitchellOfficialPhoto.png",
+  },
+    {
+    player_id: "3",
+    number: "#3",
+    name: "Jochem",
+    nickname: "Jochem",
+    role: "Defender",
+    bio: "Jochem — versatile defender known for his tactical awareness, solid tackling, and ability to read the game effectively.",
+    photo: "/players/jochemOfficialPhoto.png",
   },
   {
     player_id: "4",
@@ -155,7 +165,7 @@ const TEAM: Player[] = [
     nickname: "Kapiteni",
     role: "Midfielder",
     bio: "Kapiteni — captain and chief playmaker; creative, calm under pressure and a set-piece leader.",
-    // photo: "/players/jordy.jpg",
+    photo: "/players/jordyOfficialPhoto.png",
   },
   {
     player_id: "19",
@@ -164,7 +174,7 @@ const TEAM: Player[] = [
     nickname: "Len",
     role: "Midfielder",
     bio: "Len — shielding midfielder with excellent positional sense, breaks up play and recycles possession.",
-    // photo: "/players/lennert.jpg",
+    photo: "/players/lennertOfficialPhoto.png",
   },
   {
     player_id: "22",
@@ -173,7 +183,7 @@ const TEAM: Player[] = [
     nickname: "Jake",
     role: "Midfielder",
     bio: "Jake — technically strong midfielder with vision to pick passes and control tempo.",
-    // photo: "/players/ka.jpg",
+    photo: "/players/kaOfficialPhoto.png",
   },
   {
     player_id: "7",
@@ -341,12 +351,15 @@ export default function TeamPage() {
     [filteredStats]
   );
   const topAvgGoals = useMemo(
-    () => [...filteredStats].sort((a,b)=> (b.average_goals_per_match||0)-(a.average_goals_per_match||0)).slice(0,5),
+    () => [...filteredStats]
+      .filter(s => (s.match_played || 0) > 3)
+      .sort((a,b)=> (b.average_goals_per_match||0)-(a.average_goals_per_match||0)).slice(0,5),
     [filteredStats]
   );
   const topAvgConceded = useMemo(
     () => [...filteredStats]
       .filter(s => s.average_goals_conceded_per_match != null)
+      .filter(s => (s.match_played || 0) > 3)
       .sort((a,b)=> (a.average_goals_conceded_per_match ?? 9999) - (b.average_goals_conceded_per_match ?? 9999))
       .slice(0,5),
     [filteredStats]
@@ -617,7 +630,7 @@ export default function TeamPage() {
                         {/* avatar */}
                         {p.photo ? (
                           <div className="w-14 h-14 relative rounded-full overflow-hidden flex-shrink-0">
-                            <Image src={p.photo} alt={p.name} fill className="object-cover" />
+                            <Image src={p.photo} alt={p.name} fill className="object-cover scale-125" />
                           </div>
                         ) : (
                           <div className="w-14 h-14 rounded-full bg-gray-700 flex items-center justify-center text-sm font-bold text-gray-200">

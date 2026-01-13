@@ -44,6 +44,7 @@ type CompetitionRow = { competition_id: string; competition_name: string; oppone
 
 export default function NextGameDetailsPage() {
   const [latestCompetition, setLatestCompetition] = useState<CompetitionRow | null>(null);
+  const [competitions, setCompetitions] = useState<CompetitionRow[]>([]);
   const [form, setForm] = useState({
     opponent: "",
     competition: "",
@@ -110,22 +111,27 @@ export default function NextGameDetailsPage() {
       try {
         const res = await fetch("/api/competition", { cache: "no-store" });
         const json = await res.json();
-        if (res.ok && json.data) {
-          const c = json.data as CompetitionRow;
-          setLatestCompetition(c);
-          setForm(prev => ({
-            ...prev,
-            competition: c.competition_name,
-            location: prev.location || "Alexandria 66 Rotterdam",
-          }));
+        if (res.ok && Array.isArray(json.data)) {
+          setCompetitions(json.data);
         } else {
-          console.error("Failed to load competition:", json?.error);
+          console.error("Failed to load competitions:", json?.error);
         }
       } catch (e) {
-        console.error("Load latest competition failed:", e);
+        console.error("Load all competitions failed:", e);
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (form.competition && competitions.length > 0) {
+      const selectedComp = competitions.find(c => c.competition_name === form.competition);
+      setLatestCompetition(selectedComp || null);
+    } else if (competitions.length > 0) {
+      const latest = competitions[0];
+      setLatestCompetition(latest);
+      setForm(prev => ({ ...prev, competition: latest.competition_name }));
+    }
+  }, [form.competition, competitions]);
 
   const currentOpponents = latestCompetition?.opponents ?? [];
 
@@ -312,14 +318,20 @@ export default function NextGameDetailsPage() {
             </div>
             <div>
               <label className="block font-semibold mb-1">Competition</label>
-              <input
-                type="text"
+              <select
                 name="competition"
                 value={form.competition}
-                readOnly
-                disabled
-                className="w-full p-2 rounded bg-gray-700 border border-gray-600 text-white"
-              />
+                onChange={handleChange}
+                className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
+                required
+              >
+                <option value="">{competitions.length > 0 ? "Select competition" : "Loading..."}</option>
+                {competitions.map((comp) => (
+                  <option key={comp.competition_id} value={comp.competition_name}>
+                    {comp.competition_name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block font-semibold mb-1">Note</label>
