@@ -81,10 +81,10 @@ async function getCompetitionSchema(sql: any) {
   return { hasOrganisation, hasOrganization, opponentsType };
 }
 
-function validatePayload(payload: any) {
+function validatePayload(payload: any, requireName: boolean) {
   const errors: string[] = [];
   if (!payload || typeof payload !== "object") errors.push("Invalid payload.");
-  if (!payload.competition_name || typeof payload.competition_name !== "string") {
+  if (requireName && (!payload.competition_name || typeof payload.competition_name !== "string")) {
     errors.push("competition_name is required and must be a string.");
   }
   if (payload.total_teams != null && typeof payload.total_teams !== "number") {
@@ -112,36 +112,73 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     const byId = isNumericId(key);
     const schema = await getCompetitionSchema(sql);
 
-    const orgSelect =
-      schema.hasOrganisation
-        ? sql`organisation AS organisation`
-        : schema.hasOrganization
-        ? sql`organization AS organisation`
-        : sql`NULL::text AS organisation`;
-
     let rows: any[] = [];
-    if (byId) {
-      rows = (await sql`
-        SELECT competition_id,
-               ${orgSelect},
-               division, competition_name, total_teams,
-               start_period, end_period, football_type, fcmierda_final_rank,
-               competition_champion, opponents
-        FROM competition
-        WHERE competition_id = ${Number(key)}
-        LIMIT 1;
-      `) as any[];
+    if (schema.hasOrganisation) {
+      rows = byId
+        ? ((await sql`
+            SELECT competition_id,
+                   organisation AS organisation,
+                   division, competition_name, total_teams,
+                   start_period, end_period, football_type, fcmierda_final_rank,
+                   competition_champion, opponents
+            FROM competition
+            WHERE competition_id = ${Number(key)}
+            LIMIT 1;
+          `) as any[])
+        : ((await sql`
+            SELECT competition_id,
+                   organisation AS organisation,
+                   division, competition_name, total_teams,
+                   start_period, end_period, football_type, fcmierda_final_rank,
+                   competition_champion, opponents
+            FROM competition
+            WHERE TRIM(competition_name) = TRIM(${key})
+            LIMIT 1;
+          `) as any[]);
+    } else if (schema.hasOrganization) {
+      rows = byId
+        ? ((await sql`
+            SELECT competition_id,
+                   organization AS organisation,
+                   division, competition_name, total_teams,
+                   start_period, end_period, football_type, fcmierda_final_rank,
+                   competition_champion, opponents
+            FROM competition
+            WHERE competition_id = ${Number(key)}
+            LIMIT 1;
+          `) as any[])
+        : ((await sql`
+            SELECT competition_id,
+                   organization AS organisation,
+                   division, competition_name, total_teams,
+                   start_period, end_period, football_type, fcmierda_final_rank,
+                   competition_champion, opponents
+            FROM competition
+            WHERE TRIM(competition_name) = TRIM(${key})
+            LIMIT 1;
+          `) as any[]);
     } else {
-      rows = (await sql`
-        SELECT competition_id,
-               ${orgSelect},
-               division, competition_name, total_teams,
-               start_period, end_period, football_type, fcmierda_final_rank,
-               competition_champion, opponents
-        FROM competition
-        WHERE TRIM(competition_name) = TRIM(${key})
-        LIMIT 1;
-      `) as any[];
+      rows = byId
+        ? ((await sql`
+            SELECT competition_id,
+                   NULL::text AS organisation,
+                   division, competition_name, total_teams,
+                   start_period, end_period, football_type, fcmierda_final_rank,
+                   competition_champion, opponents
+            FROM competition
+            WHERE competition_id = ${Number(key)}
+            LIMIT 1;
+          `) as any[])
+        : ((await sql`
+            SELECT competition_id,
+                   NULL::text AS organisation,
+                   division, competition_name, total_teams,
+                   start_period, end_period, football_type, fcmierda_final_rank,
+                   competition_champion, opponents
+            FROM competition
+            WHERE TRIM(competition_name) = TRIM(${key})
+            LIMIT 1;
+          `) as any[]);
     }
 
     if (!rows || rows.length === 0) {
@@ -179,22 +216,21 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
 export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await ctx.params; // await the Promise-based params in Next 16
-    const whereKey = (await req.json())?.id ?? decodeURIComponent(id);
-    // Re-parse payload again below if needed; or read it once and store in a variable.
-    const payload = typeof whereKey === "object" ? whereKey : await req.json();
+    const payload = await req.json(); // read once
+    const whereKey = (payload.id as string | undefined) ?? decodeURIComponent(id);
 
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
     neonConfig.fetchConnectionCache = true;
     const sql = neon(dbUrl);
 
-    const validationErrors = validatePayload(payload);
+    const byId = /^\d+$/.test(whereKey);
+    const schema = await getCompetitionSchema(sql);
+
+    const validationErrors = validatePayload(payload, !byId);
     if (validationErrors.length) {
       return NextResponse.json({ error: validationErrors.join(" ") }, { status: 400 });
     }
-
-    const byId = /^\d+$/.test(whereKey);
-    const schema = await getCompetitionSchema(sql);
 
     // Resolve competition_id
     const idRow = byId
@@ -208,7 +244,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     if (!idRow.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const compId = Number(idRow[0].competition_id);
 
-    // Load current values (so we can keep organisation if payload omits/blank)
+    // Load current values
     const currentRows = (await sql`
       SELECT competition_id,
              ${schema.hasOrganisation
