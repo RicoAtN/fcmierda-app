@@ -233,7 +233,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     }
 
     // Resolve competition_id
-    const idRow = byId
+    let idRow = byId
       ? ((await sql`SELECT competition_id FROM competition WHERE competition_id = ${Number(whereKey)} LIMIT 1;`) as any[])
       : ((await sql`
           SELECT competition_id
@@ -241,6 +241,15 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
           WHERE TRIM(competition_name) = TRIM(${whereKey})
           LIMIT 1;
         `) as any[]);
+    // Fallback: if numeric id not found, try by competition_name from payload
+    if (!idRow.length && payload?.competition_name) {
+      idRow = (await sql`
+        SELECT competition_id
+        FROM competition
+        WHERE TRIM(competition_name) = TRIM(${payload.competition_name})
+        LIMIT 1;
+      `) as any[];
+    }
     if (!idRow.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const compId = Number(idRow[0].competition_id);
 
@@ -333,17 +342,18 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
         ? payload.opponents.map((s: string) => String(s).trim()).filter(Boolean)
         : [];
       const opponentsJson = JSON.stringify(opponentsArr);
+
       if (schema.opponentsType === "jsonb") {
         await sql`UPDATE competition SET opponents = ${opponentsJson}::jsonb WHERE competition_id = ${compId};`;
       } else if (schema.opponentsType === "text[]") {
-        const delim = "|";
-        const opponentsPipe = opponentsArr.join(delim);
+        // Use a Postgres array literal to avoid string_to_array param issues
+        const arrayLiteral =
+          opponentsArr.length === 0
+            ? "{}"
+            : `{"${opponentsArr.map((v) => v.replace(/"/g, '\\"')).join('","')}"}`;
         await sql`
           UPDATE competition
-          SET opponents = CASE
-            WHEN ${opponentsPipe} = '' THEN ARRAY[]::text[]
-            ELSE string_to_array(${opponentsPipe}, ${delim})::text[]
-          END
+          SET opponents = ${arrayLiteral}::text[]
           WHERE competition_id = ${compId};
         `;
       } else {
