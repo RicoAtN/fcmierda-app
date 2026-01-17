@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { neon, neonConfig } from "@neondatabase/serverless";
 
 export const runtime = "nodejs";
@@ -99,14 +99,16 @@ function validatePayload(payload: any) {
   return errors;
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await ctx.params; // await the Promise-based params in Next 16
+    const key = decodeURIComponent(id);
+
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
     neonConfig.fetchConnectionCache = true;
     const sql = neon(dbUrl);
 
-    const key = decodeURIComponent(params.id);
     const byId = isNumericId(key);
     const schema = await getCompetitionSchema(sql);
 
@@ -174,20 +176,23 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   }
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await ctx.params; // await the Promise-based params in Next 16
+    const whereKey = (await req.json())?.id ?? decodeURIComponent(id);
+    // Re-parse payload again below if needed; or read it once and store in a variable.
+    const payload = typeof whereKey === "object" ? whereKey : await req.json();
+
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
     neonConfig.fetchConnectionCache = true;
     const sql = neon(dbUrl);
 
-    const payload = await req.json();
     const validationErrors = validatePayload(payload);
     if (validationErrors.length) {
       return NextResponse.json({ error: validationErrors.join(" ") }, { status: 400 });
     }
 
-    const whereKey = (payload.id as string | undefined) ?? decodeURIComponent(params.id);
     const byId = /^\d+$/.test(whereKey);
     const schema = await getCompetitionSchema(sql);
 
