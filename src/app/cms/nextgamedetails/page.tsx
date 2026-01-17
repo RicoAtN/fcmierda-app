@@ -134,6 +134,9 @@ export default function NextGameDetailsPage() {
   }, [form.competition, competitions]);
 
   const currentOpponents = latestCompetition?.opponents ?? [];
+  const currentOpponentsUnique = Array.from(
+    new Set(currentOpponents.map((n) => n.trim()).filter(Boolean))
+  );
 
   // Fix: strongly type change events (inputs, textarea, selects)
   const handleChange = (
@@ -300,8 +303,8 @@ export default function NextGameDetailsPage() {
                 disabled={!latestCompetition}
               >
                 <option value="">{latestCompetition ? "Select opponent" : "Competition unavailable"}</option>
-                {currentOpponents.map((name) => (
-                  <option key={name} value={name}>{name}</option>
+                {currentOpponentsUnique.map((name, idx) => (
+                  <option key={`${name}-${idx}`} value={name}>{name}</option>
                 ))}
               </select>
             </div>
@@ -326,8 +329,8 @@ export default function NextGameDetailsPage() {
                 required
               >
                 <option value="">{competitions.length > 0 ? "Select competition" : "Loading..."}</option>
-                {competitions.map((comp) => (
-                  <option key={comp.competition_id} value={comp.competition_name}>
+                {competitions.map((comp, idx) => (
+                  <option key={`${comp.competition_id}-${idx}`} value={comp.competition_name}>
                     {comp.competition_name}
                   </option>
                 ))}
