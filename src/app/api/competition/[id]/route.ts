@@ -186,6 +186,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     }
 
     const row = rows[0] as CompetitionDetailsRow;
+    const champion =
+      typeof row.competition_champion === "string" && row.competition_champion.trim().length
+        ? row.competition_champion
+        : null;
     const data = {
       id: String(row.competition_id),
       organisation: ensureOrganisation(row.organisation),
@@ -196,7 +200,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       end_period: row.end_period,
       football_type: row.football_type,
       fcmierda_final_rank: row.fcmierda_final_rank,
-      competition_champion: row.competition_champion,
+      competition_champion: champion, // blank -> null
       opponents: parseOpponents(row.opponents ?? []),
     };
 
@@ -281,6 +285,12 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
       if (incoming === null) return null;
       return typeof incoming === "number" ? incoming : existing;
     };
+    const normalizeBlankToNull = (incoming: any, existing: string | null) => {
+      if (incoming === undefined) return existing;
+      if (incoming === null) return null;
+      const s = String(incoming).trim();
+      return s.length ? s : null; // allow clearing to null
+    };
 
     const newOrganisation = keepStr(payload.organisation, current.organisation);
     const finalOrganisation = ensureOrganisation(newOrganisation);
@@ -291,7 +301,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     const newEnd = keepStr(payload.end_period, current.end_period);
     const newType = keepStr(payload.football_type, current.football_type);
     const newRank = keepNum(payload.fcmierda_final_rank, current.fcmierda_final_rank);
-    const newChampion = keepStr(payload.competition_champion, current.competition_champion);
+    const newChampion = normalizeBlankToNull(payload.competition_champion, current.competition_champion);
 
     if (schema.hasOrganisation) {
       await sql`
