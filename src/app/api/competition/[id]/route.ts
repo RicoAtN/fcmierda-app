@@ -414,3 +414,54 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     return NextResponse.json({ error: err?.message || "Failed to save competition" }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await ctx.params;
+    const pw = (req.headers.get("x-admin-password") || req.nextUrl.searchParams.get("pw") || "")
+      .trim()
+      .toLowerCase();
+    if (pw !== "calippo") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
+    neonConfig.fetchConnectionCache = true;
+    const sql = neon(dbUrl);
+
+    const key = decodeURIComponent(id);
+    const byId = /^\d+$/.test(key);
+
+    let idRows: any[] = [];
+    if (byId) {
+      idRows = (await sql`
+        SELECT competition_id
+        FROM competition
+        WHERE competition_id = ${Number(key)}
+        LIMIT 1;
+      `) as any[];
+    } else {
+      idRows = (await sql`
+        SELECT competition_id
+        FROM competition
+        WHERE TRIM(competition_name) = TRIM(${key})
+        LIMIT 1;
+      `) as any[];
+    }
+
+    if (!idRows.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const compId = Number(idRows[0].competition_id);
+
+    await sql`DELETE FROM competition WHERE competition_id = ${compId};`;
+
+    return NextResponse.json({ ok: true, id: String(compId) }, { status: 200 });
+  } catch (err: any) {
+    console.error("[/api/competition/[id] DELETE] Error:", {
+      message: err?.message,
+      code: err?.code,
+      detail: err?.detail,
+      position: err?.position,
+      stack: err?.stack,
+    });
+    return NextResponse.json({ error: err?.message || "Failed to delete competition" }, { status: 500 });
+  }
+}

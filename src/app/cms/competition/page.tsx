@@ -130,6 +130,13 @@ export default function CompetitionCMSPage() {
     opponents: [],
   });
 
+  // NEW: delete competition state
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePw, setDeletePw] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const pwOk = deletePw.trim().toLowerCase() === "calippo";
+
   useEffect(() => {
     (async () => {
       try {
@@ -345,6 +352,33 @@ export default function CompetitionCMSPage() {
       if (!newNameTouched) next.competition_name = computeDefaultName(prev.division, iso);
       return next;
     });
+
+  async function handleDeleteConfirm() {
+    if (!form) return;
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      const key = form.id ?? encodeURIComponent(form.competition_name);
+      const res = await fetch(`/api/competition/${key}`, {
+        method: "DELETE",
+        headers: { "x-admin-password": deletePw },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || "Delete failed");
+
+      // Remove from overview and clear selection
+      setRows((prev) =>
+        prev.filter((r) => (form.id ? r.id !== form.id : r.competition_name !== form.competition_name))
+      );
+      setForm(null);
+      setDeleteOpen(false);
+      setDeletePw("");
+    } catch (e: any) {
+      setDeleteError(e.message || String(e));
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
@@ -601,7 +635,7 @@ export default function CompetitionCMSPage() {
 
               {saveError && <p className="text-red-400 text-sm">{saveError}</p>}
 
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3 items-center">
                 <button
                   className="px-4 py-2 rounded-md bg-teal-600 hover:bg-teal-500 disabled:opacity-50"
                   onClick={handleSave}
@@ -615,7 +649,42 @@ export default function CompetitionCMSPage() {
                 >
                   Close
                 </button>
+
+                {/* Delete toggle */}
+                <button
+                  className="ml-auto px-4 py-2 rounded-md bg-red-600 hover:bg-red-500"
+                  onClick={() => setDeleteOpen((v) => !v)}
+                  title="Delete competition"
+                  aria-label="Delete competition"
+                >
+                  Delete competition
+                </button>
               </div>
+
+              {deleteOpen && (
+                <div className="mt-2 rounded-md border border-red-700 bg-red-900/20 p-4 space-y-3">
+                  <p className="text-sm text-white/80">
+                    Type the admin password to enable deletion. This action cannot be undone.
+                  </p>
+                  <div className="flex gap-3 items-center">
+                    <input
+                      type="password"
+                      className="flex-1 rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
+                      placeholder="Password"
+                      value={deletePw}
+                      onChange={(e) => setDeletePw(e.target.value)}
+                    />
+                    <button
+                      className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-500 disabled:opacity-50"
+                      disabled={!pwOk || deleting}
+                      onClick={handleDeleteConfirm}
+                    >
+                      {deleting ? "Deleting..." : "Confirm delete"}
+                    </button>
+                  </div>
+                  {deleteError && <p className="text-red-400 text-sm">{deleteError}</p>}
+                </div>
+              )}
             </div>
           )}
         </div>
