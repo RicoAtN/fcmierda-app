@@ -18,6 +18,7 @@ type Player = {
   bio?: string;
   photo?: string;
   highlights?: string[];
+  biography_detail?: string; // NEW: inline detail fallback
 };
 
 type PlayerStats = {
@@ -26,9 +27,11 @@ type PlayerStats = {
   goals: number;
   assists: number;
   clean_sheets: number;
-  goals_involvement?: number; // add this
-  average_goals_per_match?: number; // <- added
-  average_goals_conceded_per_match?: number; // <- new
+  goals_involvement?: number;
+  average_goals_per_match?: number;
+  average_goals_conceded_per_match?: number;
+  biography_main?: string;  // renamed from biography
+  biography_detail?: string;
 };
 
 type TeamStats = {
@@ -50,8 +53,9 @@ const TEAM: Player[] = [
     name: "Hans",
     nickname: "Maestro",
     role: "Head Coach",
-    bio: "Maestro & Pirlo — tactical architect who prioritises possession, structured build-up and midfield control.",
+    bio: "Hans is the undisputed legend and founding architect of FC Mierda, a man who commands the pitch through sheer tactical dominance. The team loves him for who he is—a tactical genius who knows exactly how to prepare the squad for every unique challenge they face.",
      photo: "/players/hans1OfficialPhoto.png",
+    biography_detail: `As a founding member of FC Mierda, Hans carries the club’s DNA in everything he does, ensuring that the team’s foundation is as solid as his own legacy. He is a tactical chameleon on the touchline, possessing the rare intelligence to know exactly when to dominate the game with possession or when to "park the bus" to secure a result. His preparation is meticulous; he knows exactly how to prime the team for each game, ensuring every player understands their role in his master plan. This strategic brilliance is exactly why the players respect him, trusting his vision because he consistently proves he knows exactly what he is doing. His authority is rooted in his recent history on the pitch, where he was feared as a fierce competitor with an unmatched aggressive edge. However, he wasn't just a hard hitter; he balanced that intensity with a finesse in his passing and shooting that mirrored the elegance of Andrea Pirlo. This "aggressive maestro" style made him a nightmare for opponents who couldn't handle his blend of grit and world-class vision. Now, as a coach, he demands that same level of dual-threat excellence from every player he selects for his starting eleven. He has an uncanny knack for spotting weaknesses in the opposition and exploiting them with surgical precision. Even in the heat of a match, Hans remains the calm eye of the storm, guiding his players with the wisdom of a veteran and the passion of a founder. Ultimately, the success of FC Mierda is a reflection of his character: tough, brilliant, and always one step ahead.`
   },
 
   // Goalkeepers
@@ -91,7 +95,7 @@ const TEAM: Player[] = [
     nickname: "Snorremans",
     role: "Defender",
     bio: "Snorremans — energetic fullback with strong 1v1 defending and the willingness to support the attack.",
-    // photo: "/players/pim-s.jpg",
+    photo: "/players/pimSOfficialPhoto.png",
   },
   {
     player_id: "32",
@@ -126,13 +130,14 @@ const TEAM: Player[] = [
     name: "Marten Kraaij",
     nickname: "Kraaij",
     role: "Defender",
-    bio: "Kraaij — strong, no-nonsense defender who organises the backline and wins physical battles.",
+    bio: "Kraaij is a hard-hitting defender who masterfully balances raw physicality with elite positional intelligence. He is a dual-threat in the backline, capable of winning punishing battles against the leagues toughest strikers while simultaneously acting as a deep-lying playmaker who distributes the ball with surgical precision.",
+    biography_detail:"Kraaij is the rare type of defender who can dominate a game through both his brain and his brawn, making him a cornerstone of the FC Mierda defense. He has an innate sense of timing, knowing exactly where to position himself to intercept passes and shut down dangerous lanes before the opposition can even react. When the ball is at his feet, he transforms into a distributor, launching pinpoint passes over the field to ignite lightning-fast counter-attacks from deep. However, his technical vision never softens his edge; he actively relishes the hard battles and thrives when the game gets physical. Any attacker attempting to bully their way past him will find that Kraaij can withstand his man with immovable strength, refusing to give up a single inch of grass. This ability to absorb pressure and immediately turn it into a forward-thinking play makes him a nightmare for tactical planners to account for. He sets the tone for the entire team, proving that you can be a ruthless enforcer while maintaining the composure of a world-class playmaker. Whether he is flattening a center-forward or spraying a forty-yard diagonal ball to the wing, Kraaij executes his role with a level of confidence that anchors the entire squad. Ultimately, he is the complete package—a defensive powerhouse who controls the pitch through sheer force of will and a brilliant footballing mind.",
     // photo: "/players/marten.jpg",
   },
   {
     player_id: "6",
     number: "#6",
-    name: "Bouwhuis",
+    name: "Sander",
     nickname: "Senderos",
     role: "Defender",
     bio: "Senderos — disciplined marker with good timing in tackles and solid positional instincts.",
@@ -194,13 +199,23 @@ const TEAM: Player[] = [
     bio: "Koetje — energetic midfielder who presses aggressively and links defence to attack.",
     // photo: "/players/daan.jpg",
   },
+   {
+    player_id: "11",
+    number: "#11",
+    name: "Frank",
+    nickname: "Frank",
+    role: "Midfielder",
+    bio: "Frank.",
+    // photo: "/players/frank.jpg",
+  },
   {
     player_id: "20",
     number: "#20",
     name: "Marten Sud",
     nickname: "Zilveren Vos",
     role: "Midfielder",
-    bio: "Zilveren Vos — intelligent operator who times runs into the box and creates overloads.",
+    bio: "Sud is a relentless winger whose game is built on a foundation of raw determination and a fierce aggressive edge. He is the ultimate team player, consistently delivering goals in crucial moments while quietly handling the high-intensity dirty work that paves the way for FC Mierda’s success.",
+    biography_detail: "Sud is the type of player who operates under the radar, yet his impact on the match is felt by every opponent who tries to share his flank. His best qualities are his aggression and unshakable determination, traits he uses to harass defenders and win back possession in dangerous areas. You might not always notice him in the flashy highlight reels, but that is because he is busy doing the essential work that allows the rest of the team to shine. Whether he is tracking back to stop a counter-attack or making a selfless run to open space, he does exactly what is required to secure a win. Despite his blue-collar work ethic, he possesses a clinical instinct for the goal, appearing in the box to score precisely when the team needs a breakthrough. This blend of grit and finishing ability makes him a vital tactical tool, as he provides a balance of defensive stability and offensive threat. He never stops running, using his stamina to wear down opponents until they eventually crack under his persistent pressure. Ultimately, Sud is the engine of efficiency for FC Mierda—a winger who values the result over the spotlight and proves that the dirty work is what truly builds champions."
     // photo: "/players/sud.jpg",
   },
 
@@ -212,7 +227,7 @@ const TEAM: Player[] = [
     nickname: "Zuenna",
     role: "Striker",
     bio: "Zuenna — versatile attacker with clever movement, good hold-up play and a nose for goal.",
-    // photo: "/players/sven.jpg",
+    photo: "/players/svenOfficialPhoto.png",
   },
   {
     player_id: "9",
@@ -221,8 +236,17 @@ const TEAM: Player[] = [
     nickname: "Inzaghi",
     role: "Striker",
     bio: "Inzaghi — clinical finisher and instinctive poacher who times runs to perfection.",
-    // photo: "/players/pim.jpg",
+    photo: "/players/pimOfficialPhoto.png",
   },
+  {
+    player_id: "15",
+    number: "#15",
+    name: "Flavio",
+    nickname: "Flavio",
+    role: "Striker",
+    bio: "Flavio.",
+    // photo: "/players/flavio.jpg",
+  }
 ];
 
 const CATEGORIES = [
@@ -690,9 +714,7 @@ export default function TeamPage() {
                       </div>
                     </div>
 
-                    <p className="mt-4 text-gray-200 leading-relaxed">{selected.bio || "No bio available."}</p>
-
-                    {/* Stats block */}
+                    {/* Stats block — moved above summary */}
                     {(() => {
                       const s = statsMap.get(selected.player_id);
                       const role = (selected.role || "").toLowerCase();
@@ -735,7 +757,7 @@ export default function TeamPage() {
                       }
 
                       return (
-                        <div className="mt-6">
+                        <div className="mt-4">
                           <h4 className="text-sm text-gray-300 font-semibold mb-2">Statistics</h4>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-stretch content-stretch">
                             {tiles.map((t, i) => (
@@ -746,6 +768,30 @@ export default function TeamPage() {
                       );
                     })()}
 
+                    {/* Summary block — now below stats */}
+                    {(() => {
+                      const s = statsMap.get(selected.player_id);
+                      const dbBio = s?.biography_main?.trim();
+                      const dbDetail = s?.biography_detail?.trim();
+                      const mainBio = dbBio ?? selected.bio;
+                      const detail = (dbDetail ?? selected.biography_detail)?.trim();
+
+                      return (
+                        <div className="mt-6">
+                          <h4 className="text-xs uppercase tracking-wide text-gray-400 mb-1">Summary</h4>
+                          <p className="text-gray-200 leading-relaxed text-base sm:text-lg font-medium border-l border-gray-700 pl-3">
+                            {mainBio || "No summary available."}
+                          </p>
+                          {detail && (
+                            <p className="mt-2 text-gray-400 leading-relaxed text-sm sm:text-base">
+                              {detail}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Highlights block */}
                     {selected.highlights?.length ? (
                       <div className="mt-6">
                         <h4 className="text-sm text-gray-300 font-semibold mb-2">Highlights</h4>
