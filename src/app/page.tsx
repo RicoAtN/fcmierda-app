@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu"; // <-- Import your Menu component
 import Footer from "@/components/Footer";
+import TeamForm from "@/components/TeamForm";
 
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
@@ -60,6 +61,7 @@ export default function Home() {
             className="mb-8"
             style={{ maxWidth: "300px", height: "auto" }}
           />
+          <TeamForm teamId={1} className="mt-6" />
         </div>
       </main>
       {/* Lower scrollable section remains */}

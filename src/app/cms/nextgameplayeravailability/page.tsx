@@ -29,6 +29,9 @@ const players = [
   "#00 Boudewijn",
   "#63 Hans",
   "#5 Tim",
+  "#2 Jochem",
+  "#30 Sami",
+  "#15 Flavio",
 ];
 
 // parse into objects: { raw, number, name, key }

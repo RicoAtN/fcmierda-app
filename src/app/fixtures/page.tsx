@@ -2,6 +2,7 @@ import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer"; // Add this import at the top
 import { Pool } from "pg";
+import TeamForm from "@/components/TeamForm"; // NEW: import
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -171,6 +172,10 @@ export default async function FixturesPage() {
       {/* Next Game Update Section */}
       <section id="next-game" className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800">
         <div className="max-w-2xl w-full rounded-2xl p-6 sm:p-10 text-white text-center bg-gray-900 shadow-xl mx-auto">
+
+          {/* Team recent form — above the header */}
+          <TeamForm teamId={1} className="mb-6" />
+
           <h2
             className={`text-xl sm:text-2xl font-bold mb-4 ${robotoSlab.className}`}
           >

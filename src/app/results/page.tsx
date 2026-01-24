@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import Footer from "@/components/Footer";
 import React from "react";
 import ClientMatchResults from "./ClientMatchResults";
+import TeamForm from "@/components/TeamForm";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -167,7 +168,10 @@ export default async function ResultsPage() {
       <section className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800">
         {/* All match results */}
         <div id="all-results" className="max-w-6xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-900 shadow-xl mx-auto">
+                    <TeamForm teamId={1} className="mt-1" />
+
           <ClientMatchResults allResults={allResults} rowsToShow={5} />
+          
         </div>
 
         {/* Competitions overview */}

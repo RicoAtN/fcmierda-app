@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
+import TeamForm from "@/components/TeamForm";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -443,6 +444,7 @@ export default function TeamPage() {
             <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
               Mierda’s overall statistics for the recent period.
             </p>
+            <TeamForm teamId={1} className="mt-6" />
           </header>
 
           {teamStatsError && (

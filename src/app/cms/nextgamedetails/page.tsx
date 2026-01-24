@@ -25,10 +25,13 @@ const players = [
   "#6 Bouwhuis",
   "#7 Daan",
   "#20 Sud",
-  "#00 Frank",
+  "#11Frank",
   "#00 Boudewijn",
   "#63 Hans",
   "#5 Tim",
+  "#2 Jochem",
+  "#30 Sami",
+  "#15 Flavio",
 ];
 
 // parse into objects: { raw, number, name, key } — key is normalized name (no number)
