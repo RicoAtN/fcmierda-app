@@ -24,8 +24,8 @@ export default function Home() {
       {/* Navigation Bar */}
       <Menu />
       {/* Restored upper section layout */}
-      <main className="relative z-10 flex flex-col items-center justify-center text-center px-4 w-full min-h-screen">
-        <div className="flex flex-col items-center justify-center mt-16 sm:mt-[60px] mb-70">
+      <main className="relative z-10 flex flex-col items-center justify-start text-center px-4 w-full min-h-screen pt-26 sm:pt-36">
+        <div className="flex flex-col items-center justify-center mb-70">
           <h2
             className={`text-3xl sm:text-4xl font-semibold text-white drop-shadow-lg mb-2 ${montserrat.className}`}
             style={{ letterSpacing: "0.15em", textTransform: "uppercase" }}
