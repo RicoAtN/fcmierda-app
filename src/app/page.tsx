@@ -66,12 +66,12 @@ export default function Home() {
       </main>
       {/* Lower scrollable section remains */}
       <section
-        className="w-full flex justify-center items-center py-16 px-4"
+        className="w-full flex justify-center items-center py-12 px-3"
         style={{
           background: "linear-gradient(135deg, #232526 0%, #414345 100%)",
         }}
       >
-        <div className="max-w-2xl w-full rounded-2xl p-8 sm:p-12 text-white text-center">
+        <div className="max-w-2xl w-full rounded-2xl p-6 sm:p-2 text-white text-center">
           <h2 className={`text-3xl sm:text-5xl font-bold mb-6 ${robotoSlab.className}`}>
             Who we are
           </h2>
@@ -83,22 +83,27 @@ export default function Home() {
             On this app you can follow us for fixtures, results, and recaps.
             Witness FC Mierda proving that legends never really fade.
           </p>
+          <Link
+            href="/team#meet-team"
+            className="inline-block mt-8 bg-emerald-600/90 hover:bg-emerald-500/90 text-white/95 font-extrabold text-xl px-10 py-4 rounded-full shadow-md transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
+          >
+            Meet the Team
+          </Link>
         </div>
       </section>
-      {/* Trophy Section */}
       <section
-        className="w-full flex justify-center items-center py-16 px-4"
+        className="relative w-full flex justify-center items-center py-16 px-4"
         style={{
           backgroundImage: "url('/fcmierda-celebration.gif')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
-          backgroundColor: "rgba(35, 37, 38, 0.35)"
         }}
       >
+        {/* Grey overlay over the full background */}
+        <div className="absolute inset-0 bg-black/35 sm:bg-black/30 pointer-events-none" />
         <div
-          className="max-w-2xl w-full rounded-2xl shadow-xl p-8 sm:p-12 text-white text-center"
-          style={{ backgroundColor: "rgba(35, 37, 38, 0.35)" }}
+          className="relative z-10 max-w-2xl w-full rounded-2xl shadow-xl p-8 sm:p-12 text-white text-center"
         >
           <h2 className={`text-3xl sm:text-5xl font-bold mb-6 ${robotoSlab.className}`}>
             The Trophy Cabinet
@@ -117,16 +122,22 @@ export default function Home() {
               ...and many more!
             </span>
           </p>
+          <Link
+            href="/team#team-stats"
+            className="inline-block mt-8 bg-emerald-600/90 hover:bg-emerald-500/90 text-white/95 font-extrabold text-xl px-10 py-4 rounded-full shadow-md transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
+          >
+            View our all-time top performers
+          </Link>
         </div>
       </section>
       {/* New Section: Don&apos;t Miss Any Match */}
       <section
-        className="w-full flex justify-center items-center py-16 px-4"
+        className="w-full flex justify-center items-center py-12 px-3"
         style={{
           background: "linear-gradient(135deg, #414345 0%, #232526 100%)",
         }}
       >
-        <div className="max-w-2xl w-full rounded-2xl p-8 sm:p-12 text-white text-center">
+        <div className="max-w-2xl w-full rounded-2xl p-6 sm:p-2 text-white text-center">
           <h2 className={`text-3xl sm:text-5xl font-bold mb-6 ${robotoSlab.className}`}>
             Don&apos;t Miss Any Match
           </h2>
@@ -137,9 +148,9 @@ export default function Home() {
           </p>
           <Link
             href="/results"
-            className="inline-block mt-8 bg-green-500 hover:bg-green-600 text-white font-extrabold text-xl px-10 py-4 rounded-full shadow-lg transition-all duration-200"
+            className="inline-block mt-8 bg-emerald-600/90 hover:bg-emerald-500/90 text-white/95 font-extrabold text-xl px-10 py-4 rounded-full shadow-md transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
           >
-            Watch our match recaps here!
+            View our game results
           </Link>
         </div>
       </section>
