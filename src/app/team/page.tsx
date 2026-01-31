@@ -22,6 +22,7 @@ type Player = {
 
 type PlayerStats = {
   player_id: number;
+  player_name?: string;
   match_played: number;
   goals: number;
   assists: number;
@@ -31,6 +32,7 @@ type PlayerStats = {
   average_goals_conceded_per_match?: number;
   biography_main?: string;
   biography_detail?: string;
+  main_player?: boolean; // <-- added
 };
 
 type TeamStats = {
@@ -44,30 +46,6 @@ type TeamStats = {
   goals_conceded: number;
   average_goals_conceded_per_match: number;
 };
-
-const TEAM: Player[] = [
-  { player_id: "99", name: "Hans", nickname: "Maestro", role: "Head Coach" },
-  { player_id: "1", number: "#1", name: "Alon", nickname: "Alon d'Or", role: "Goalkeeper" },
-  { player_id: "12", number: "#12", name: "Victor", nickname: "Turbokwek", role: "Goalkeeper" },
-  { player_id: "88", number: "#88", name: "Rico", nickname: "Grey Wall", role: "Defender" },
-  { player_id: "26", number: "#26", name: "Pim S 🥸", nickname: "Snorremans", role: "Defender" },
-  { player_id: "32", number: "#32", name: "Kevin", nickname: "Oyabun", role: "Defender" },
-  { player_id: "69", number: "#69", name: "Mitchell", nickname: "Satoshi", role: "Defender" },
-  { player_id: "3", number: "#3", name: "Jochem", nickname: "Jochem", role: "Defender" },
-  { player_id: "4", number: "#4", name: "Marten Kraaij", nickname: "Kraaij", role: "Defender" },
-  { player_id: "6", number: "#6", name: "Sander", nickname: "Senderos", role: "Defender" },
-  { player_id: "57", number: "#57", name: "Mart", nickname: "WingWizard", role: "Midfielder" },
-  { player_id: "14", number: "#14", name: "Niek", nickname: "Bearzerker", role: "Midfielder" },
-  { player_id: "10", number: "#10", name: "Jordy (C)", nickname: "Kapiteni", role: "Midfielder" },
-  { player_id: "19", number: "#19", name: "Lennert", nickname: "Len", role: "Midfielder" },
-  { player_id: "22", number: "#22", name: "Ka", nickname: "Jake", role: "Midfielder" },
-  { player_id: "7", number: "#7", name: "Daan", nickname: "Koetje", role: "Midfielder" },
-  { player_id: "11", number: "#11", name: "Frank", nickname: "Frank", role: "Midfielder" },
-  { player_id: "20", number: "#20", name: "Marten Sud", nickname: "Zilveren Vos", role: "Midfielder" },
-  { player_id: "23", number: "#23", name: "Sven", nickname: "Zuenna", role: "Striker" },
-  { player_id: "9", number: "#9", name: "Pim", nickname: "Inzaghi", role: "Striker" },
-  { player_id: "15", number: "#15", name: "Flavio", nickname: "Flavio", role: "Striker" }
-];
 
 const CATEGORIES = [
   { key: "All", label: "All", matcher: () => true },
@@ -196,10 +174,9 @@ export default function TeamPage() {
   }
 
   const filteredStats = useMemo(() => {
-    return stats.filter(s => {
-      const teamPlayer = TEAM.find(p => String(p.player_id) === String(s.player_id));
-      const name = teamPlayer?.name ?? `Player ${s.player_id}`;
-      return !name.toLowerCase().includes("player");
+    return stats.filter((s) => {
+      const name = (s.player_name ?? "").trim();
+      return name && !name.toLowerCase().includes("player");
     });
   }, [stats]);
 
@@ -403,12 +380,12 @@ export default function TeamPage() {
           })()}
         </section>
 
-        {/* All-time top performers section */}
+        {/* All-time top performers (direct from player_statistics) */}
         <section id="top-performers" className="mb-8 bg-gray-800 rounded-xl p-5 shadow">
           <header className="mb-6 text-center">
             <h2 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>All-time top performers</h2>
             <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
-              Leading FC Mierda performers (data since June 2025 – full historic expansion in progress).
+              Top 5 per stat using player_name from player_statistics.
             </p>
           </header>
 
@@ -426,19 +403,64 @@ export default function TeamPage() {
                 list: PlayerStats[];
                 valueKey: StatKey;
                 isAvg?: boolean;
+                invert?: boolean;
               }
 
-              const getValue = (ps: PlayerStats, key: StatKey) => {
-                const v = ps[key];
-                return typeof v === "number" ? v : 0;
+              const toNum = (v: unknown) => {
+                if (typeof v === "number") return Number.isFinite(v) ? v : null;
+                if (typeof v === "string") {
+                  const n = Number(v);
+                  return Number.isFinite(n) ? n : null;
+                }
+                return null;
               };
 
+              const rankTop = (items: PlayerStats[], key: StatKey, take = 5) =>
+                [...items]
+                  .filter(s => toNum((s as any)[key]) !== null)
+                  .sort((a, b) => {
+                    const av = toNum((a as any)[key])!;
+                    const bv = toNum((b as any)[key])!;
+                    return bv - av;
+                  })
+                  .slice(0, take);
+
+              const rankLowest = (items: PlayerStats[], key: StatKey, take = 5) =>
+                [...items]
+                  .filter(s => toNum((s as any)[key]) !== null)
+                  .sort((a, b) => {
+                    const av = toNum((a as any)[key])!;
+                    const bv = toNum((b as any)[key])!;
+                    return av - bv;
+                  })
+                  .slice(0, take);
+
+              // Only include main players
+              const mains = stats.filter(s => s.main_player === true);
+
               const blocks: StatBlock[] = [
-                { heading: "Top goal scorers", list: topGoals, valueKey: "goals" },
-                { heading: "Top assists", list: topAssists, valueKey: "assists" },
-                { heading: "Top avg goals p/m", list: topAvgGoals, valueKey: "average_goals_per_match", isAvg: true },
-                { heading: "Lowest avg goals conceded p/m", list: topAvgConceded, valueKey: "average_goals_conceded_per_match", isAvg: true },
-                { heading: "Most matches played", list: topMatches, valueKey: "match_played" }
+                { heading: "Top goal scorers", list: rankTop(mains, "goals"), valueKey: "goals" },
+                { heading: "Top assists", list: rankTop(mains, "assists"), valueKey: "assists" },
+                {
+                  heading: "Top avg goals per match",
+                  list: rankTop(
+                    mains.filter(s => (s.match_played ?? 0) >= 5),
+                    "average_goals_per_match"
+                  ),
+                  valueKey: "average_goals_per_match",
+                  isAvg: true
+                },
+                {
+                  heading: "Lowest avg goals conceded per match",
+                  list: rankLowest(
+                    mains.filter(s => (s.match_played ?? 0) >= 5),
+                    "average_goals_conceded_per_match"
+                  ),
+                  valueKey: "average_goals_conceded_per_match",
+                  isAvg: true,
+                  invert: true
+                },
+                { heading: "Most matches played", list: rankTop(mains, "match_played"), valueKey: "match_played" },
               ];
 
               return blocks.map((block, i) => (
@@ -446,18 +468,16 @@ export default function TeamPage() {
                   <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">{block.heading}</div>
                   <ul className="space-y-2">
                     {block.list.map((ps, idx) => {
-                      const player = TEAM.find(p => String(p.player_id) === String(ps.player_id));
-                      const name = player?.name ?? `Player ${ps.player_id}`;
-                      if (name.toLowerCase().includes("player")) return null;
-                      const raw = getValue(ps, block.valueKey);
+                      const name = (ps.player_name || `Player ${ps.player_id}`).trim();
+                      const raw = toNum((ps as any)[block.valueKey]) ?? 0;
                       const val = block.isAvg ? raw.toFixed(2) : String(raw);
                       return (
-                        <li key={ps.player_id} className="flex items-center justify-between bg-black/20 rounded-md px-3 py-2 text-sm">
+                        <li key={`${block.valueKey}-${ps.player_id}`} className="flex items-center justify-between bg-black/20 rounded-md px-3 py-2 text-sm">
                           <div className="flex items-center gap-3 min-w-0">
                             <span className="text-gray-400 w-5">{idx + 1}.</span>
                             <span className="font-medium truncate">{name}</span>
                           </div>
-                          <span className="font-semibold text-green-300 tabular-nums">{val}</span>
+                          <span className="font-semibold tabular-nums text-green-300">{val}</span>
                         </li>
                       );
                     })}
@@ -471,7 +491,7 @@ export default function TeamPage() {
 
         {/* Meet the Team (DB-backed) */}
         <header id="meet-team-2" className="mt-12 mb-6 text-center">
-          <h1 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>Meet the Team</h1>
+          <h1 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>Meet the Team </h1>
           <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
 Detailed player profiles with roles, bios, call signs and current performance statistics.
           </p>
@@ -528,7 +548,7 @@ Detailed player profiles with roles, bios, call signs and current performance st
                         }`}
                       >
                         <div className="w-14 flex-shrink-0 flex items-center justify-center">
-                          <div className="mt-1 text-lg sm:text-xl font-extrabold text-green-300">{displayNumber(p.number)}</div>
+                          <div className="mt-1 text-lg sm:text-xl font-extrabold text-green-300 truncate">{displayNumber(p.number)}</div>
                         </div>
 
                         {p.photo ? (
@@ -588,7 +608,7 @@ Detailed player profiles with roles, bios, call signs and current performance st
                         <div className="text-sm text-gray-300 mt-1">Position: {selectedDb.role || "-"}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl sm:text-3xl font-extrabold text-green-300">{displayNumber(selectedDb.number)}</div>
+                        <div className="text-2xl sm:text-4xl font-extrabold text-green-300">{displayNumber(selectedDb.number)}</div>
                       </div>
                     </div>
 
@@ -655,13 +675,13 @@ Detailed player profiles with roles, bios, call signs and current performance st
                         <div className="mt-6">
                           <h4 className="text-xs uppercase tracking-wide text-gray-400 mb-1">Summary</h4>
                           <p className="text-gray-200 leading-relaxed text-base sm:text-lg font-medium border-l border-gray-700 pl-3">
-                            {mainBio || "No summary available."}
+                            {mainBio || "N/A"}
                           </p>
-                          {detail && (
+                          {detail ? (
                             <p className="mt-2 text-gray-400 leading-relaxed text-sm sm:text-base">
                               {detail}
                             </p>
-                          )}
+                          ) : null}
                         </div>
                       );
                     })()}
