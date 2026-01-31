@@ -385,7 +385,7 @@ export default function TeamPage() {
           <header className="mb-6 text-center">
             <h2 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>All-time top performers</h2>
             <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
-              Top 5 per stat using player_name from player_statistics.
+              Check the leading players in key performance metrics throughout FC Mierda's history.
             </p>
           </header>
 
