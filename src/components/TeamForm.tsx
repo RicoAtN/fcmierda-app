@@ -12,15 +12,10 @@ const colorFor = (r: string) =>
 export default function TeamForm({ teamId, className = "" }: Props) {
   const [results, setResults] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  useEffect(() => {
-    setError(null);
-    setResults(null);
-    fetch(`/api/team-form`)
-      .then(r => r.json())
-      .then(j => setResults(j?.data?.results ?? []))
-      .catch(e => setError(e?.message || "Failed to load form"));
-  }, [teamId]); // keeping teamId so rerenders can refetch if you later add filtering
+  // configurable refresh (ms). Keep modest to reduce load.
+  const REFRESH_INTERVAL = 30000; // 30s
 
   const normalize = (r: string) => {
     const v = (r || "").trim().toUpperCase();
@@ -29,6 +24,75 @@ export default function TeamForm({ teamId, className = "" }: Props) {
     if (v === "L" || v === "LOSS" || v === "LOSE") return "L";
     return "";
   };
+
+  const fetchForm = async (signal?: AbortSignal) => {
+    try {
+      setError(null);
+      if (!results) setLoading(true);
+      const url = `/api/team-form${teamId ? `?teamId=${encodeURIComponent(String(teamId))}` : ""}`;
+      const res = await fetch(url, {
+        cache: "no-store",
+        headers: { "Accept": "application/json" },
+        signal,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const j = await res.json();
+      const next: string[] = j?.data?.results ?? [];
+      // normalize for comparison before setting state
+      const norm = next.map((r: string) => normalize(r));
+      const current = (results ?? []).map(r => normalize(r));
+      const changed = norm.length !== current.length || norm.some((v, i) => v !== current[i]);
+      if (changed) setResults(norm);
+    } catch (e: any) {
+      // Keep prior results on background refresh failures
+      if (!results) setResults([]);
+      setError(e?.message || "Failed to load form");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setError(null);
+    setResults(null);
+    const ac = new AbortController();
+    // initial load
+    fetchForm(ac.signal);
+
+    // polling with visibility awareness
+    let intervalId: number | undefined;
+    const start = () => {
+      if (intervalId) return;
+      intervalId = window.setInterval(() => {
+        if (document.visibilityState === "visible" && navigator.onLine) {
+          fetchForm();
+        }
+      }, REFRESH_INTERVAL);
+    };
+    const stop = () => {
+      if (intervalId) {
+        window.clearInterval(intervalId);
+        intervalId = undefined;
+      }
+    };
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        fetchForm();
+        start();
+      } else {
+        stop();
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    start();
+
+    return () => {
+      ac.abort();
+      stop();
+      document.removeEventListener("visibilitychange", onVis);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamId]); // keep teamId so rerenders can refetch if you later add filtering
 
   const items = (results ?? []).map(normalize);
   // Newest on the left, oldest on the right; pad missing older games on the right
@@ -41,6 +105,9 @@ export default function TeamForm({ teamId, className = "" }: Props) {
         FC Mierda Form
       </span>
       <span className="text-gray-300 text-xs sm:text-sm font-medium">Latest 5 game results</span>
+      {loading && (
+        <span className="text-[11px] text-gray-400">Refreshing…</span>
+      )}
 
       <div className="flex items-center gap-3">
         {display.map((r, i) => {
