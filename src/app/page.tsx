@@ -84,7 +84,7 @@ export default function Home() {
             Witness FC Mierda proving that legends never really fade.
           </p>
           <Link
-            href="/team#meet-team"
+            href="/team#meet-team-2"
             className="inline-block mt-8 bg-emerald-600/90 hover:bg-emerald-500/90 text-white/95 font-extrabold text-xl px-10 py-4 rounded-full shadow-md transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
           >
             Meet the Team
