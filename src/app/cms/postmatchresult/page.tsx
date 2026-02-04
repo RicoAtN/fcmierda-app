@@ -533,6 +533,14 @@ export default function PostMatchResultPage() {
               <label className="block font-semibold mb-1">
                 FC Mierda Goal Scorers & Assists
               </label>
+
+              {/* Suggestions: attendees from last match */}
+              <datalist id="attendees-list">
+                {lastMatch.attendance.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+
               {goalScorers.map((g, idx) => (
                 <div
                   key={idx}
@@ -545,6 +553,7 @@ export default function PostMatchResultPage() {
                     onChange={(e) =>
                       handleGoalScorerChange(idx, "scorer", e.target.value)
                     }
+                    list="attendees-list" // use attendance suggestions
                     className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
                   />
                   <input
@@ -554,6 +563,7 @@ export default function PostMatchResultPage() {
                     onChange={(e) =>
                       handleGoalScorerChange(idx, "assist", e.target.value)
                     }
+                    list="attendees-list" // use attendance suggestions
                     className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
                   />
                   <input
@@ -853,6 +863,14 @@ export default function PostMatchResultPage() {
                       <label className="block font-semibold mb-1">
                         FC Mierda Goal Scorers & Assists
                       </label>
+
+                      {/* Suggestions: attendees from selected match */}
+                      <datalist id="edit-attendees-list">
+                        {safeArray(editForm?.attendance).map((name: string) => (
+                          <option key={name} value={name} />
+                        ))}
+                      </datalist>
+
                       {(editForm?.goal_scorers || [{ scorer: "", assist: "", goalNumber: "" }]).map((g, idx) => (
                         <div
                           key={idx}
@@ -865,6 +883,7 @@ export default function PostMatchResultPage() {
                             onChange={e =>
                               handleEditGoalScorerChange(idx, "scorer", e.target.value)
                             }
+                            list="edit-attendees-list" // use attendance suggestions
                             className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
                           />
                           <input
@@ -874,6 +893,7 @@ export default function PostMatchResultPage() {
                             onChange={e =>
                               handleEditGoalScorerChange(idx, "assist", e.target.value)
                             }
+                            list="edit-attendees-list" // use attendance suggestions
                             className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
                           />
                           <input
