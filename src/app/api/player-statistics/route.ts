@@ -40,7 +40,8 @@ export async function GET() {
         COALESCE(ps.average_goals_conceded_per_match, 0)::float8 AS average_goals_conceded_per_match,
         ps.biography_main,
         ps.biography_detail,
-        ps.main_player -- added
+        ps.main_player, -- added
+        ps.player_number
       FROM player_statistics ps
       ORDER BY ps.player_id;
     `) as PlayerStatsRow[];
