@@ -168,29 +168,6 @@ export default function PlayerAttendance() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 text-left">
-      <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center">Submit your availability</h2>
-
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div className="flex-1 min-w-0">
-          <div className="text-sm text-gray-400">Date</div>
-          <div className="mt-1 p-3 rounded bg-gray-800 border border-gray-700 text-white font-medium text-center">
-            {form.date || "-"}
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm text-gray-400">Kick-off</div>
-          <div className="mt-1 p-3 rounded bg-gray-800 border border-gray-700 text-white font-medium text-center">
-            {form.kickoff || "-"}
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm text-gray-400">Opponent</div>
-          <div className="mt-1 p-3 rounded bg-gray-800 border border-gray-700 text-white font-medium text-center truncate">
-            {form.opponent || "-"}
-          </div>
-        </div>
-      </div>
-
       <div>
         <h3 className="text-lg font-semibold mb-3">Players</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

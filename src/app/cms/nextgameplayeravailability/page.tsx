@@ -4,12 +4,40 @@ import Footer from "@/components/Footer";
 import PlayerAttendance from "@/components/PlayerAttendance";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
 
 export default function NextGameDetailsPage() {
   const router = useRouter();
+
+  // ADD: next game info for the info row
+  const [nextGame, setNextGame] = useState<{
+    date: string;
+    kickoff: string;
+    opponent: string;
+  }>({
+    date: "",
+    kickoff: "",
+    opponent: "",
+  });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/next-game", { cache: "no-store" });
+        const data = await res.json();
+        setNextGame({
+          date: data?.date || "",
+          kickoff: data?.kickoff || "",
+          opponent: data?.opponent || "",
+        });
+      } catch {
+        // ignore
+      }
+    })();
+  }, []);
 
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
@@ -49,9 +77,33 @@ export default function NextGameDetailsPage() {
 
       <section className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800">
         <div className="max-w-2xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-900 shadow-xl mx-auto">
+          {/* Page-level header moved here */}
           <h2 className={`text-xl sm:text-2xl font-bold mb-4 text-center ${robotoSlab.className}`}>
             Submit your availability
           </h2>
+
+          {/* Next game info row moved here */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div className="flex-1 min-w-0">
+              <div className="text-sm text-gray-400">Date</div>
+              <div className="mt-1 p-3 rounded bg-gray-800 border border-gray-700 text-white font-medium text-center">
+                {nextGame.date || "-"}
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm text-gray-400">Kick-off</div>
+              <div className="mt-1 p-3 rounded bg-gray-800 border border-gray-700 text-white font-medium text-center">
+                {nextGame.kickoff || "-"}
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm text-gray-400">Opponent</div>
+              <div className="mt-1 p-3 rounded bg-gray-800 border border-gray-700 text-white font-medium text-center truncate">
+                {nextGame.opponent || "-"}
+              </div>
+            </div>
+          </div>
+
           <PlayerAttendance />
         </div>
       </section>

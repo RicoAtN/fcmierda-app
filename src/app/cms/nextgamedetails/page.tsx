@@ -2,8 +2,9 @@
 import { useEffect, useState } from "react";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
-import Footer from "@/components/Footer"; // Add this import at the top
+import Footer from "@/components/Footer";
 import { useRouter } from "next/navigation";
+import PlayerAttendance from "@/components/PlayerAttendance"; // ADD
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -57,13 +58,6 @@ export default function NextGameDetailsPage() {
     note: "",
   });
   const [status, setStatus] = useState("");
-  // attendance keyed by normalized name (playersData[].key)
-  const [attendance, setAttendance] = useState<Record<string, string>>(
-    Object.fromEntries(playersData.map((p) => [p.key, "unknown"]))
-  );
-  const [extraPlayers, setExtraPlayers] = useState<{ name: string; status: string }[]>([{ name: "", status: "unknown" }]);
-  // const [showClearInfo, setShowClearInfo] = useState(false);
-
   const router = useRouter();
 
   useEffect(() => {
@@ -78,34 +72,6 @@ export default function NextGameDetailsPage() {
           competition: data.competition || "",
           note: data.note || "",
         });
-
-        const incoming = data.attendance || {};
-
-        // Map known players by normalized key (fallback to legacy raw key if present)
-        setAttendance(
-          Object.fromEntries(
-            playersData.map((p) => [
-              p.key,
-              incoming[p.key] ?? incoming[p.raw] ?? "unknown",
-            ])
-          )
-        );
-
-        // Unknown names in attendance -> extra players (substitutes)
-        const knownKeys = new Set<string>([
-          ...playersData.map((p) => p.key),
-          ...playersData.map((p) => p.raw),
-        ]);
-
-        const extra = Object.entries(incoming)
-          .filter(([name]) => !knownKeys.has(name))
-          .map(([name, status]) => ({ name, status: String(status) }));
-
-        setExtraPlayers(
-          extra.length > 0
-            ? [...extra, { name: "", status: "unknown" }]
-            : [{ name: "", status: "unknown" }]
-        );
       });
   }, []);
 
@@ -141,7 +107,6 @@ export default function NextGameDetailsPage() {
     new Set(currentOpponents.map((n) => n.trim()).filter(Boolean))
   );
 
-  // Fix: strongly type change events (inputs, textarea, selects)
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -149,24 +114,16 @@ export default function NextGameDetailsPage() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Fix: strongly type form submit event
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setStatus("Saving...");
 
-    const extraAttendance = Object.fromEntries(
-      extraPlayers
-        .filter((p) => p.name.trim() !== "")
-        .map((p) => [p.name.trim(), p.status])
-    );
-    const fullAttendance = { ...attendance, ...extraAttendance };
-
-    // Get timestamp in GMT+1 (Europe/Amsterdam) in format HH:MM DAY DATE
+    // Timestamp in Europe/Amsterdam
     const now = new Date();
     const amsTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Amsterdam" }));
     const hour = amsTime.getHours().toString().padStart(2, "0");
     const minute = amsTime.getMinutes().toString().padStart(2, "0");
-    const day = amsTime.toLocaleString("en-US", { weekday: "short", timeZone: "Europe/Amsterdam" }); // e.g. Mon, Tue
+    const day = amsTime.toLocaleString("en-US", { weekday: "short", timeZone: "Europe/Amsterdam" });
     const date = amsTime.getDate().toString().padStart(2, "0");
     const month = (amsTime.getMonth() + 1).toString().padStart(2, "0");
     const year = amsTime.getFullYear();
@@ -176,7 +133,8 @@ export default function NextGameDetailsPage() {
       const res = await fetch("/api/next-game", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, attendance: fullAttendance, timestamp }),
+        // Only game details here; PlayerAttendance handles availability separately
+        body: JSON.stringify({ ...form, timestamp }),
       });
       if (!res.ok) throw new Error(`Save failed (${res.status})`);
       setStatus("Saved! The fixtures page now shows your update.");
@@ -188,24 +146,9 @@ export default function NextGameDetailsPage() {
     }
   };
 
-  // clear all fields and reset attendance to "unknown"
   function handleClear() {
     setForm({ date: "", kickoff: "", opponent: "", location: "", competition: "", note: "" });
-    setAttendance(Object.fromEntries(playersData.map((p) => [p.key, "unknown"])));
-    setExtraPlayers([{ name: "", status: "unknown" }]);
     setStatus("");
-  }
-
-  // helper to render number in yellow and name after it
-  function renderPlayerNameObj(p: { number: string; name: string }) {
-    return p.number ? (
-      <>
-        <span className="font-bold text-yellow-400">{p.number} </span>
-        {p.name}
-      </>
-    ) : (
-      p.name
-    );
   }
 
   return (
@@ -213,20 +156,14 @@ export default function NextGameDetailsPage() {
       <Menu />
       <section
         className="w-full flex justify-center items-center py-10 px-4 bg-gray-900"
-        style={{
-          background: "linear-gradient(135deg, #232526 0%, #414345 100%)",
-        }}
+        style={{ background: "linear-gradient(135deg, #232526 0%, #414345 100%)" }}
       >
         <div className="max-w-2xl w-full flex flex-col items-center text-center mt-16 sm:mt-32">
           <h1
             className={`text-3xl sm:text-5xl font-extrabold mb-4 ${robotoSlab.className}`}
             style={{
               letterSpacing: "0.07em",
-              textShadow: `
-                0 0 4px #0b3d1a,
-                0 2px 0 #0b3d1a,
-                0 1px 0 #fff
-              `,
+              textShadow: `0 0 4px #0b3d1a, 0 2px 0 #0b3d1a, 0 1px 0 #fff`,
               color: "#fff",
               textTransform: "uppercase",
             }}
@@ -248,11 +185,10 @@ export default function NextGameDetailsPage() {
           </button>
         </div>
       </section>
+
       <section className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800">
         <div className="max-w-2xl w-full rounded-2xl p-6 sm:p-10 text-white text-center bg-gray-900 shadow-xl mx-auto">
-          <h2 className={`text-xl sm:text-2xl font-bold mb-4 ${robotoSlab.className}`}>
-            Next Game Details
-          </h2>
+          <h2 className={`text-xl sm:text-2xl font-bold mb-4 ${robotoSlab.className}`}>Next Game Details</h2>
           <div className="mb-4 flex flex-col items-center">
             <div>
               <button
@@ -264,9 +200,11 @@ export default function NextGameDetailsPage() {
               </button>
             </div>
             <p className="mt-2 text-sm text-gray-300 max-w-xl text-center">
-              Click "Clear all fields" to reset the form when you want to add a completely new next game. This will empty all inputs and reset player attendance to "unknown". After clearing, fill in the new match details and press "Save Next Game".
+              Click "Clear all fields" to reset the form when you want to add a completely new next game. This will empty all inputs. After clearing, fill in the new match details and press "Save Next Game".
             </p>
           </div>
+
+          {/* Admin form: game meta only */}
           <form onSubmit={handleSubmit} className="space-y-4 text-left">
             <div>
               <label className="block font-semibold mb-1">Date</label>
@@ -346,94 +284,11 @@ export default function NextGameDetailsPage() {
                 value={form.note}
                 onChange={handleChange}
                 className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                placeholder="e.g. Get ready for the next challenge! FC Mierda faces FC Rotterdam United in what promises to be an exciting match. Come support us and don&apos;t miss the action!"
+                placeholder="e.g. Get ready for the next challenge! FC Mierda faces FC Rotterdam United in what promises to be an exciting match. Come support us and don't miss the action!"
                 rows={3}
               />
             </div>
-            <div id="player-availability">
-              <label className="block font-semibold mb-1">Player Attendance</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {playersData.map((p) => (
-                  <div
-                    key={p.raw}
-                    className="flex items-center justify-between gap-2 bg-gray-800 rounded px-2 py-1"
-                  >
-                    <span className="font-medium text-white w-24 sm:w-32 truncate">
-                      {renderPlayerNameObj(p)}
-                    </span>
-                    <select
-                      value={attendance[p.key] ?? "unknown"}
-                      onChange={(e) =>
-                        setAttendance({ ...attendance, [p.key]: e.target.value })
-                      }
-                      className="p-1 rounded bg-gray-900 border border-gray-600 text-white min-w-[90px] sm:min-w-[120px]"
-                    >
-                      <option value="unknown">⚪ Unknown</option>
-                      <option value="absent">🔴 Absent</option>
-                      <option value="present">🟢 Present</option>
-                      <option value="not sure">🟠 Not sure</option>
-                      <option value="supporter">🔵 Supporter</option>
-                      <option value="coach">🔵 Coach</option>
-                    </select>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="mt-4">
-              <label className="block font-semibold mb-1">Add Additional Players (reserves)</label>
-              {extraPlayers.map((player, idx) => (
-                <div key={idx} className="flex items-center gap-2 mb-2">
-                  {extraPlayers.length > 1 && idx < extraPlayers.length - 1 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const filtered = extraPlayers.filter((_, i) => i !== idx);
-                        setExtraPlayers(
-                          filtered.length === 0
-                            ? [{ name: "", status: "absent" }]
-                            : filtered
-                        );
-                      }}
-                      className="text-red-400 hover:text-red-600 font-extrabold text-2xl flex items-center justify-center px-2"
-                      title="Remove this player"
-                      style={{ lineHeight: 1 }}
-                    >
-                      &times;
-                    </button>
-                  )}
-                  <input
-                    type="text"
-                    placeholder="Add player name"
-                    value={player.name}
-                    onChange={e => {
-                      const updated = [...extraPlayers];
-                      updated[idx].name = e.target.value;
-                      setExtraPlayers(updated);
 
-                      if (idx === extraPlayers.length - 1 && e.target.value.trim() !== "") {
-                        setExtraPlayers([...updated, { name: "", status: "absent" }]);
-                      }
-                    }}
-                    className="p-1 rounded bg-gray-800 border border-gray-600 text-white flex-1"
-                  />
-                  <select
-                    value={player.status}
-                    onChange={e => {
-                      const updated = [...extraPlayers];
-                      updated[idx].status = e.target.value;
-                      setExtraPlayers(updated);
-                    }}
-                    className="p-1 rounded bg-gray-900 border border-gray-600 text-white min-w-[90px] sm:min-w-[120px]"
-                  >
-                    <option value="absent">🔴 Absent</option>
-                    <option value="present">🟢 Present</option>
-                    <option value="not sure">🟠 Not sure</option>
-                    <option value="supporter">🔵 Supporter</option>
-                    <option value="coach">🔵 Coach</option>
-                  </select>
-                </div>
-              ))}
-            </div>
             <button
               type="submit"
               className="bg-green-600 hover:bg-green-700 text-white px-10 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 min-w-[200px]"
@@ -442,9 +297,14 @@ export default function NextGameDetailsPage() {
             </button>
             <div className="mt-2 text-green-400">{status}</div>
           </form>
+
+          {/* PlayerAttendance replaces the old player availability UI */}
+          <div className="mt-10 text-left">
+            <PlayerAttendance />
+          </div>
         </div>
       </section>
-      {/* Footer */}
+
       <Footer />
     </div>
   );
