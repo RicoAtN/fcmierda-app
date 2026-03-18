@@ -4,7 +4,6 @@ import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
 import { useRouter } from "next/navigation";
-import PlayerAttendance from "@/components/PlayerAttendance"; // ADD
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -58,12 +57,14 @@ export default function NextGameDetailsPage() {
     note: "",
   });
   const [status, setStatus] = useState("");
+  const [currentAttendance, setCurrentAttendance] = useState<Record<string, string>>({});
   const router = useRouter();
 
   useEffect(() => {
     fetch("/api/next-game")
       .then((res) => res.json())
       .then((data) => {
+        setCurrentAttendance(data.attendance || {});
         setForm({
           date: data.date || "",
           kickoff: data.kickoff || "",
@@ -134,7 +135,7 @@ export default function NextGameDetailsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Only game details here; PlayerAttendance handles availability separately
-        body: JSON.stringify({ ...form, timestamp }),
+        body: JSON.stringify({ ...form, attendance: currentAttendance, timestamp }),
       });
       if (!res.ok) throw new Error(`Save failed (${res.status})`);
       setStatus("Saved! The fixtures page now shows your update.");
@@ -149,6 +150,7 @@ export default function NextGameDetailsPage() {
   function handleClear() {
     setForm({ date: "", kickoff: "", opponent: "", location: "", competition: "", note: "" });
     setStatus("");
+    setCurrentAttendance({});
   }
 
   return (
@@ -297,11 +299,6 @@ export default function NextGameDetailsPage() {
             </button>
             <div className="mt-2 text-green-400">{status}</div>
           </form>
-
-          {/* PlayerAttendance replaces the old player availability UI */}
-          <div className="mt-10 text-left">
-            <PlayerAttendance />
-          </div>
         </div>
       </section>
 
