@@ -278,7 +278,7 @@ export default async function FixturesPage() {
           </h2>
           <div className={`mb-2 text-base sm:text-lg ${montserrat.className}`}>
             <span className="font-semibold text-green-300">Division:</span>{" "}
-            First Division Rotterdam 7vs7 - September 2025
+            First Division Rotterdam 7vs7 - March 2026
           </div>
           <div className="flex flex-col items-center gap-6 my-6">
             <img
@@ -293,7 +293,7 @@ export default async function FixturesPage() {
             Rotterdam 7vs7.
           </p>
           <a
-            href="https://www.powerleague.com/nl/competitie?league_id=ae68d4cb-cbc3-20bc-e614-9061a8f1b5e1&division_id="
+            href="https://www.powerleague.com/nl/competitie?league_id=dd6599fd-1839-8f85-eb14-ca954827b233&division_id="
             target="_blank"
             rel="noopener noreferrer"
             className="text-green-300 font-bold underline"
