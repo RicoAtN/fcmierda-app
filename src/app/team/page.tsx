@@ -45,6 +45,7 @@ type TeamStats = {
   average_goals_per_match: number;
   goals_conceded: number;
   average_goals_conceded_per_match: number;
+  win_percentage: number;
 };
 
 const CATEGORIES = [
@@ -358,6 +359,7 @@ export default function TeamPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <Tile label="Avg goals p/m" value={fmtAvg(ts?.average_goals_per_match)} />
                     <Tile label="Avg conceded p/m" value={fmtAvg(ts?.average_goals_conceded_per_match)} />
+                    <Tile label="Win percentage" value={`${fmtAvg(ts?.win_percentage)}%`} />
                   </div>
                 </div>
 

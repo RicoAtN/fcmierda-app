@@ -22,6 +22,7 @@ export async function GET() {
       average_goals_per_match: number;
       goals_conceded: number;
       average_goals_conceded_per_match: number;
+      win_percentage: number;
     };
 
     const rows = (await sql`
@@ -32,6 +33,7 @@ export async function GET() {
         total_losses,
         total_draws,
         goals_scored,
+        win_percentage,
         COALESCE(
           average_goals_per_match,
           CASE WHEN match_played > 0 THEN goals_scored::float8 / NULLIF(match_played, 0) ELSE 0 END
@@ -56,6 +58,7 @@ export async function GET() {
         average_goals_per_match: 0,
         goals_conceded: 0,
         average_goals_conceded_per_match: 0,
+        win_percentage: 0,
       };
 
     return NextResponse.json({ data }, { status: 200 });
