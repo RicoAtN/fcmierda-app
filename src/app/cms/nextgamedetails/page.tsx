@@ -58,6 +58,7 @@ export default function NextGameDetailsPage() {
   });
   const [status, setStatus] = useState("");
   const [currentAttendance, setCurrentAttendance] = useState<Record<string, string>>({});
+  const [toBeAnnounced, setToBeAnnounced] = useState(false);
   const [resetAttendance, setResetAttendance] = useState(false);
   const router = useRouter();
 
@@ -69,11 +70,12 @@ export default function NextGameDetailsPage() {
         setForm({
           date: data.date || "",
           kickoff: data.kickoff || "",
-          opponent: data.opponent || "",
+          opponent: data.opponent === "To be announced soon" ? "" : (data.opponent || ""),
           location: "Alexandria 66 Rotterdam",
           competition: data.competition || "",
           note: data.note || "",
         });
+        setToBeAnnounced(data.opponent === "To be announced soon");
       });
   }, []);
 
@@ -136,12 +138,14 @@ export default function NextGameDetailsPage() {
       finalAttendance = Object.fromEntries(playersData.map((p) => [p.key, "unknown"]));
     }
 
+    const finalOpponent = toBeAnnounced ? "To be announced soon" : form.opponent;
+
     try {
       const res = await fetch("/api/next-game", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Only game details here; PlayerAttendance handles availability separately
-        body: JSON.stringify({ ...form, attendance: finalAttendance, timestamp }),
+        body: JSON.stringify({ ...form, opponent: finalOpponent, attendance: finalAttendance, timestamp }),
       });
       if (!res.ok) throw new Error(`Save failed (${res.status})`);
       setStatus("Saved! The fixtures page now shows your update.");
@@ -162,6 +166,7 @@ export default function NextGameDetailsPage() {
       competition: competitions.length > 0 ? competitions[0].competition_name : prev.competition,
       note: "",
     }));
+  setToBeAnnounced(false);
     setStatus("");
     setCurrentAttendance({});
     setResetAttendance(true);
@@ -256,14 +261,31 @@ export default function NextGameDetailsPage() {
                 value={form.opponent}
                 onChange={handleChange}
                 className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                required
-                disabled={!latestCompetition}
+          required={!toBeAnnounced}
+          disabled={!latestCompetition || toBeAnnounced}
               >
-                <option value="">{latestCompetition ? "Select opponent" : "Competition unavailable"}</option>
+          <option value="">{toBeAnnounced ? "To be announced soon" : latestCompetition ? "Select opponent" : "Competition unavailable"}</option>
                 {currentOpponentsUnique.map((name, idx) => (
                   <option key={`${name}-${idx}`} value={name}>{name}</option>
                 ))}
               </select>
+            </div>
+            <div className="flex flex-col p-3 bg-gray-800 border border-gray-600 rounded">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="toBeAnnounced"
+                  checked={toBeAnnounced}
+                  onChange={(e) => setToBeAnnounced(e.target.checked)}
+                  className="w-5 h-5 text-green-600 bg-gray-900 border-gray-600 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
+                />
+                <label htmlFor="toBeAnnounced" className="ml-3 text-white cursor-pointer select-none">
+                  Next game opponent is unknown
+                </label>
+              </div>
+              <p className="mt-1 ml-8 text-sm text-gray-400">
+                Check this box if the next opponent is unknown and needs to be announced by the organization.
+              </p>
             </div>
             <div>
               <label className="block font-semibold mb-1">Location</label>
