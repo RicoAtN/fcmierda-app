@@ -148,7 +148,14 @@ export default function NextGameDetailsPage() {
   };
 
   function handleClear() {
-    setForm({ date: "", kickoff: "", opponent: "", location: "", competition: "", note: "" });
+    setForm((prev) => ({
+      date: "",
+      kickoff: "",
+      opponent: "",
+      location: prev.location,
+      competition: competitions.length > 0 ? competitions[0].competition_name : prev.competition,
+      note: "",
+    }));
     setStatus("");
     setCurrentAttendance({});
   }
