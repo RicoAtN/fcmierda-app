@@ -58,6 +58,7 @@ export default function NextGameDetailsPage() {
   });
   const [status, setStatus] = useState("");
   const [currentAttendance, setCurrentAttendance] = useState<Record<string, string>>({});
+  const [resetAttendance, setResetAttendance] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -130,12 +131,17 @@ export default function NextGameDetailsPage() {
     const year = amsTime.getFullYear();
     const timestamp = `${hour}:${minute} ${day} ${date}-${month}-${year}`;
 
+    let finalAttendance = currentAttendance;
+    if (resetAttendance) {
+      finalAttendance = Object.fromEntries(playersData.map((p) => [p.key, "unknown"]));
+    }
+
     try {
       const res = await fetch("/api/next-game", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Only game details here; PlayerAttendance handles availability separately
-        body: JSON.stringify({ ...form, attendance: currentAttendance, timestamp }),
+        body: JSON.stringify({ ...form, attendance: finalAttendance, timestamp }),
       });
       if (!res.ok) throw new Error(`Save failed (${res.status})`);
       setStatus("Saved! The fixtures page now shows your update.");
@@ -158,6 +164,7 @@ export default function NextGameDetailsPage() {
     }));
     setStatus("");
     setCurrentAttendance({});
+    setResetAttendance(true);
   }
 
   return (
@@ -296,6 +303,19 @@ export default function NextGameDetailsPage() {
                 placeholder="e.g. Get ready for the next challenge! FC Mierda faces FC Rotterdam United in what promises to be an exciting match. Come support us and don't miss the action!"
                 rows={3}
               />
+            </div>
+
+            <div className="flex items-center p-3 bg-gray-800 border border-gray-600 rounded">
+              <input
+                type="checkbox"
+                id="resetAttendance"
+                checked={resetAttendance}
+                onChange={(e) => setResetAttendance(e.target.checked)}
+                className="w-5 h-5 text-green-600 bg-gray-900 border-gray-600 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
+              />
+              <label htmlFor="resetAttendance" className="ml-3 text-white cursor-pointer select-none">
+                Reset all players availability to unknown
+              </label>
             </div>
 
             <button
