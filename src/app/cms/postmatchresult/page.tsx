@@ -467,14 +467,14 @@ export default function PostMatchResultPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setGameResult("lost")}
+                  onClick={() => setGameResult("loss")}
                   className={`px-4 py-2 rounded font-bold border transition-all duration-150 ${
-                    gameResult === "lost"
+                    gameResult === "loss"
                       ? "bg-red-600 text-white border-red-700"
                       : "bg-gray-800 text-red-400 border-red-700"
                   }`}
                 >
-                  Lost
+                  Loss
                 </button>
               </div>
             </div>
