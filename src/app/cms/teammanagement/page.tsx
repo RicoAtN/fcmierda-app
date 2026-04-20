@@ -1,0 +1,63 @@
+"use client";
+import { Roboto_Slab, Montserrat } from "next/font/google";
+import Menu from "@/components/Menu";
+import Footer from "@/components/Footer";
+import { useRouter } from "next/navigation";
+
+const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
+const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
+
+export default function TeamManagementPage() {
+  const router = useRouter();
+
+  return (
+    <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
+      <Menu />
+      
+      {/* Header Section */}
+      <section
+        className="w-full flex justify-center items-center py-10 px-4 bg-gray-900"
+        style={{
+          background: "linear-gradient(135deg, #232526 0%, #414345 100%)",
+        }}
+      >
+        <div className="max-w-2xl w-full flex flex-col items-center text-center mt-16 sm:mt-32">
+          <h1
+            className={`text-3xl sm:text-5xl font-extrabold mb-4 ${robotoSlab.className}`}
+            style={{
+              letterSpacing: "0.07em",
+              textShadow: `
+                0 0 4px #0b3d1a,
+                0 2px 0 #0b3d1a,
+                0 1px 0 #fff
+              `,
+              color: "#fff",
+              textTransform: "uppercase",
+            }}
+          >
+            Team Management
+          </h1>
+          <p
+            className={`text-lg sm:text-xl text-white font-medium mb-8 drop-shadow-lg ${montserrat.className}`}
+            style={{ maxWidth: 600 }}
+          >
+            Manage the team members here.
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/cms")}
+            className="bg-gray-700 hover:bg-gray-800 text-white px-6 py-3 rounded-md font-bold text-lg shadow transition-all duration-150 border border-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 mt-4"
+          >
+            Back to CMS
+          </button>
+        </div>
+      </section>
+
+      {/* Main Content Area */}
+      <section className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800 flex-grow">
+      </section>
+
+      <Footer />
+    </div>
+  );
+}

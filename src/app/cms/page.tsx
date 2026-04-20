@@ -49,6 +49,11 @@ export default function CMSPage() {
             <span className="font-semibold">
               Create or edit a competition to add opponent teams or update final standings.
             </span>
+            <br />
+            <br />
+            <span className="font-semibold">
+              Manage team members and their information.
+            </span>
           </p>
           <div className="w-full max-w-md flex flex-col gap-3 mt-6">
             <button
@@ -73,6 +78,14 @@ export default function CMSPage() {
               className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-yellow-300 transition min-h-[44px]"
             >
               Create or edit competition
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/cms/teammanagement")}
+              className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-purple-300 transition min-h-[44px]"
+            >
+              Team management
             </button>
           </div>
         </div>
