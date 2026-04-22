@@ -57,11 +57,16 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
   const [editForm, setEditForm] = useState<Partial<Player>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterPosition, setFilterPosition] = useState("");
+
+  const predefinedPositions = ["defender", "midfielder", "forward", "goalkeeper", "coach"];
 
   const displayedPlayers = players.filter((p) => {
-    const matchesMain = filterMain ? p.main_player : true;
+    const matchesMain = filterMain ? p.main_player : !p.main_player;
     const matchesSearch = p.player_name?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesMain && matchesSearch;
+    const pos = p.player_position || p.role || "";
+    const matchesPosition = filterPosition === "" || pos === filterPosition;
+    return matchesMain && matchesSearch && matchesPosition;
   });
 
   const handleSelectPlayer = (player: Player) => {
@@ -76,7 +81,6 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
   };
 
   const currentPosition = editForm.player_position || editForm.role || "";
-  const predefinedPositions = ["Defender", "Midfielder", "Forward", "Goalkeeper", "Coach"];
 
   return (
     <div id="current-players" className="max-w-5xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-900 shadow-xl mx-auto scroll-mt-24">
@@ -85,42 +89,55 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
         <p className="text-sm text-gray-400">Click on a player to view or edit players information.</p>
       </div>
       
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col md:flex-row gap-8 md:h-[750px]">
         {/* Left Side: List */}
-        <div className="w-full md:w-1/3 flex flex-col gap-4">
-          <div className="flex flex-col xl:flex-row gap-2">
+        <div className="w-full md:w-1/3 flex flex-col gap-4 h-full">
+          <div className="flex flex-row items-center gap-2">
             <button 
               onClick={() => setFilterMain(true)}
-              className={`flex-1 py-2 px-2 rounded-lg font-semibold text-sm transition border shadow-sm ${
+              className={`flex-1 py-2 px-3 rounded-lg font-semibold text-sm transition border shadow-sm ${
                 filterMain 
                   ? 'bg-green-700 border-green-600 text-white' 
                   : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
               }`}
             >
-              Show only main players
+              Main players
             </button>
             <button 
               onClick={() => setFilterMain(false)}
-              className={`flex-1 py-2 px-2 rounded-lg font-semibold text-sm transition border shadow-sm ${
+              className={`py-2 px-3 rounded-lg font-medium text-xs transition border shadow-sm ${
                 !filterMain 
-                  ? 'bg-green-700 border-green-600 text-white' 
-                  : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
+                  ? 'bg-gray-600 border-gray-500 text-white' 
+                  : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300 hover:bg-gray-800'
               }`}
             >
-              Show all players
+              Reserve players
             </button>
           </div>
           
-          <input
-            type="search"
-            placeholder="Search by player name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 transition shadow-sm"
-            aria-label="Search players"
-          />
+          <div className="flex flex-col gap-2">
+            <input
+              type="search"
+              placeholder="Search by player name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 transition shadow-sm"
+              aria-label="Search players"
+            />
+            <select
+              value={filterPosition}
+              onChange={(e) => setFilterPosition(e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition shadow-sm"
+              aria-label="Filter by position"
+            >
+              <option value="">All positions</option>
+              {predefinedPositions.map((pos) => (
+                <option key={pos} value={pos}>{pos}</option>
+              ))}
+            </select>
+          </div>
 
-          <div className="flex flex-col gap-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+          <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 flex-1 min-h-0 max-h-[500px] md:max-h-none">
           {displayedPlayers.length === 0 ? (
             <p className="text-gray-400">No players found.</p>
           ) : (
@@ -134,9 +151,17 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
                     : 'bg-gray-800 border-transparent hover:border-gray-600'
                 }`}
               >
-                <span className="text-lg font-semibold">{player.player_name}</span>
+                <div className="flex flex-col flex-1 min-w-0 pr-3">
+                  <span className="text-lg font-semibold truncate">
+                    {(player.player_number || player.number) ? `#${String(player.player_number || player.number).replace(/^#/, '')} ` : ''}
+                    {player.player_name}
+                  </span>
+                  <span className="text-xs text-gray-400 truncate mt-0.5">
+                    {player.player_position || player.role || "Position unknown"}
+                  </span>
+                </div>
                 {player.main_player && (
-                  <span className="text-xs font-bold bg-green-800 text-green-200 px-2.5 py-1 rounded-full">
+                  <span className="text-xs font-bold bg-green-800 text-green-200 px-2.5 py-1 rounded-full flex-shrink-0">
                     Main
                   </span>
                 )}
@@ -147,7 +172,7 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
         </div>
 
         {/* Right Side: Details */}
-        <div id="player-details" className="w-full md:w-2/3 bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-lg h-fit scroll-mt-24">
+        <div id="player-details" className="w-full md:w-2/3 bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-lg scroll-mt-24 h-full flex flex-col overflow-y-auto custom-scrollbar">
           {selectedPlayer ? (
             <div className="flex flex-col gap-8">
               {/* Header Profile */}

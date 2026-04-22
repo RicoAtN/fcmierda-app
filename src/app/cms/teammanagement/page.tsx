@@ -3,6 +3,7 @@ import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
 import { Pool } from "pg";
 import ClientPlayerManagement from "./ClientPlayerManagement";
+import ClientAddPlayer from "./ClientAddPlayer";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -89,11 +90,7 @@ export default async function TeamManagementPage() {
         <ClientPlayerManagement players={players} />
 
         {/* Add New Player Section */}
-        <div id="add-new-player" className="max-w-4xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-900 shadow-xl mx-auto scroll-mt-24">
-          <h2 className="text-xl sm:text-2xl font-bold mb-4">Add New Player</h2>
-          <p className="text-gray-400">Form to add a new player will go here.</p>
-          {/* Placeholder for form */}
-        </div>
+        <ClientAddPlayer />
       </section>
 
       <Footer />
