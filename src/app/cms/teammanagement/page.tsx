@@ -1,14 +1,27 @@
-"use client";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
-import { useRouter } from "next/navigation";
+import { Pool } from "pg";
+import ClientPlayerManagement from "./ClientPlayerManagement";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
 
-export default function TeamManagementPage() {
-  const router = useRouter();
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+export const dynamic = "force-dynamic";
+
+async function getAllPlayers() {
+  const { rows } = await pool.query(
+    `SELECT * FROM player_statistics ORDER BY player_name ASC`
+  );
+  return rows;
+}
+
+export default async function TeamManagementPage() {
+  const players = await getAllPlayers();
 
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
@@ -43,18 +56,44 @@ export default function TeamManagementPage() {
           >
             Manage the team members here.
           </p>
-          <button
-            type="button"
-            onClick={() => router.push("/cms")}
-            className="bg-gray-700 hover:bg-gray-800 text-white px-6 py-3 rounded-md font-bold text-lg shadow transition-all duration-150 border border-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 mt-4"
+          <div className="flex flex-col sm:flex-row gap-4 mt-2">
+            <a
+              href="#current-players"
+              className="px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-green-300 transition"
+              aria-label="View or edit current players"
+              style={{ letterSpacing: "0.03em" }}
+            >
+              View or edit current players
+            </a>
+            <a
+              href="#add-new-player"
+              className="px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-purple-300 transition"
+              aria-label="Add new player"
+              style={{ letterSpacing: "0.03em" }}
+            >
+              Add new player
+            </a>
+          </div>
+          <a
+            href="/cms"
+            className="bg-gray-700 hover:bg-gray-800 text-white px-6 py-3 rounded-md font-bold text-lg shadow transition-all duration-150 border border-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 mt-8 inline-block"
           >
             Back to CMS
-          </button>
+          </a>
         </div>
       </section>
 
       {/* Main Content Area */}
       <section className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800 flex-grow">
+        {/* Current Players Section */}
+        <ClientPlayerManagement players={players} />
+
+        {/* Add New Player Section */}
+        <div id="add-new-player" className="max-w-4xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-900 shadow-xl mx-auto scroll-mt-24">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4">Add New Player</h2>
+          <p className="text-gray-400">Form to add a new player will go here.</p>
+          {/* Placeholder for form */}
+        </div>
       </section>
 
       <Footer />
