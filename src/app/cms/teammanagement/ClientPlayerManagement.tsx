@@ -50,15 +50,21 @@ type Player = {
 };
 
 export default function ClientPlayerManagement({ players }: { players: Player[] }) {
-  const [filterMain, setFilterMain] = useState(false);
+  const [filterMain, setFilterMain] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Player>>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const displayedPlayers = filterMain 
-    ? players.filter((p) => p.main_player) 
-    : players;
+  const displayedPlayers = players.filter((p) => {
+    const matchesMain = filterMain ? p.main_player : true;
+    const matchesSearch = p.player_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesMain && matchesSearch;
+  });
 
   const handleSelectPlayer = (player: Player) => {
     setSelectedPlayer(player);
+    setIsEditing(false);
     setTimeout(() => {
       const el = document.getElementById("player-details");
       if (el && window.innerWidth < 768) {
@@ -100,6 +106,15 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
             </button>
           </div>
           
+          <input
+            type="search"
+            placeholder="Search by player name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 transition shadow-sm"
+            aria-label="Search players"
+          />
+
           <div className="flex flex-col gap-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
           {displayedPlayers.length === 0 ? (
             <p className="text-gray-400">No players found.</p>
@@ -139,64 +154,184 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
                     <span className="text-gray-400 font-bold text-2xl sm:text-3xl">{selectedPlayer.player_name?.[0]?.toUpperCase() || "?"}</span>
                   )}
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-2xl sm:text-3xl font-extrabold text-green-400 mb-1">
-                    {selectedPlayer.player_name}
-                  </h3>
-                  <div className="text-xs text-gray-400 font-medium">
-                    Last updated: {
-                      selectedPlayer.updated_at && !isNaN(new Date(String(selectedPlayer.updated_at)).getTime())
-                        ? new Date(String(selectedPlayer.updated_at)).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                        : "-"
-                    }
-                  </div>
-                  <div className="text-xs text-gray-400 font-medium mt-1">
-                    Player ID: {renderValue(selectedPlayer.player_id)}
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 1: Player Information */}
-              <div>
-                <h4 className="text-lg font-bold text-white mb-3 border-b border-gray-700/50 pb-2">Player Information</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm sm:text-base bg-gray-900/50 p-4 rounded-lg border border-gray-700/50">
-                  <DetailItem label="Player Name" value={renderValue(selectedPlayer.player_name)} />
-                  <DetailItem label="Shirt Number #" value={renderValue(selectedPlayer.player_number || selectedPlayer.number)} />
-                  <DetailItem label="Callsign" value={renderValue(selectedPlayer.player_callsign || selectedPlayer.nickname)} />
-                  <DetailItem label="Position" value={renderValue(selectedPlayer.player_position || selectedPlayer.role)} />
-                  <DetailItem label="Main Player" value={selectedPlayer.main_player ? "Yes" : "No"} />
-                  <DetailItem label="Photo Link" value={renderValue(selectedPlayer.photo_link || selectedPlayer.photo)} />
-                </div>
-              </div>
-
-              {/* Section 2: Player Statistics */}
-              <div>
-                <h4 className="text-lg font-bold text-white mb-3 border-b border-gray-700/50 pb-2">Player Statistics</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 text-sm sm:text-base bg-gray-900/50 p-4 rounded-lg border border-gray-700/50">
-                  <DetailItem label="Matches Played" value={renderValue(selectedPlayer.match_played)} />
-                  <DetailItem label="Goals" value={renderValue(selectedPlayer.goals)} />
-                  <DetailItem label="Assists" value={renderValue(selectedPlayer.assists)} />
-                  <DetailItem label="Goals Involvement" value={renderValue(selectedPlayer.goals_involvement)} />
-                  <DetailItem label="Clean Sheets" value={renderValue(selectedPlayer.clean_sheets)} />
-                  <DetailItem label="Avg Goals/Match" value={renderValue(selectedPlayer.average_goals_per_match)} />
-                  <DetailItem label="Avg Conceded/Match" value={renderValue(selectedPlayer.average_goals_conceded_per_match)} />
-                </div>
-              </div>
-
-              {/* Section 3: Biography */}
-              <div>
-                <h4 className="text-lg font-bold text-white mb-3 border-b border-gray-700/50 pb-2">Biography</h4>
-                <div className="flex flex-col gap-6 text-sm sm:text-base bg-gray-900/50 p-4 rounded-lg border border-gray-700/50">
+                <div className="flex-1 flex justify-between items-start">
                   <div>
-                    <span className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Biography Main</span>
-                    <ExpandableText text={selectedPlayer.biography_main || selectedPlayer.biography || "-"} />
+                    <h3 className="text-2xl sm:text-3xl font-extrabold text-green-400 mb-1">
+                      {selectedPlayer.player_name}
+                    </h3>
+                    <div className="text-xs text-gray-400 font-medium">
+                      Last updated: {
+                        selectedPlayer.updated_at && !isNaN(new Date(String(selectedPlayer.updated_at)).getTime())
+                          ? new Date(String(selectedPlayer.updated_at)).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                          : "-"
+                      }
+                    </div>
+                    <div className="text-xs text-gray-400 font-medium mt-1">
+                      Player ID: {renderValue(selectedPlayer.player_id)}
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Biography Detail</span>
-                    <ExpandableText text={selectedPlayer.biography_detail || "-"} />
-                  </div>
+                  {!isEditing && (
+                    <button
+                      onClick={() => { setIsEditing(true); setEditForm(selectedPlayer); }}
+                      className="bg-gray-700 hover:bg-gray-600 text-white text-sm font-bold py-1.5 px-4 rounded shadow transition border border-gray-600"
+                    >
+                      Edit
+                    </button>
+                  )}
                 </div>
               </div>
+
+              {isEditing ? (
+                <div className="flex flex-col gap-4">
+                  <h4 className="text-lg font-bold text-white mb-2 border-b border-gray-700/50 pb-2">Edit Player</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-900/50 p-4 rounded-lg border border-gray-700/50">
+                    <div>
+                      <label className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Player Name</label>
+                      <input
+                        type="text"
+                        value={editForm.player_name || ""}
+                        onChange={(e) => setEditForm({ ...editForm, player_name: e.target.value })}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Shirt Number #</label>
+                      <input
+                        type="text"
+                        value={editForm.player_number || editForm.number || ""}
+                        onChange={(e) => setEditForm({ ...editForm, player_number: e.target.value })}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Callsign</label>
+                      <input
+                        type="text"
+                        value={editForm.player_callsign || editForm.nickname || ""}
+                        onChange={(e) => setEditForm({ ...editForm, player_callsign: e.target.value })}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Position</label>
+                      <select
+                        value={editForm.player_position || editForm.role || ""}
+                        onChange={(e) => setEditForm({ ...editForm, player_position: e.target.value })}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500"
+                      >
+                        <option value="">Select a position...</option>
+                        <option value="Defender">Defender</option>
+                        <option value="Midfielder">Midfielder</option>
+                        <option value="Forward">Forward</option>
+                        <option value="Goalkeeper">Goalkeeper</option>
+                        <option value="Coach">Coach</option>
+                      </select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Photo Link</label>
+                      <input
+                        type="text"
+                        value={editForm.photo_link || editForm.photo || ""}
+                        onChange={(e) => setEditForm({ ...editForm, photo_link: e.target.value })}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div className="sm:col-span-2 flex items-center gap-2 mt-2">
+                      <input
+                        type="checkbox"
+                        id="main_player_check"
+                        checked={!!editForm.main_player}
+                        onChange={(e) => setEditForm({ ...editForm, main_player: e.target.checked })}
+                        className="w-5 h-5 accent-green-600 bg-gray-800 border-gray-600 rounded focus:ring-green-500 cursor-pointer"
+                      />
+                      <label htmlFor="main_player_check" className="text-white font-semibold cursor-pointer select-none">
+                        Main Player
+                      </label>
+                    </div>
+                    <div className="sm:col-span-2 mt-2">
+                      <label className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Biography Main</label>
+                      <textarea
+                        value={editForm.biography_main || editForm.biography || ""}
+                        onChange={(e) => setEditForm({ ...editForm, biography_main: e.target.value })}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500 min-h-[100px] resize-y"
+                        placeholder="Enter the main biography text here..."
+                      />
+                    </div>
+                    <div className="sm:col-span-2 mt-2">
+                      <label className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Biography Detail</label>
+                      <textarea
+                        value={editForm.biography_detail || ""}
+                        onChange={(e) => setEditForm({ ...editForm, biography_detail: e.target.value })}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500 min-h-[150px] resize-y"
+                        placeholder="Enter detailed biography information here..."
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end gap-3 mt-2">
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white font-semibold transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        // TODO: API logic to POST/PUT changes to database
+                        setSelectedPlayer(editForm as Player);
+                        setIsEditing(false);
+                      }}
+                      className="px-4 py-2 rounded bg-green-700 hover:bg-green-600 text-white font-semibold transition shadow-md"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Section 1: Player Information */}
+                  <div>
+                    <h4 className="text-lg font-bold text-white mb-3 border-b border-gray-700/50 pb-2">Player Information</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm sm:text-base bg-gray-900/50 p-4 rounded-lg border border-gray-700/50">
+                      <DetailItem label="Player Name" value={renderValue(selectedPlayer.player_name)} />
+                      <DetailItem label="Shirt Number #" value={renderValue(selectedPlayer.player_number || selectedPlayer.number)} />
+                      <DetailItem label="Callsign" value={renderValue(selectedPlayer.player_callsign || selectedPlayer.nickname)} />
+                      <DetailItem label="Position" value={renderValue(selectedPlayer.player_position || selectedPlayer.role)} />
+                      <DetailItem label="Main Player" value={selectedPlayer.main_player ? "Yes" : "No"} />
+                      <DetailItem label="Photo Link" value={renderValue(selectedPlayer.photo_link || selectedPlayer.photo)} />
+                    </div>
+                  </div>
+
+                  {/* Section 2: Player Statistics */}
+                  <div>
+                    <h4 className="text-lg font-bold text-white mb-3 border-b border-gray-700/50 pb-2">Player Statistics</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 text-sm sm:text-base bg-gray-900/50 p-4 rounded-lg border border-gray-700/50">
+                      <DetailItem label="Matches Played" value={renderValue(selectedPlayer.match_played)} />
+                      <DetailItem label="Goals" value={renderValue(selectedPlayer.goals)} />
+                      <DetailItem label="Assists" value={renderValue(selectedPlayer.assists)} />
+                      <DetailItem label="Goals Involvement" value={renderValue(selectedPlayer.goals_involvement)} />
+                      <DetailItem label="Clean Sheets" value={renderValue(selectedPlayer.clean_sheets)} />
+                      <DetailItem label="Avg Goals/Match" value={renderValue(selectedPlayer.average_goals_per_match)} />
+                      <DetailItem label="Avg Conceded/Match" value={renderValue(selectedPlayer.average_goals_conceded_per_match)} />
+                    </div>
+                  </div>
+
+                  {/* Section 3: Biography */}
+                  <div>
+                    <h4 className="text-lg font-bold text-white mb-3 border-b border-gray-700/50 pb-2">Biography</h4>
+                    <div className="flex flex-col gap-6 text-sm sm:text-base bg-gray-900/50 p-4 rounded-lg border border-gray-700/50">
+                      <div>
+                        <span className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Biography Main</span>
+                        <ExpandableText text={selectedPlayer.biography_main || selectedPlayer.biography || "-"} />
+                      </div>
+                      <div>
+                        <span className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Biography Detail</span>
+                        <ExpandableText text={selectedPlayer.biography_detail || "-"} />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-gray-500 min-h-[300px] text-center px-4">
