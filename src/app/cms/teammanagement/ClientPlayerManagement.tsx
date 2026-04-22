@@ -40,8 +40,12 @@ function DetailItem({ label, value }: { label: string; value: React.ReactNode })
   );
 }
 
-function renderValue(val: any) {
-  return val !== null && val !== undefined && val !== "" ? String(val) : "-";
+function renderValue(val: any, isAvg = false) {
+  if (val === null || val === undefined || val === "") return "-";
+  if (isAvg && !isNaN(Number(val))) {
+    return Number(val).toFixed(2);
+  }
+  return String(val);
 }
 
 type Player = {
@@ -352,8 +356,8 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
                       <DetailItem label="Assists" value={renderValue(selectedPlayer.assists)} />
                       <DetailItem label="Goals Involvement" value={renderValue(selectedPlayer.goals_involvement)} />
                       <DetailItem label="Clean Sheets" value={renderValue(selectedPlayer.clean_sheets)} />
-                      <DetailItem label="Avg Goals/Match" value={renderValue(selectedPlayer.average_goals_per_match)} />
-                      <DetailItem label="Avg Conceded/Match" value={renderValue(selectedPlayer.average_goals_conceded_per_match)} />
+                      <DetailItem label="Avg Goals/Match" value={renderValue(selectedPlayer.average_goals_per_match, true)} />
+                      <DetailItem label="Avg Conceded/Match" value={renderValue(selectedPlayer.average_goals_conceded_per_match, true)} />
                     </div>
                   </div>
 

@@ -387,7 +387,7 @@ export default function TeamPage() {
           <header className="mb-6 text-center">
             <h2 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>All-time top performers</h2>
             <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
-              Check the leading players in key performance metrics throughout FC Mierda's history.
+              Check the leading players in key performance metrics throughout FC Mierda's history. Click on the player's name to see more information and other statistics of the player.
             </p>
           </header>
 
@@ -474,10 +474,14 @@ export default function TeamPage() {
                       const raw = toNum((ps as any)[block.valueKey]) ?? 0;
                       const val = block.isAvg ? raw.toFixed(2) : String(raw);
                       return (
-                        <li key={`${block.valueKey}-${ps.player_id}`} className="flex items-center justify-between bg-black/20 rounded-md px-3 py-2 text-sm">
+                        <li 
+                          key={`${block.valueKey}-${ps.player_id}`} 
+                          className="flex items-center justify-between bg-black/20 hover:bg-black/40 cursor-pointer rounded-md px-3 py-2 text-sm transition-colors group"
+                          onClick={() => handleDbSelect(String(ps.player_id))}
+                        >
                           <div className="flex items-center gap-3 min-w-0">
                             <span className="text-gray-400 w-5">{idx + 1}.</span>
-                            <span className="font-medium truncate">{name}</span>
+                            <span className="font-medium truncate group-hover:text-green-300 transition-colors">{name}</span>
                           </div>
                           <span className="font-semibold tabular-nums text-green-300">{val}</span>
                         </li>
@@ -619,10 +623,6 @@ Detailed player profiles with roles, bios, call signs and current performance st
                       const isCoach = role.includes("coach");
                       if (isCoach) return null;
 
-                      const isMidfielder = role.includes("midfield");
-                      const isAttacker = role.includes("striker") || role.includes("forward") || role.includes("attack");
-                      const isKeeperOrDef = role.includes("goalkeeper") || role.includes("defend");
-
                       const StatTile = ({ label, value }: { label: string; value: string | number }) => (
                         <div className="bg-black/20 rounded-lg p-3 w-full flex flex-col items-center text-center">
                           <div className="text-lg sm:text-xl font-semibold text-green-300 leading-tight tabular-nums tracking-tight">{value}</div>
@@ -644,18 +644,11 @@ Detailed player profiles with roles, bios, call signs and current performance st
                         { label: "Matches", value: fmtInt(selectedDb.match_played) },
                         { label: "Goals", value: fmtInt(selectedDb.goals) },
                         { label: "Assists", value: fmtInt(selectedDb.assists) },
+                        { label: "Goals Involvement", value: fmtInt(selectedDb.goals_involvement) },
+                        { label: "Clean Sheets", value: fmtInt(selectedDb.clean_sheets) },
+                        { label: "Avg Goals p/m", value: fmtAvg(selectedDb.average_goals_per_match) },
+                        { label: "Avg Conceded p/m", value: fmtAvg(selectedDb.average_goals_conceded_per_match) },
                       ];
-
-                      if (isKeeperOrDef) {
-                        tiles.push({ label: "Clean sheets", value: fmtInt(selectedDb.clean_sheets) });
-                        tiles.push({ label: "Avg conceded p/m", value: fmtAvg(selectedDb.average_goals_conceded_per_match) });
-                      }
-                      if (isMidfielder) {
-                        tiles.push({ label: "Goals involvement", value: fmtInt(selectedDb.goals_involvement) });
-                      }
-                      if (isAttacker) {
-                        tiles.push({ label: "Avg goals p/m", value: fmtAvg(selectedDb.average_goals_per_match) });
-                      }
 
                       return (
                         <div className="mt-4">
