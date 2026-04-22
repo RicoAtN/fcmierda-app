@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { updatePlayerAction } from "./actions";
 
 function ExpandableText({ text }: { text: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -54,6 +55,7 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Player>>({});
+  const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const displayedPlayers = players.filter((p) => {
@@ -72,6 +74,9 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
       }
     }, 50);
   };
+
+  const currentPosition = editForm.player_position || editForm.role || "";
+  const predefinedPositions = ["Defender", "Midfielder", "Forward", "Goalkeeper", "Coach"];
 
   return (
     <div id="current-players" className="max-w-5xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-900 shadow-xl mx-auto scroll-mt-24">
@@ -215,16 +220,17 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
                     <div>
                       <label className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Position</label>
                       <select
-                        value={editForm.player_position || editForm.role || ""}
+                        value={currentPosition}
                         onChange={(e) => setEditForm({ ...editForm, player_position: e.target.value })}
                         className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500"
                       >
-                        <option value="">Select a position...</option>
-                        <option value="Defender">Defender</option>
-                        <option value="Midfielder">Midfielder</option>
-                        <option value="Forward">Forward</option>
-                        <option value="Goalkeeper">Goalkeeper</option>
-                        <option value="Coach">Coach</option>
+                        {!currentPosition && <option value="">Select a position...</option>}
+                        {currentPosition && !predefinedPositions.includes(currentPosition) && (
+                          <option value={currentPosition}>{currentPosition}</option>
+                        )}
+                        {predefinedPositions.map((pos) => (
+                          <option key={pos} value={pos}>{pos}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="sm:col-span-2">
@@ -276,14 +282,24 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
                       Cancel
                     </button>
                     <button
-                      onClick={() => {
-                        // TODO: API logic to POST/PUT changes to database
-                        setSelectedPlayer(editForm as Player);
+                    disabled={isSaving}
+                    onClick={async () => {
+                      try {
+                        setIsSaving(true);
+                        await updatePlayerAction(selectedPlayer.player_id, editForm);
+                        // Optimistically update the UI while keeping existing stats
+                        setSelectedPlayer({ ...selectedPlayer, ...editForm } as Player);
                         setIsEditing(false);
+                      } catch (error) {
+                        console.error("Failed to update player:", error);
+                        alert("An error occurred while saving the changes.");
+                      } finally {
+                        setIsSaving(false);
+                      }
                       }}
-                      className="px-4 py-2 rounded bg-green-700 hover:bg-green-600 text-white font-semibold transition shadow-md"
+                    className="px-4 py-2 rounded bg-green-700 hover:bg-green-600 text-white font-semibold transition shadow-md disabled:opacity-50"
                     >
-                      Save Changes
+                    {isSaving ? "Saving..." : "Save Changes"}
                     </button>
                   </div>
                 </div>
