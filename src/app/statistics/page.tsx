@@ -78,6 +78,85 @@ export default function StatisticsPage() {
     return () => { cancelled = true; };
   }, []);
 
+  // --- STATS HELPER FUNCTIONS ---
+  type StatKey =
+    | "goals"
+    | "assists"
+    | "average_goals_per_match"
+    | "average_goals_conceded_per_match"
+    | "match_played"
+    | "clean_sheets"
+    | "goals_involvement";
+
+  interface StatBlock {
+    heading: string;
+    list: PlayerStats[];
+    valueKey: StatKey;
+    isAvg?: boolean;
+    invert?: boolean;
+  }
+
+  const toNum = (v: unknown) => {
+    if (typeof v === "number") return Number.isFinite(v) ? v : null;
+    if (typeof v === "string") {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    }
+    return null;
+  };
+
+  const rankTop = (items: PlayerStats[], key: StatKey, take = 5) =>
+    [...items]
+      .filter(s => toNum((s as any)[key]) !== null)
+      .sort((a, b) => {
+        const av = toNum((a as any)[key])!;
+        const bv = toNum((b as any)[key])!;
+        return bv - av;
+      })
+      .slice(0, take);
+
+  const rankLowest = (items: PlayerStats[], key: StatKey, take = 5) =>
+    [...items]
+      .filter(s => toNum((s as any)[key]) !== null)
+      .sort((a, b) => {
+        const av = toNum((a as any)[key])!;
+        const bv = toNum((b as any)[key])!;
+        if (av === 0 && bv !== 0) return 1;
+        if (bv === 0 && av !== 0) return -1;
+        return av - bv;
+      })
+      .slice(0, take);
+
+  const mains = stats.filter(s => s.main_player === true);
+
+  const renderStatBlocks = (blocks: StatBlock[], scrollable: boolean = false) => blocks.map((block, i) => (
+    <div key={i}>
+      <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">{block.heading}</div>
+      <ul className={`space-y-2 ${scrollable ? "max-h-[432px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-black/10 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-600 hover:[&::-webkit-scrollbar-thumb]:bg-gray-500 [&::-webkit-scrollbar-thumb]:rounded-full" : ""}`}>
+        {block.list.map((ps, idx) => {
+          const name = (ps.player_name || `Player ${ps.player_id}`).trim();
+          const raw = toNum((ps as any)[block.valueKey]) ?? 0;
+          const val = block.isAvg ? raw.toFixed(2) : String(raw);
+          return (
+            <li 
+              key={`${block.valueKey}-${ps.player_id}`} 
+              className="flex items-center justify-between bg-black/20 hover:bg-black/40 cursor-pointer rounded-md px-3 py-2 text-sm transition-colors group"
+              onClick={() => window.location.assign(`/team?playerId=${ps.player_id}#meet-team-2`)}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-gray-400 w-5">{idx + 1}.</span>
+                <span className="font-medium truncate group-hover:text-green-300 transition-colors">{name}</span>
+              </div>
+              <span className="font-semibold tabular-nums text-green-300">{val}</span>
+            </li>
+          );
+        })}
+        {block.list.length === 0 && <li className="text-xs text-gray-500">No data.</li>}
+      </ul>
+    </div>
+  ));
+  // --- END STATS HELPER FUNCTIONS ---
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <Menu />
@@ -173,106 +252,63 @@ export default function StatisticsPage() {
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {(() => {
-              type StatKey =
-                | "goals"
-                | "assists"
-                | "average_goals_per_match"
-                | "average_goals_conceded_per_match"
-                | "match_played";
+            {renderStatBlocks([
+              { heading: "Top goal scorers", list: rankTop(mains, "goals"), valueKey: "goals" },
+              { heading: "Top assists", list: rankTop(mains, "assists"), valueKey: "assists" },
+              {
+                heading: "Top avg goals per match",
+                list: rankTop(
+                  mains.filter(s => (s.match_played ?? 0) >= 5),
+                  "average_goals_per_match"
+                ),
+                valueKey: "average_goals_per_match",
+                isAvg: true
+              },
+              {
+                heading: "Lowest avg goals conceded per match",
+                list: rankLowest(
+                  mains.filter(s => (s.match_played ?? 0) >= 5),
+                  "average_goals_conceded_per_match"
+                ),
+                valueKey: "average_goals_conceded_per_match",
+                isAvg: true,
+                invert: true
+              },
+              { heading: "Most matches played", list: rankTop(mains, "match_played"), valueKey: "match_played" },
+            ])}
+          </div>
+        </section>
 
-              interface StatBlock {
-                heading: string;
-                list: PlayerStats[];
-                valueKey: StatKey;
-                isAvg?: boolean;
-                invert?: boolean;
-              }
+        {/* Overall statistics */}
+        <section id="overall-statistics" className="mb-8 bg-gray-800 rounded-xl p-5 shadow">
+          <header className="mb-6 text-center">
+            <h2 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>Overall statistics</h2>
+            <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
+              Comprehensive player statistics for all main players. Click on the player's name to view their full profile.
+            </p>
+          </header>
 
-              const toNum = (v: unknown) => {
-                if (typeof v === "number") return Number.isFinite(v) ? v : null;
-                if (typeof v === "string") {
-                  const n = Number(v);
-                  return Number.isFinite(n) ? n : null;
-                }
-                return null;
-              };
-
-              const rankTop = (items: PlayerStats[], key: StatKey, take = 5) =>
-                [...items]
-                  .filter(s => toNum((s as any)[key]) !== null)
-                  .sort((a, b) => {
-                    const av = toNum((a as any)[key])!;
-                    const bv = toNum((b as any)[key])!;
-                    return bv - av;
-                  })
-                  .slice(0, take);
-
-              const rankLowest = (items: PlayerStats[], key: StatKey, take = 5) =>
-                [...items]
-                  .filter(s => toNum((s as any)[key]) !== null)
-                  .sort((a, b) => {
-                    const av = toNum((a as any)[key])!;
-                    const bv = toNum((b as any)[key])!;
-                    return av - bv;
-                  })
-                  .slice(0, take);
-
-              // Only include main players
-              const mains = stats.filter(s => s.main_player === true);
-
-              const blocks: StatBlock[] = [
-                { heading: "Top goal scorers", list: rankTop(mains, "goals"), valueKey: "goals" },
-                { heading: "Top assists", list: rankTop(mains, "assists"), valueKey: "assists" },
-                {
-                  heading: "Top avg goals per match",
-                  list: rankTop(
-                    mains.filter(s => (s.match_played ?? 0) >= 5),
-                    "average_goals_per_match"
-                  ),
-                  valueKey: "average_goals_per_match",
-                  isAvg: true
-                },
-                {
-                  heading: "Lowest avg goals conceded per match",
-                  list: rankLowest(
-                    mains.filter(s => (s.match_played ?? 0) >= 5),
-                    "average_goals_conceded_per_match"
-                  ),
-                  valueKey: "average_goals_conceded_per_match",
-                  isAvg: true,
-                  invert: true
-                },
-                { heading: "Most matches played", list: rankTop(mains, "match_played"), valueKey: "match_played" },
-              ];
-
-              return blocks.map((block, i) => (
-                <div key={i}>
-                  <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">{block.heading}</div>
-                  <ul className="space-y-2">
-                    {block.list.map((ps, idx) => {
-                      const name = (ps.player_name || `Player ${ps.player_id}`).trim();
-                      const raw = toNum((ps as any)[block.valueKey]) ?? 0;
-                      const val = block.isAvg ? raw.toFixed(2) : String(raw);
-                      return (
-                        <li 
-                          key={`${block.valueKey}-${ps.player_id}`} 
-                          className="flex items-center justify-between bg-black/20 hover:bg-black/40 cursor-pointer rounded-md px-3 py-2 text-sm transition-colors group"
-                          onClick={() => window.location.assign(`/team?playerId=${ps.player_id}#meet-team-2`)}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className="text-gray-400 w-5">{idx + 1}.</span>
-                            <span className="font-medium truncate group-hover:text-green-300 transition-colors">{name}</span>
-                          </div>
-                          <span className="font-semibold tabular-nums text-green-300">{val}</span>
-                        </li>
-                      );
-                    })}
-                    {block.list.length === 0 && <li className="text-xs text-gray-500">No data.</li>}
-                  </ul>
-                </div>
-              ));
-            })()}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {renderStatBlocks([
+              { heading: "Goals", list: rankTop(mains, "goals", mains.length), valueKey: "goals" },
+              { heading: "Assists", list: rankTop(mains, "assists", mains.length), valueKey: "assists" },
+              { heading: "Goals Involvement", list: rankTop(mains, "goals_involvement", mains.length), valueKey: "goals_involvement" },
+              { heading: "Clean Sheets", list: rankTop(mains, "clean_sheets", mains.length), valueKey: "clean_sheets" },
+              {
+                heading: "Avg goals per match",
+                list: rankTop(mains, "average_goals_per_match", mains.length),
+                valueKey: "average_goals_per_match",
+                isAvg: true
+              },
+              {
+                heading: "Avg goals conceded per match",
+                list: rankLowest(mains, "average_goals_conceded_per_match", mains.length),
+                valueKey: "average_goals_conceded_per_match",
+                isAvg: true,
+                invert: true
+              },
+              { heading: "Matches played", list: rankTop(mains, "match_played", mains.length), valueKey: "match_played" },
+            ], true)}
           </div>
         </section>
 
