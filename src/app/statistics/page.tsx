@@ -141,7 +141,7 @@ export default function StatisticsPage() {
             <li 
               key={`${block.valueKey}-${ps.player_id}`} 
               className="flex items-center justify-between bg-black/20 hover:bg-black/40 cursor-pointer rounded-md px-3 py-2 text-sm transition-colors group"
-              onClick={() => window.location.assign(`/team?playerId=${ps.player_id}#meet-team-2`)}
+              onClick={() => window.location.assign(`/team?playerId=${ps.player_id}#player-bio`)}
             >
               <div className="flex items-center gap-3 min-w-0">
                 <span className="text-gray-400 w-5">{idx + 1}.</span>

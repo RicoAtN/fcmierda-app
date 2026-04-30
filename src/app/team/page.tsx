@@ -139,6 +139,19 @@ export default function TeamPage() {
     }
   }, []);
 
+  // Auto-scroll to bio when a specific player is requested via URL and the data finishes loading
+  useEffect(() => {
+    if (dbPlayers.length > 0 && selectedDbId) {
+      const params = new URLSearchParams(window.location.search);
+      const pid = params.get("playerId");
+      if (pid === selectedDbId) {
+        setTimeout(() => {
+          dbBioRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 200);
+      }
+    }
+  }, [dbPlayers, selectedDbId]);
+
   const dbCountsByCategory = useMemo(() => {
     const map = new Map<string, number>();
     for (const cat of CATEGORIES) {
@@ -272,7 +285,7 @@ export default function TeamPage() {
 
           {/* Right: Highlight / profile (DB) */}
           <section className="lg:col-span-2">
-            <div ref={dbBioRef} className="bg-gray-800 rounded-xl p-6 shadow min-h-[360px]">
+            <div id="player-bio" ref={dbBioRef} className="bg-gray-800 rounded-xl p-6 shadow min-h-[360px]">
               {selectedDb ? (
                 <div className="flex flex-col sm:flex-row gap-6">
                   <div className="flex-shrink-0 relative">
