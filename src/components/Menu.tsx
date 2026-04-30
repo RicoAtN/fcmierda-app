@@ -1,11 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
+import AdminMenuDropdown from "./AdminMenuDropdown";
+
 
 export default function Menu() {
   return (
     <nav className="absolute top-0 left-0 w-full flex justify-center py-4 sm:py-6 z-20">
       {/* FC Mierda Logo on the top left */}
-      <div className="absolute left-4 sm:left-12 top-1/2 -translate-y-1/2 flex items-center">
+      <div className="absolute left-4 sm:left-12 top-1/2 -translate-y-1/2 mt-1 sm:mt-1.5 flex items-center">
         <Link href="/" className="relative flex flex-col items-center group" aria-label="Return to Home" title="Return to Home">
           <Image
             src="/FCMierda-team-logo.png"
@@ -23,19 +25,8 @@ export default function Menu() {
       </div>
 
       {/* Admin login icon on the very right (no white circle background) */}
-      <div className="absolute right-4 sm:right-12 top-1/2 -translate-y-1/2 flex items-center">
-        <Link href="/cms" aria-label="Admin CMS" title="Admin CMS">
-          <div className="w-14 h-14 flex items-center justify-center transition">
-            <Image
-              src="/admin-logo.png"
-              alt="Admin"
-              width={44}
-              height={44}
-              className="object-contain"
-              priority
-            />
-          </div>
-        </Link>
+      <div className="absolute right-4 sm:right-12 top-1/2 -translate-y-1/2 mt-1 sm:mt-1.5 flex items-center">
+        <AdminMenuDropdown />
       </div>
 
       <ul className="translate-y-1 sm:translate-y-1.5 flex flex-nowrap sm:flex-wrap justify-center items-center gap-1 sm:gap-12 bg-white/40 backdrop-blur-md px-3 sm:px-10 py-1.5 sm:py-4 rounded-full sm:rounded-2xl max-w-[calc(100vw-145px)] sm:max-w-[98vw] shadow-lg overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">

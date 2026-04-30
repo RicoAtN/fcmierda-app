@@ -1,7 +1,8 @@
 "use client";
+
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
-import Footer from "@/components/Footer"; // Add this import at the top
+import Footer from "@/components/Footer";
 import { useRouter } from "next/navigation";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
@@ -61,7 +62,7 @@ export default function CMSPage() {
               onClick={() => router.push("/cms/nextgamedetails")}
               className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-green-300 transition min-h-[44px]"
             >
-              Create or edit next game
+              Add or edit next game (fixtures)
             </button>
 
             <button
@@ -69,7 +70,7 @@ export default function CMSPage() {
               onClick={() => router.push("/cms/postmatchresult")}
               className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-blue-300 transition min-h-[44px]"
             >
-              Create or edit match result
+              Add latest or edit match result
             </button>
 
             <button
@@ -77,7 +78,7 @@ export default function CMSPage() {
               onClick={() => router.push("/cms/competition")}
               className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-yellow-300 transition min-h-[44px]"
             >
-              Create or edit competition
+              Create new or edit competition
             </button>
 
             <button
@@ -85,7 +86,7 @@ export default function CMSPage() {
               onClick={() => router.push("/cms/teammanagement")}
               className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-purple-300 transition min-h-[44px]"
             >
-              Team management
+              Update team management
             </button>
           </div>
         </div>
