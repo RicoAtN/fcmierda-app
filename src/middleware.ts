@@ -3,6 +3,16 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+
+  // Explicitly exempt these public routes from any authentication
+  if (
+    path === '/api/next-game' || 
+    path === '/api/player-statistics' ||
+    path === '/cms/nextgameplayeravailability'
+  ) {
+    return NextResponse.next();
+  }
+
   const isCmsRoute = path.startsWith('/cms');
   const isLoginRoute = path === '/cms/login';
 

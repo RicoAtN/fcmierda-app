@@ -19,6 +19,7 @@ export default function PlayerAttendance() {
   const [playersData, setPlayersData] = useState<UiPlayer[]>([]);
   const [attendance, setAttendance] = useState<Record<string, string>>({});
   const [subs, setSubs] = useState<Substitute[]>([{ name: "", status: "unknown" }]);
+  const [knownSubs, setKnownSubs] = useState<string[]>([]);
   const [status, setStatus] = useState("");
 
   // normalize keys like "#12 John Doe" => "John Doe"
@@ -68,6 +69,7 @@ export default function PlayerAttendance() {
         const resStats = await fetch("/api/player-statistics", { cache: "no-store" });
         const { data } = await resStats.json();
         const mains = (data || []).filter((p: any) => p?.main_player === true);
+        const nonMains = (data || []).filter((p: any) => p?.main_player !== true);
         console.table(
           mains.map((p: any) => ({
             player_name: p?.player_name,
@@ -85,6 +87,11 @@ export default function PlayerAttendance() {
 
         if (cancelled) return;
         setPlayersData(fetchedPlayers);
+
+        const fetchedSubs = nonMains
+          .map((p: any) => stripLeadingNumber(String(p?.player_name ?? "")))
+          .filter((name: string) => name.length > 0);
+        setKnownSubs(fetchedSubs);
 
         // Hydrate attendance from next-game
         const resNext = await fetch("/api/next-game", { cache: "no-store" });
@@ -105,17 +112,15 @@ export default function PlayerAttendance() {
           Object.entries(incoming).map(([k, v]) => [normalizeKey(k), String(v || "unknown")])
         );
 
-        const initialAttendance = Object.fromEntries(
-          fetchedPlayers.map((p) => [p.key, normalizedIncoming[p.key] ?? "unknown"])
-        );
+        // We merge fetched players with any existing attendance so we don't lose data
+        const initialAttendance = { ...normalizedIncoming };
+        fetchedPlayers.forEach((p) => {
+          if (!initialAttendance[p.key]) initialAttendance[p.key] = "unknown";
+        });
         setAttendance(initialAttendance);
 
-        const knownNames = new Set(fetchedPlayers.map((p) => p.key));
-        const incomingSubs = Object.entries(normalizedIncoming)
-          .filter(([k]) => !knownNames.has(k))
-          .map(([name, status]) => ({ name, status }));
-        const initialSubs = incomingSubs.length ? incomingSubs : [{ name: "", status: "unknown" }];
-        setSubs(ensureTrailingEmptyRow([...initialSubs]));
+        // Keep the substitutes form empty on load as requested
+        setSubs([{ name: "", status: "unknown" }]);
       } catch {
         // ignore fetch errors
       }
@@ -159,7 +164,7 @@ export default function PlayerAttendance() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, attendance: mergedAttendance, timestamp }),
       });
-      setStatus("Saved! Your availability has been recorded.");
+      setStatus("Saved! Availability has been recorded.");
       setTimeout(() => router.push("/fixtures#next-game"), 900);
     } catch {
       setStatus("Failed to save. Try again.");
@@ -169,7 +174,15 @@ export default function PlayerAttendance() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 text-left">
       <div>
-        <h3 className="text-lg font-semibold mb-3">Players</h3>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-lg font-semibold">Players</h3>
+          <span className="text-[10px] sm:text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20" title="Exempted from login for now">
+            No login required
+          </span>
+        </div>
+        <p className="text-xs text-gray-400 mb-3">
+          Please update your own status. Changes are saved for the entire team.
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {playersData.map((p) => (
             <div
@@ -201,11 +214,17 @@ export default function PlayerAttendance() {
 
       <div className="pt-6 border-t border-gray-700">
         <h3 className="text-lg font-semibold mb-3">Substitutes</h3>
+        <datalist id="known-subs-list">
+          {knownSubs.map((name, idx) => (
+            <option key={idx} value={name} />
+          ))}
+        </datalist>
         <div className="space-y-2">
           {subs.map((s, i) => (
             <div key={i} className="flex items-center gap-2 bg-gray-800 rounded px-2 py-2">
               <input
                 type="text"
+                list="known-subs-list"
                 value={s.name}
                 onChange={(e) => updateSub(i, { name: e.target.value })}
                 placeholder="Substitute name"
@@ -243,7 +262,7 @@ export default function PlayerAttendance() {
           type="submit"
           className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
         >
-          Save my availability
+          Save availability
         </button>
         <div className="text-green-400">{status}</div>
       </div>
