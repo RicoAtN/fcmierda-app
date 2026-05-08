@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Roboto_Slab } from "next/font/google";
+import Link from "next/link";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 
@@ -100,7 +101,7 @@ export default function TeamForm({ teamId, className = "" }: Props) {
   const display = items.concat(Array(padRightCount).fill(""));
 
   return (
-    <div className={`w-fit mx-auto flex flex-col items-center gap-2 ${className}`} aria-label="Team recent form">
+    <Link href="/results" className={`w-fit mx-auto flex flex-col items-center gap-2 cursor-pointer hover:scale-105 transition-transform duration-200 ${className}`} aria-label="Team recent form">
       <span className={`text-white font-extrabold text-lg sm:text-xl uppercase tracking-wide ${robotoSlab.className}`}>
         FC Mierda Form
       </span>
@@ -129,7 +130,7 @@ export default function TeamForm({ teamId, className = "" }: Props) {
         <span>Latest</span>
         <span>Past</span>
       </div>
-    </div>
+    </Link>
   );
 }
 
