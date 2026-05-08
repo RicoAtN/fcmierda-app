@@ -4,6 +4,7 @@ import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu"; // <-- Import your Menu component
 import Footer from "@/components/Footer";
 import TeamForm from "@/components/TeamForm";
+import UpcomingMatch from "@/components/UpcomingMatch";
 
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
@@ -11,21 +12,20 @@ const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
 
 export default function Home() {
   return (
-    <div
-      className="relative min-h-screen flex flex-col items-center"
-      style={{
-        backgroundImage: "url('/fcmierda-background.gif')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        height: "100vh",
-      }}
-    >
+    <div className="relative min-h-screen flex flex-col items-center w-full overflow-x-hidden">
       {/* Navigation Bar */}
       <Menu />
       {/* Restored upper section layout */}
-      <main className="relative z-10 flex flex-col items-center justify-start text-center px-4 w-full min-h-screen pt-26 sm:pt-36">
-        <div className="flex flex-col items-center justify-center mb-70">
+      <main 
+        className="relative z-10 flex flex-col items-center justify-start text-center px-4 w-full min-h-screen pt-28 sm:pt-36 pb-12 sm:pb-20"
+        style={{
+          backgroundImage: "url('/fcmierda-background.gif')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
+        <div className="flex flex-col items-center justify-center mb-8 sm:mb-12 w-full">
           <h2
             className={`text-3xl sm:text-4xl font-semibold text-white drop-shadow-lg mb-2 ${montserrat.className}`}
             style={{ letterSpacing: "0.15em", textTransform: "uppercase" }}
@@ -60,7 +60,9 @@ export default function Home() {
             height={360}
             className="mb-8"
             style={{ maxWidth: "300px", height: "auto" }}
+            priority
           />
+          <UpcomingMatch />
           <TeamForm teamId={1} className="mt-6" />
         </div>
       </main>
@@ -158,5 +160,3 @@ export default function Home() {
     </div>
   );
 }
-
-
