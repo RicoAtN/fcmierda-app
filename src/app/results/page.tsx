@@ -42,6 +42,7 @@ type MatchResult = {
   attendance?: string[] | string;
   support_coach?: string[] | string;
   goal_scorers?: GoalScorer[] | string;
+  fcmierda_man_of_the_match?: string;
 };
 
 // Competition overview types + helpers

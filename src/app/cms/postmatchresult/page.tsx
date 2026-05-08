@@ -40,6 +40,8 @@ type MatchResult = {
   lastEdited?: string;
   lastedited?: string;
   youtube?: string; // <-- Add this line
+  fcmierda_man_of_the_match?: string;
+  fcmierdaManOfTheMatch?: string;
 };
 
 export default function PostMatchResultPage() {
@@ -59,6 +61,7 @@ export default function PostMatchResultPage() {
   const [goalsFCMierda, setGoalsFCMierda] = useState(0);
   const [goalsOpponent, setGoalsOpponent] = useState(0);
   const [gameResult, setGameResult] = useState(""); // NEW FIELD
+  const [fcmierdaManOfTheMatch, setFcmierdaManOfTheMatch] = useState("");
   const [goalScorers, setGoalScorers] = useState<
     { scorer: string; assist: string; goalNumber: string }[]
   >([{ scorer: "", assist: "", goalNumber: "" }]);
@@ -206,6 +209,8 @@ export default function PostMatchResultPage() {
           goalsFCMierda,
           goalsOpponent,
           gameResult,
+          fcmierda_man_of_the_match: fcmierdaManOfTheMatch,
+          fcmierdaManOfTheMatch,
           goalScorers: filteredGoalScorers,
           timestamp
         }),
@@ -279,6 +284,8 @@ export default function PostMatchResultPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...editForm,
+        fcmierda_man_of_the_match: editForm.fcmierda_man_of_the_match ?? editForm.fcmierdaManOfTheMatch ?? "",
+        fcmierdaManOfTheMatch: editForm.fcmierda_man_of_the_match ?? editForm.fcmierdaManOfTheMatch ?? "",
         goal_scorers: filteredGoalScorers,
         attendance: attendanceArr,
         support_coach: supportArr,
@@ -477,6 +484,22 @@ export default function PostMatchResultPage() {
                   Loss
                 </button>
               </div>
+            </div>
+            {/* Man of the Match section */}
+            <div>
+              <label className="block font-semibold mb-1">FC Mierda Man of the Match</label>
+              <select
+                value={fcmierdaManOfTheMatch}
+                onChange={(e) => setFcmierdaManOfTheMatch(e.target.value)}
+                className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
+              >
+                <option value="">-- Select Man of the Match --</option>
+                {lastMatch.attendance.map((name, idx) => (
+                  <option key={idx} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
             </div>
             {/* Scores section */}
             <div className="flex gap-2 sm:gap-4 items-end justify-between w-full">
@@ -705,6 +728,10 @@ export default function PostMatchResultPage() {
                       <span className="text-red-400 font-bold">{selectedResult.goals_opponent ?? selectedResult.goalsOpponent ?? "-"}</span>
                     </div>
                     <div className="mb-2">
+                      <strong>FC Mierda Man of the Match:</strong>{" "}
+                      <span className="text-yellow-400 font-bold">{selectedResult.fcmierda_man_of_the_match || selectedResult.fcmierdaManOfTheMatch || "-"}</span>
+                    </div>
+                    <div className="mb-2">
                       <strong>Attendance:</strong>{" "}
                       <span className="text-green-300">{safeArray(selectedResult.attendance).length}</span>
                       <div className="mt-1 grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1">
@@ -833,6 +860,21 @@ export default function PostMatchResultPage() {
                         <option value="win" className="text-green-600">Win</option>
                         <option value="draw" className="text-amber-500">Draw</option>
                         <option value="loss" className="text-red-600">Loss</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1">FC Mierda Man of the Match</label>
+                      <select
+                        value={editForm?.fcmierda_man_of_the_match ?? editForm?.fcmierdaManOfTheMatch ?? ""}
+                        onChange={e => handleEditChange("fcmierda_man_of_the_match", e.target.value)}
+                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
+                      >
+                        <option value="">-- Select Man of the Match --</option>
+                        {(safeArray(editForm?.attendance) || []).map((name: string, idx: number) => (
+                          <option key={idx} value={name}>
+                            {name}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div className="flex gap-2 sm:gap-4 items-end justify-between w-full">

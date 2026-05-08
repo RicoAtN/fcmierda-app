@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
     client = await pool.connect();
     await client.query(
       `INSERT INTO match_result 
-        (date, opponent, location, competition, attendance, support_coach, goals_fcmierda, goals_opponent, game_result, goal_scorers, timestamp, youtube)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        (date, opponent, location, competition, attendance, support_coach, goals_fcmierda, goals_opponent, game_result, goal_scorers, timestamp, youtube, fcmierda_man_of_the_match)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
       [
         body.date || "",
         body.opponent || "",
@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
         JSON.stringify(body.goalScorers || []),
         body.timestamp || "",
         body.youtube || "",
+        body.fcmierda_man_of_the_match || body.fcmierdaManOfTheMatch || "",
       ]
     );
     return NextResponse.json({ success: true });
@@ -79,8 +80,9 @@ export async function PUT(req: NextRequest) {
         goals_opponent = $8,
         game_result = $9,
         goal_scorers = $10,
-        lastEdited = $11
-      WHERE id = $12`,
+        lastEdited = $11,
+        fcmierda_man_of_the_match = $12
+      WHERE id = $13`,
       [
         body.date || "",
         body.opponent || "",
@@ -93,6 +95,7 @@ export async function PUT(req: NextRequest) {
         body.gameResult || body.game_result || "",
         JSON.stringify(body.goal_scorers || []),
         body.lastEdited || "",
+        body.fcmierda_man_of_the_match || body.fcmierdaManOfTheMatch || "",
         body.id,
       ]
     );

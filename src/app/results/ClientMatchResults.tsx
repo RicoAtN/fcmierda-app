@@ -23,6 +23,7 @@ type MatchResult = {
   attendance?: string[] | string;
   support_coach?: string[] | string;
   goal_scorers?: GoalScorer[] | string;
+  fcmierda_man_of_the_match?: string;
 };
 
 function formatShortDate(dateString: string) {
@@ -294,6 +295,20 @@ export default function ClientMatchResults({
                 <span className="px-4 py-2 rounded bg-gray-700 text-white font-bold">-</span>
               )}
             </div>
+
+            {/* Man of the Match */}
+            {selectedResult.fcmierda_man_of_the_match && (
+              <div className="mb-6 flex flex-col items-center">
+                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-center max-w-sm w-full shadow-sm">
+                  <div className="font-bold text-yellow-400 text-sm sm:text-base flex items-center justify-center gap-2 mb-1">
+                    ⭐ Man of the Match: {selectedResult.fcmierda_man_of_the_match}
+                  </div>
+                  <p className="text-gray-400 text-xs italic">
+                    The best player from FC Mierda with the most impact on the game.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Goals & Assists */}
             <div className="mb-6">
