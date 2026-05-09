@@ -81,9 +81,11 @@ export default function PostMatchResultPage() {
 
   // Fetch last match info from next-game DB
   useEffect(() => {
-    fetch("/api/next-game")
+    let isMounted = true;
+    fetch(`/api/next-game?_t=${Date.now()}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
+        if (!isMounted) return;
         // Separate present and supporter/coach
         const present = Object.entries(data.attendance || {})
           .filter(([_, status]) => status === "present")
@@ -100,17 +102,27 @@ export default function PostMatchResultPage() {
           attendance: present,
           supportCoach: supportCoach,
         });
+      })
+      .catch((e) => {
+        console.error(e);
       });
+    return () => { isMounted = false; };
   }, []);
 
   // Fetch all match results from Neon on mount
   useEffect(() => {
-    fetch("/api/match-result?all=true")
+    let isMounted = true;
+    fetch(`/api/match-result?all=true&_t=${Date.now()}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
+        if (!isMounted) return;
         setAllResults(data || []);
         if (data && data.length > 0) setSelectedResult(data[0]);
+      })
+      .catch((e) => {
+        console.error(e);
       });
+    return () => { isMounted = false; };
   }, []);
 
   // When selecting a result, reset edit mode and form and normalize arrays
@@ -216,9 +228,15 @@ export default function PostMatchResultPage() {
         }),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setStatus(err.error ? `Error: ${err.error}` : `Error: ${res.status}`);
+        setStatus(data.error ? `Error: ${data.error}` : `Error: ${res.status}`);
+        return;
+      }
+      
+      if (data.success === false) {
+        setStatus(data.error ? `Error: ${data.error}` : "Failed to save match result");
         return;
       }
 
@@ -279,7 +297,7 @@ export default function PostMatchResultPage() {
     const year = amsTime.getFullYear();
     const lastEdited = `${hour}:${minute} ${day} ${date}-${month}-${year}`;
 
-    await fetch("/api/match-result", {
+    const res = await fetch("/api/match-result", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -293,11 +311,23 @@ export default function PostMatchResultPage() {
       }),
     });
 
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      setEditStatus(data.error ? `Error: ${data.error}` : `Error: ${res.status}`);
+      return;
+    }
+
+    if (data.success === false) {
+      setEditStatus(data.error ? `Error: ${data.error}` : "Failed to update match result");
+      return;
+    }
+
     setEditStatus("Saved! The match result has been updated.");
     setEditMode(false);
 
     // Refresh all results
-    fetch("/api/match-result?all=true")
+    fetch(`/api/match-result?all=true&_t=${Date.now()}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         setAllResults(data || []);

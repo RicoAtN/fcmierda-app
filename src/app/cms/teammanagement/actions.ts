@@ -79,9 +79,18 @@ export async function addPlayerAction(data: any) {
     data.biography_detail
   ];
 
-  await pool.query(query, values);
+  try {
+    await pool.query(query, values);
 
-  // Purge the cached data so the page displays the latest values immediately
-  revalidatePath("/cms/teammanagement");
-  return { success: true };
+    // Purge the cached data so the page displays the latest values immediately
+    revalidatePath("/cms/teammanagement");
+    return { success: true };
+  } catch (error: any) {
+    if (error.code === '23505') {
+      // Expose the exact Postgres constraint detail (e.g. "Key (player_name)=(John) already exists.")
+      return { success: false, error: `Duplicate entry error: ${error.detail || 'A player with this ID or Name already exists.'}` };
+    }
+    console.error("Database Error:", error);
+    return { success: false, error: "Failed to add player to the database." };
+  }
 }

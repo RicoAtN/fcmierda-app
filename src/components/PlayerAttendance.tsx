@@ -62,20 +62,15 @@ export default function PlayerAttendance() {
   }
 
   useEffect(() => {
-    let cancelled = false;
+    let isMounted = true;
     (async () => {
       try {
         // Players from Neon (main_player = true)
-        const resStats = await fetch("/api/player-statistics", { cache: "no-store" });
+        const resStats = await fetch(`/api/player-statistics?_t=${Date.now()}`, { cache: "no-store" });
         const { data } = await resStats.json();
+        if (!isMounted) return;
         const mains = (data || []).filter((p: any) => p?.main_player === true);
         const nonMains = (data || []).filter((p: any) => p?.main_player !== true);
-        console.table(
-          mains.map((p: any) => ({
-            player_name: p?.player_name,
-            player_number: p?.player_number,
-          }))
-        );
         const fetchedPlayers: UiPlayer[] = mains
           .map((p: any) => {
             const rawName = String(p?.player_name ?? "");
@@ -85,7 +80,6 @@ export default function PlayerAttendance() {
           })
           .filter((p: UiPlayer) => p.name.length);
 
-        if (cancelled) return;
         setPlayersData(fetchedPlayers);
 
         const fetchedSubs = nonMains
@@ -94,9 +88,9 @@ export default function PlayerAttendance() {
         setKnownSubs(fetchedSubs);
 
         // Hydrate attendance from next-game
-        const resNext = await fetch("/api/next-game", { cache: "no-store" });
+        const resNext = await fetch(`/api/next-game?_t=${Date.now()}`, { cache: "no-store" });
         const dataNext = await resNext.json();
-        if (cancelled) return;
+        if (!isMounted) return;
 
         setForm({
           date: dataNext.date || "",
@@ -121,13 +115,11 @@ export default function PlayerAttendance() {
 
         // Keep the substitutes form empty on load as requested
         setSubs([{ name: "", status: "unknown" }]);
-      } catch {
-        // ignore fetch errors
+      } catch (e: any) {
+        console.error("Failed to load player attendance data", e);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { isMounted = false; };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

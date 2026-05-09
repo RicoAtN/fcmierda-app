@@ -19,6 +19,7 @@ type PlayerStats = {
   average_goals_per_match?: number;
   average_goals_conceded_per_match?: number;
   main_player?: boolean;
+  fcmierda_man_of_the_match_awards?: number;
 };
 
 type TeamStats = {
@@ -37,18 +38,22 @@ type TeamStats = {
 export default function StatisticsPage() {
   // Fetch stats for top performers
   const [stats, setStats] = useState<PlayerStats[]>([]);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+
   useEffect(() => {
-    let cancelled = false;
+    let isMounted = true;
     (async () => {
       try {
-        const res = await fetch("/api/player-statistics", { cache: "no-store" });
+        const res = await fetch(`/api/player-statistics?_t=${Date.now()}`, { cache: "no-store" });
         const { data } = (await res.json()) as { data: PlayerStats[] };
-        if (!cancelled) setStats(data ?? []);
-      } catch (e) {
+        if (isMounted) setStats(data ?? []);
+      } catch (e: any) {
         console.error("Failed to load player statistics", e);
+      } finally {
+        if (isMounted) setIsLoadingStats(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => { isMounted = false; };
   }, []);
 
   // Fetch team statistics
@@ -56,26 +61,26 @@ export default function StatisticsPage() {
   const [teamStatsError, setTeamStatsError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    let isMounted = true;
     (async () => {
       try {
-        const res = await fetch("/api/team-statistics", { cache: "no-store" });
+        const res = await fetch(`/api/team-statistics?_t=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) {
           const errJson = await res.json().catch(() => ({}));
           throw new Error((errJson as { error?: string })?.error || `HTTP ${res.status}`);
         }
         const { data } = (await res.json()) as { data: TeamStats };
-        if (!cancelled) {
+        if (isMounted) {
           setTeamStats(data);
           setTeamStatsError(null);
         }
-      } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : "Failed to load";
-        console.error("Failed to load team statistics", e);
-        if (!cancelled) setTeamStatsError(message);
+      } catch (e: any) {
+        if (isMounted) {
+          setTeamStatsError(e instanceof Error ? e.message : "Failed to load");
+        }
       }
     })();
-    return () => { cancelled = true; };
+    return () => { isMounted = false; };
   }, []);
 
   // --- STATS HELPER FUNCTIONS ---
@@ -86,11 +91,18 @@ export default function StatisticsPage() {
     | "average_goals_conceded_per_match"
     | "match_played"
     | "clean_sheets"
-    | "goals_involvement";
+    | "goals_involvement"
+    | "fcmierda_man_of_the_match_awards";
+
+  interface GroupedStat {
+    score: number;
+    players: PlayerStats[];
+  }
 
   interface StatBlock {
     heading: string;
-    list: PlayerStats[];
+    list?: PlayerStats[];
+    groupedList?: GroupedStat[];
     valueKey: StatKey;
     isAvg?: boolean;
     invert?: boolean;
@@ -127,13 +139,36 @@ export default function StatisticsPage() {
       })
       .slice(0, take);
 
+  const rankGroupedTop = (items: PlayerStats[], key: StatKey, take = 5) => {
+    const validItems = items.filter(s => {
+      const val = toNum((s as any)[key]);
+      return val !== null && val > 0;
+    });
+    const sorted = [...validItems].sort((a, b) => {
+      const av = toNum((a as any)[key])!;
+      const bv = toNum((b as any)[key])!;
+      return bv - av;
+    });
+    const groups: GroupedStat[] = [];
+    for (const item of sorted) {
+      const score = toNum((item as any)[key])!;
+      const lastGroup = groups[groups.length - 1];
+      if (lastGroup && lastGroup.score === score) {
+        lastGroup.players.push(item);
+      } else {
+        groups.push({ score, players: [item] });
+      }
+    }
+    return groups.slice(0, take);
+  };
+
   const mains = stats.filter(s => s.main_player === true);
 
-  const renderStatBlocks = (blocks: StatBlock[], scrollable: boolean = false) => blocks.map((block, i) => (
+  const renderStatBlocks = (blocks: StatBlock[], scrollable: boolean = false, isLoading: boolean = false) => blocks.map((block, i) => (
     <div key={i}>
       <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">{block.heading}</div>
       <ul className={`space-y-2 ${scrollable ? "max-h-[432px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-black/10 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-600 hover:[&::-webkit-scrollbar-thumb]:bg-gray-500 [&::-webkit-scrollbar-thumb]:rounded-full" : ""}`}>
-        {block.list.map((ps, idx) => {
+        {(block.list || []).map((ps, idx) => {
           const name = (ps.player_name || `Player ${ps.player_id}`).trim();
           const raw = toNum((ps as any)[block.valueKey]) ?? 0;
           const val = block.isAvg ? raw.toFixed(2) : String(raw);
@@ -151,7 +186,38 @@ export default function StatisticsPage() {
             </li>
           );
         })}
-        {block.list.length === 0 && <li className="text-xs text-gray-500">No data.</li>}
+        {(block.groupedList || []).map((group, idx) => {
+          const val = block.isAvg ? group.score.toFixed(2) : String(group.score);
+          return (
+            <li 
+              key={`${block.valueKey}-group-${idx}`} 
+              className="flex items-start justify-between bg-black/20 rounded-md px-3 py-2 text-sm"
+            >
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                <span className="text-gray-400 w-5">{idx + 1}.</span>
+                <div className="flex flex-wrap gap-x-2 gap-y-1 flex-1">
+                  {group.players.map((ps, pIdx) => {
+                    const name = (ps.player_name || `Player ${ps.player_id}`).trim();
+                    return (
+                      <React.Fragment key={ps.player_id}>
+                        <a href={`/team?playerId=${ps.player_id}#player-bio`} className="font-medium hover:text-green-300 transition-colors">
+                          {name}
+                        </a>
+                        {pIdx < group.players.length - 1 && <span className="text-gray-500">,</span>}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+              <span className="font-semibold tabular-nums text-green-300 ml-4">{val}</span>
+            </li>
+          );
+        })}
+        {isLoading ? (
+          <li className="text-xs text-gray-500 animate-pulse">Loading data...</li>
+        ) : !(block.list?.length) && !(block.groupedList?.length) ? (
+          <li className="text-xs text-gray-500">No data.</li>
+        ) : null}
       </ul>
     </div>
   ));
@@ -253,8 +319,10 @@ export default function StatisticsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {renderStatBlocks([
-              { heading: "Top goal scorers", list: rankTop(mains, "goals"), valueKey: "goals" },
-              { heading: "Top assists", list: rankTop(mains, "assists"), valueKey: "assists" },
+              { heading: "Top goal scorers", groupedList: rankGroupedTop(mains, "goals"), valueKey: "goals" },
+              { heading: "Top assists", groupedList: rankGroupedTop(mains, "assists"), valueKey: "assists" },
+              { heading: "Top goal involvement", groupedList: rankGroupedTop(mains, "goals_involvement"), valueKey: "goals_involvement" },
+              { heading: "Most Man of the Match awards", groupedList: rankGroupedTop(mains, "fcmierda_man_of_the_match_awards"), valueKey: "fcmierda_man_of_the_match_awards" },
               {
                 heading: "Top avg goals per match",
                 list: rankTop(
@@ -274,8 +342,9 @@ export default function StatisticsPage() {
                 isAvg: true,
                 invert: true
               },
-              { heading: "Most matches played", list: rankTop(mains, "match_played"), valueKey: "match_played" },
-            ])}
+              { heading: "Most clean sheets", groupedList: rankGroupedTop(mains, "clean_sheets"), valueKey: "clean_sheets" },
+              { heading: "Most matches played", groupedList: rankGroupedTop(mains, "match_played"), valueKey: "match_played" },
+            ], false, isLoadingStats)}
           </div>
         </section>
 
@@ -294,6 +363,7 @@ export default function StatisticsPage() {
               { heading: "Assists", list: rankTop(mains, "assists", mains.length), valueKey: "assists" },
               { heading: "Goals Involvement", list: rankTop(mains, "goals_involvement", mains.length), valueKey: "goals_involvement" },
               { heading: "Clean Sheets", list: rankTop(mains, "clean_sheets", mains.length), valueKey: "clean_sheets" },
+              { heading: "Man of the Match Awards", list: rankTop(mains, "fcmierda_man_of_the_match_awards", mains.length), valueKey: "fcmierda_man_of_the_match_awards" },
               {
                 heading: "Avg goals per match",
                 list: rankTop(mains, "average_goals_per_match", mains.length),
@@ -308,7 +378,7 @@ export default function StatisticsPage() {
                 invert: true
               },
               { heading: "Matches played", list: rankTop(mains, "match_played", mains.length), valueKey: "match_played" },
-            ], true)}
+            ], true, isLoadingStats)}
           </div>
         </section>
 

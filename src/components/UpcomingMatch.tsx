@@ -11,7 +11,7 @@ export default function UpcomingMatch() {
 
   useEffect(() => {
     let isMounted = true;
-    fetch("/api/next-game", { cache: "no-store" })
+    fetch(`/api/next-game?_t=${Date.now()}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (!isMounted) return;
@@ -37,15 +37,15 @@ export default function UpcomingMatch() {
           time: data.kickoff || "TBD",
           location: data.location || "Alexandria 66 Rotterdam",
         });
-        setLoading(false);
       })
-      .catch(() => {
+      .catch((e) => {
+        console.error("Failed to load upcoming match", e);
+      })
+      .finally(() => {
         if (isMounted) setLoading(false);
       });
 
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
   if (loading) {

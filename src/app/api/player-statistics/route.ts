@@ -25,6 +25,7 @@ export async function GET() {
       biography_main: string | null;
       biography_detail: string | null;
       main_player: boolean | null; // added
+      fcmierda_man_of_the_match_awards: number | null;
     };
 
     const rows = (await sql`
@@ -35,13 +36,14 @@ export async function GET() {
         ps.goals,
         ps.assists,
         ps.clean_sheets,
-        (ps.goals + ps.assists) AS goals_involvement,
+        ps.goals_involvement,
         COALESCE(ps.average_goals_per_match, CASE WHEN ps.match_played > 0 THEN ps.goals::float8 / NULLIF(ps.match_played, 0) ELSE 0 END)::float8 AS average_goals_per_match,
         COALESCE(ps.average_goals_conceded_per_match, 0)::float8 AS average_goals_conceded_per_match,
         ps.biography_main,
         ps.biography_detail,
         ps.main_player, -- added
-        ps.player_number
+        ps.player_number,
+        COALESCE(ps.fcmierda_man_of_the_match_awards, 0) AS fcmierda_man_of_the_match_awards
       FROM player_statistics ps
       ORDER BY ps.player_id;
     `) as PlayerStatsRow[];

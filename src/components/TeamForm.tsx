@@ -26,15 +26,14 @@ export default function TeamForm({ teamId, className = "" }: Props) {
     return "";
   };
 
-  const fetchForm = async (signal?: AbortSignal) => {
+  const fetchForm = async () => {
     try {
       setError(null);
       if (!results) setLoading(true);
-      const url = `/api/team-form${teamId ? `?teamId=${encodeURIComponent(String(teamId))}` : ""}`;
+      const url = `/api/team-form?_t=${Date.now()}${teamId ? `&teamId=${encodeURIComponent(String(teamId))}` : ""}`;
       const res = await fetch(url, {
         cache: "no-store",
-        headers: { "Accept": "application/json" },
-        signal,
+        headers: { "Accept": "application/json" }
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const j = await res.json();
@@ -56,9 +55,8 @@ export default function TeamForm({ teamId, className = "" }: Props) {
   useEffect(() => {
     setError(null);
     setResults(null);
-    const ac = new AbortController();
     // initial load
-    fetchForm(ac.signal);
+    fetchForm();
 
     // polling with visibility awareness
     let intervalId: number | undefined;
@@ -88,7 +86,6 @@ export default function TeamForm({ teamId, className = "" }: Props) {
     start();
 
     return () => {
-      ac.abort();
       stop();
       document.removeEventListener("visibilitychange", onVis);
     };
