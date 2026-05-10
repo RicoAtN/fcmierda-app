@@ -17,6 +17,7 @@ type MainPlayerRow = {
   goals_involvement: number | null;
   average_goals_per_match: number | null;
   average_goals_conceded_per_match: number | null;
+  fcmierda_man_of_the_match_awards: number | null;
   biography_main: string | null;
   biography_detail: string | null;
   main_player: boolean | null;
@@ -51,6 +52,7 @@ export async function GET() {
         ps.goals_involvement,
         ps.average_goals_per_match,
         ps.average_goals_conceded_per_match,
+        ps.fcmierda_man_of_the_match_awards,
         ps.biography_main,
         ps.biography_detail,
         ps.main_player

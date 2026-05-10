@@ -21,7 +21,7 @@ function safeArray(val: unknown): string[] {
   return [];
 }
 
-type GoalScorer = { scorer: string; assist: string; goalNumber: string };
+type GoalScorer = { id?: number; scorer: string; assist: string; goalNumber: string };
 type MatchResult = {
   id: number;
   date: string;
@@ -258,7 +258,7 @@ export default function PostMatchResultPage() {
     setEditForm((prev) => {
       if (!prev) return prev;
       const updated = [...(prev.goal_scorers || [])];
-      updated[idx][field] = value;
+      updated[idx] = { ...updated[idx], [field]: value };
       return { ...prev, goal_scorers: updated };
     });
   }
@@ -278,10 +278,15 @@ export default function PostMatchResultPage() {
   async function handleEditSave() {
     if (!editForm) return;
     setEditStatus("Saving...");
-    // Only save filled goal scorers
+    // Only save filled goal scorers, explicitly keeping their ID to prevent the backend from deleting them
     const filteredGoalScorers = (editForm.goal_scorers || []).filter(
       (g: GoalScorer) => g.scorer && g.scorer.trim() !== ""
-    );
+    ).map((g: GoalScorer) => ({
+      id: g.id,
+      scorer: g.scorer,
+      assist: g.assist,
+      goalNumber: g.goalNumber,
+    }));
     // normalize attendance/support_coach
     const attendanceArr = safeArray(editForm.attendance).map((s) => (s || "").trim()).filter(Boolean);
     const supportArr = safeArray(editForm.support_coach).map((s) => (s || "").trim()).filter(Boolean);
@@ -297,18 +302,33 @@ export default function PostMatchResultPage() {
     const year = amsTime.getFullYear();
     const lastEdited = `${hour}:${minute} ${day} ${date}-${month}-${year}`;
 
-    const res = await fetch("/api/match-result", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...editForm,
+    const payload: any = {
+        id: editForm.id,
+        date: editForm.date,
+        opponent: editForm.opponent,
+        location: editForm.location,
+        competition: editForm.competition,
+        gameResult: editForm.gameResult ?? editForm.game_result ?? "",
+        game_result: editForm.gameResult ?? editForm.game_result ?? "",
+        goalsFCMierda: editForm.goalsFCMierda ?? editForm.goals_fcmierda ?? 0,
+        goals_fcmierda: editForm.goalsFCMierda ?? editForm.goals_fcmierda ?? 0,
+        goalsOpponent: editForm.goalsOpponent ?? editForm.goals_opponent ?? 0,
+        goals_opponent: editForm.goalsOpponent ?? editForm.goals_opponent ?? 0,
         fcmierda_man_of_the_match: editForm.fcmierda_man_of_the_match ?? editForm.fcmierdaManOfTheMatch ?? "",
         fcmierdaManOfTheMatch: editForm.fcmierda_man_of_the_match ?? editForm.fcmierdaManOfTheMatch ?? "",
         goal_scorers: filteredGoalScorers,
+        goalScorers: filteredGoalScorers,
         attendance: attendanceArr,
         support_coach: supportArr,
+        supportCoach: supportArr,
+        youtube: editForm.youtube ?? "",
         lastEdited,
-      }),
+    };
+
+    const res = await fetch("/api/match-result", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
 
     const data = await res.json().catch(() => ({}));

@@ -81,8 +81,9 @@ export async function PUT(req: NextRequest) {
         game_result = $9,
         goal_scorers = $10,
         lastEdited = $11,
-        fcmierda_man_of_the_match = $12
-      WHERE id = $13`,
+        fcmierda_man_of_the_match = $12,
+        youtube = $13
+      WHERE id = $14`,
       [
         body.date || "",
         body.opponent || "",
@@ -96,6 +97,7 @@ export async function PUT(req: NextRequest) {
         JSON.stringify(body.goal_scorers || []),
         body.lastEdited || "",
         body.fcmierda_man_of_the_match || body.fcmierdaManOfTheMatch || "",
+        body.youtube || "",
         body.id,
       ]
     );

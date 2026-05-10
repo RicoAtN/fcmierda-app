@@ -70,6 +70,7 @@ type DBPlayerWithStats = {
   goals_involvement?: number | string | null;
   average_goals_per_match?: number | string | null;
   average_goals_conceded_per_match?: number | string | null;
+  fcmierda_man_of_the_match_awards?: number | string | null;
   biography_main?: string | null;
   biography_detail?: string | null;
   main_player?: boolean | null;
@@ -344,6 +345,7 @@ export default function TeamPage() {
                         { label: "Assists", value: fmtInt(selectedDb.assists) },
                         { label: "Goals Involvement", value: fmtInt(selectedDb.goals_involvement) },
                         { label: "Clean Sheets", value: fmtInt(selectedDb.clean_sheets) },
+                        { label: "MOTM Awards", value: fmtInt(selectedDb.fcmierda_man_of_the_match_awards) },
                         { label: "Avg Goals p/m", value: fmtAvg(selectedDb.average_goals_per_match) },
                         { label: "Avg Conceded p/m", value: fmtAvg(selectedDb.average_goals_conceded_per_match) },
                       ];
