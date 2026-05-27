@@ -113,8 +113,15 @@ export default function PlayerAttendance() {
         });
         setAttendance(initialAttendance);
 
-        // Keep the substitutes form empty on load as requested
-        setSubs([{ name: "", status: "unknown" }]);
+        // Hydrate substitutes from attendance data for players not in the main squad
+        const mainPlayerKeys = new Set(fetchedPlayers.map((p) => p.key));
+        const loadedSubs: Substitute[] = Object.entries(normalizedIncoming)
+          .filter(([name, status]) => !mainPlayerKeys.has(name) && status !== "unknown")
+          .map(([name, status]) => ({ name, status }));
+
+        setSubs(
+          ensureTrailingEmptyRow(loadedSubs.length > 0 ? loadedSubs : [{ name: "", status: "unknown" }])
+        );
       } catch (e: any) {
         console.error("Failed to load player attendance data", e);
       }
@@ -134,7 +141,15 @@ export default function PlayerAttendance() {
       )
       .map((s) => ({ name: s.name.trim(), status: s.status || "unknown" }));
 
-    const mergedAttendance: Record<string, string> = { ...attendance };
+    const mainPlayerKeys = new Set(playersData.map((p) => p.key));
+    const mergedAttendance: Record<string, string> = {};
+
+    for (const [key, val] of Object.entries(attendance)) {
+      if (mainPlayerKeys.has(key)) {
+        mergedAttendance[key] = val;
+      }
+    }
+
     for (const s of cleanedSubs) {
       if (s.name) mergedAttendance[s.name] = s.status;
     }

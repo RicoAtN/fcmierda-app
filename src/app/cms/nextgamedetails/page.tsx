@@ -60,6 +60,8 @@ export default function NextGameDetailsPage() {
   const [currentAttendance, setCurrentAttendance] = useState<Record<string, string>>({});
   const [toBeAnnounced, setToBeAnnounced] = useState(false);
   const [resetAttendance, setResetAttendance] = useState(false);
+  const [locationBeforeEdit, setLocationBeforeEdit] = useState("");
+  const [isLocationEditable, setIsLocationEditable] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -71,7 +73,7 @@ export default function NextGameDetailsPage() {
           date: data.date || "",
           kickoff: data.kickoff || "",
           opponent: data.opponent === "To be announced soon" ? "" : (data.opponent || ""),
-          location: "Alexandria 66 Rotterdam",
+          location: data.location || "Alexandria 66 Rotterdam",
           competition: data.competition || "",
           note: data.note || "",
         });
@@ -288,15 +290,60 @@ export default function NextGameDetailsPage() {
               </p>
             </div>
             <div>
-              <label className="block font-semibold mb-1">Location</label>
+              <div className="flex justify-between items-center mb-1">
+                <label htmlFor="location" className="block font-semibold">
+                  Location
+                </label>
+                {!isLocationEditable ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLocationBeforeEdit(form.location);
+                      setIsLocationEditable(true);
+                    }}
+                    className="text-sm text-blue-400 hover:text-blue-300 font-semibold"
+                  >
+                    Edit
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, location: "Alexandria 66 Rotterdam" }))}
+                      className="text-sm text-yellow-400 hover:text-yellow-300 font-semibold"
+                    >
+                      Set to default location
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForm(prev => ({ ...prev, location: locationBeforeEdit }));
+                        setIsLocationEditable(false);
+                      }}
+                      className="text-sm text-gray-400 hover:text-gray-200 font-semibold"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
               <input
                 type="text"
+                id="location"
                 name="location"
                 value={form.location}
-                readOnly
-                disabled
-                className="w-full p-2 rounded bg-gray-700 border border-gray-600 text-white"
+                onChange={handleChange}
+                readOnly={!isLocationEditable}
+                disabled={!isLocationEditable}
+                className={`w-full p-2 rounded border border-gray-600 text-white transition-colors ${
+                  isLocationEditable ? "bg-gray-800" : "bg-gray-700"
+                }`}
               />
+              {isLocationEditable && (
+                <p className="mt-1 text-xs text-gray-400">
+                  Clicking "Default" will reset the location to "Alexandria 66 Rotterdam".
+                </p>
+              )}
             </div>
             <div>
               <label className="block font-semibold mb-1">Competition</label>
