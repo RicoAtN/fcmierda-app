@@ -25,7 +25,7 @@ export default function PushNotificationModal() {
 
     // Check if service workers and push are supported
     if ('serviceWorker' in navigator && 'PushManager' in window) {
-      navigator.serviceWorker.ready.then(registration => {
+      navigator.serviceWorker.register('/sw.js').then(registration => {
         registration.pushManager.getSubscription().then(subscription => {
           if (subscription) {
             setIsSubscribed(true);
