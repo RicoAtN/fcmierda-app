@@ -65,6 +65,7 @@
     "flavio",
     "sami",
     "callsign",
-    "teammanagement"
+    "teammanagement",
+    "webpush"
   ]
 }

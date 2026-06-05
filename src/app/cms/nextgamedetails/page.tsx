@@ -4,6 +4,7 @@ import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
 import { useRouter } from "next/navigation";
+import NotifyUsersCheckbox from "@/components/NotifyUsersCheckbox";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -63,6 +64,7 @@ export default function NextGameDetailsPage() {
   const [locationBeforeEdit, setLocationBeforeEdit] = useState("");
   const [isLocationEditable, setIsLocationEditable] = useState(false);
   const router = useRouter();
+  const [notifyUsers, setNotifyUsers] = useState(false);
 
   useEffect(() => {
     fetch("/api/next-game")
@@ -146,10 +148,25 @@ export default function NextGameDetailsPage() {
       const res = await fetch("/api/next-game", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Only game details here; PlayerAttendance handles availability separately
         body: JSON.stringify({ ...form, opponent: finalOpponent, attendance: finalAttendance, timestamp }),
       });
       if (!res.ok) throw new Error(`Save failed (${res.status})`);
+
+      if (notifyUsers) {
+        const notificationPayload = {
+          title: "Next Match Update!",
+          body: `Update available on next match of FC Mierda against ${finalOpponent}! Click to view more.`,
+          url: "/fixtures#next-game",
+        };
+
+        // We don't need to await this, let it run in the background
+        fetch("/api/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ payload: notificationPayload }),
+        }).catch(err => console.error("Sending notification failed:", err));
+      }
+
       setStatus("Saved! The fixtures page now shows your update.");
       setTimeout(() => router.push("/fixtures#next-game"), 1200);
     } catch (err: unknown) {
@@ -172,6 +189,7 @@ export default function NextGameDetailsPage() {
     setStatus("");
     setCurrentAttendance({});
     setResetAttendance(true);
+    setNotifyUsers(false);
   }
 
   return (
@@ -386,6 +404,12 @@ export default function NextGameDetailsPage() {
                 Reset all players availability to unknown
               </label>
             </div>
+
+            <NotifyUsersCheckbox
+              checked={notifyUsers}
+              onChange={(e) => setNotifyUsers(e.target.checked)}
+              label="Notify users about this match update"
+            />
 
             <button
               type="submit"

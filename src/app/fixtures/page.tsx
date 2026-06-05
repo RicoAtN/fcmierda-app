@@ -2,6 +2,7 @@ import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer"; // Add this import at the top
 import { Pool } from "pg";
+import PushNotificationModal from "@/components/PushNotificationModal";
 import TeamForm from "@/components/TeamForm"; // NEW: import
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
@@ -117,6 +118,9 @@ export default async function FixturesPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
+      {/* This component will handle its own logic for appearing */}
+      <PushNotificationModal />
+
       {/* Navigation Bar */}
       <Menu />
 
