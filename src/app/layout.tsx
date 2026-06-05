@@ -16,6 +16,12 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "FC Mierda - Official Website",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "FC Mierda",
+  },
   icons: {
     icon: "/FCMierda-team-logo.png",
   },

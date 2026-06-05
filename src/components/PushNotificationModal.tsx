@@ -21,7 +21,15 @@ export default function PushNotificationModal() {
 
   useEffect(() => {
     // Check if running on an iOS device
-    setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream);
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+    setIsIOS(isIOSDevice);
+
+    // If it's iOS but NOT standalone, show the modal to instruct them to add to home screen
+    if (isIOSDevice && !isStandalone) {
+      setIsOpen(true);
+      return;
+    }
 
     // Check if service workers and push are supported
     if ('serviceWorker' in navigator && 'PushManager' in window) {
@@ -37,6 +45,9 @@ export default function PushNotificationModal() {
           }
         });
       });
+    } else if (!isIOSDevice) {
+        // Not iOS, and push isn't supported (e.g. HTTP instead of HTTPS)
+        console.warn('Push messaging is not supported in this browser.');
     }
   }, []);
 
