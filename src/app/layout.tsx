@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ClientAnalytics from "./analytics/ClientAnalytics";
 import { Analytics } from "@vercel/analytics/react";
+import MusicProvider from "@/components/MusicProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -56,9 +57,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        {children}
-        <ClientAnalytics />
-        <Analytics />
+        <MusicProvider>
+          {children}
+          <ClientAnalytics />
+          <Analytics />
+        </MusicProvider>
       </body>
     </html>
   );
