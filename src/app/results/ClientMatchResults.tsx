@@ -1,12 +1,14 @@
 "use client";
 import React from "react";
 import { Roboto_Slab } from "next/font/google";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 
 type GoalScorer = {
   goalNumber?: number | string;
   scorer?: string;
+  scorer_id?: string;
   assist?: string;
 };
 
@@ -24,7 +26,34 @@ type MatchResult = {
   support_coach?: string[] | string;
   goal_scorers?: GoalScorer[] | string;
   fcmierda_man_of_the_match?: string;
+  fcmierda_man_of_the_match_id?: string;
 };
+
+const playerNameToIdMap: { [key: string]: number } = {
+  'Hans': 0,
+  'Alon': 1,
+  'Jochem': 3,
+  'Kraaij': 4,
+  'Sander': 6,
+  'Daan': 7,
+  'Pim': 9,
+  'Jordy': 10,
+  'Frank': 11,
+  'Victor': 12,
+  'Niek': 14,
+  'Flavio': 15,
+  'Lennert': 19,
+  'Sud': 20,
+  'Ka': 22,
+  'Sven': 23,
+  'Pim S🥸': 26,
+  'Kevin': 32,
+  'Mart': 57,
+  'Mitchell': 69,
+  'Rico': 88
+};
+
+const getPlayerId = (name: string) => playerNameToIdMap[name];
 
 function formatShortDate(dateString: string) {
   if (!dateString) return "-";
@@ -301,7 +330,17 @@ export default function ClientMatchResults({
               <div className="mb-6 flex flex-col items-center">
                 <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-center max-w-sm w-full shadow-sm">
                   <div className="font-bold text-yellow-400 text-sm sm:text-base flex items-center justify-center gap-2 mb-1">
-                    ⭐ Man of the Match: {selectedResult.fcmierda_man_of_the_match}
+                    ⭐ Man of the Match:{" "}
+                    {getPlayerId(selectedResult.fcmierda_man_of_the_match) !== undefined ? (
+                      <Link
+                        href={`/team?playerId=${getPlayerId(selectedResult.fcmierda_man_of_the_match)}#player-bio`}
+                        className="text-yellow-300 hover:underline"
+                      >
+                        {selectedResult.fcmierda_man_of_the_match}
+                      </Link>
+                    ) : (
+                      <span className="text-yellow-300">{selectedResult.fcmierda_man_of_the_match}</span>
+                    )}
                   </div>
                   <p className="text-gray-400 text-xs italic">
                     The best player from FC Mierda with the most impact on the game.
@@ -326,8 +365,24 @@ export default function ClientMatchResults({
                       {parseGoalScorers(selectedResult.goal_scorers).map((g: GoalScorer, idx: number) => (
                         <tr key={idx} className="bg-gray-900 rounded">
                           <td className="px-2 py-1 text-green-400 font-semibold">{g.goalNumber ?? "-"}</td>
-                          <td className="px-2 py-1 text-white font-bold">{g.scorer ?? "-"}</td>
-                          <td className="px-2 py-1 text-blue-300">{g.assist ?? <span className="text-gray-500">-</span>}</td>
+                          <td className="px-2 py-1 text-white font-bold">
+                            {g.scorer && getPlayerId(g.scorer) !== undefined ? (
+                              <Link href={`/team?playerId=${getPlayerId(g.scorer)}#player-bio`} className="hover:underline">
+                                {g.scorer}
+                              </Link>
+                            ) : (
+                              g.scorer ?? "-"
+                            )}
+                          </td>
+                          <td className="px-2 py-1 text-blue-300">
+                            {g.assist && getPlayerId(g.assist) !== undefined ? (
+                              <Link href={`/team?playerId=${getPlayerId(g.assist)}#player-bio`} className="hover:underline">
+                                {g.assist}
+                              </Link>
+                            ) : (
+                              g.assist ?? <span className="text-gray-500">-</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -377,7 +432,17 @@ export default function ClientMatchResults({
 
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                 {safeArray(selectedResult.attendance).map((name: string, idx: number) => (
-                  <span key={idx} className="bg-gray-900 rounded px-2 py-1 text-white text-xs w-full text-center">{name}</span>
+                  getPlayerId(name) !== undefined ? (
+                    <Link
+                      key={idx}
+                      href={`/team?playerId=${getPlayerId(name)}#player-bio`}
+                      className="bg-gray-900 rounded px-2 py-1 text-white text-xs w-full text-center hover:bg-gray-700 hover:underline"
+                    >
+                      {name}
+                    </Link>
+                  ) : (
+                    <span key={idx} className="bg-gray-900 rounded px-2 py-1 text-white text-xs w-full text-center">{name}</span>
+                  )
                 ))}
               </div>
 
@@ -388,7 +453,17 @@ export default function ClientMatchResults({
 
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                 {safeArray(selectedResult.support_coach).map((name: string, idx: number) => (
-                  <span key={idx} className="bg-gray-900 rounded px-2 py-1 text-white text-xs">{name}</span>
+                  getPlayerId(name) !== undefined ? (
+                    <Link
+                      key={idx}
+                      href={`/team?playerId=${getPlayerId(name)}#player-bio`}
+                      className="bg-gray-900 rounded px-2 py-1 text-white text-xs hover:bg-gray-700 hover:underline"
+                    >
+                      {name}
+                    </Link>
+                  ) : (
+                    <span key={idx} className="bg-gray-900 rounded px-2 py-1 text-white text-xs">{name}</span>
+                  )
                 ))}
               </div>
             </div>
