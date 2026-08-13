@@ -256,7 +256,7 @@ export default function TeamPage() {
                           <div className="mt-1 text-lg sm:text-xl font-extrabold text-green-300 truncate">{displayNumber(p.number)}</div>
                         </div>
 
-                        {p.photo ? (
+                        {hasPhoto(p) && p.photo ? (
                           <div className="w-14 h-14 relative rounded-full overflow-hidden flex-shrink-0">
                             <Image src={p.photo} alt={p.name} fill className="object-cover scale-125" />
                           </div>
@@ -290,7 +290,7 @@ export default function TeamPage() {
               {selectedDb ? (
                 <div className="flex flex-col sm:flex-row gap-6">
                   <div className="flex-shrink-0 relative">
-                    {selectedDb.photo ? (
+                    {hasPhoto(selectedDb) && selectedDb.photo ? (
                       <div className="relative">
                         <Image src={selectedDb.photo} width={280} height={280} className="rounded-xl object-cover" alt={selectedDb.name} />
                       </div>
