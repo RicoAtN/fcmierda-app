@@ -9,22 +9,26 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// Configure VAPID details
-if (
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY &&
-  process.env.VAPID_PRIVATE_KEY &&
-  process.env.VAPID_SUBJECT
-) {
+const DEFAULT_VAPID_SUBJECT = "mailto:fcmierdaofficial@gmail.com";
+const DEFAULT_VAPID_PUBLIC_KEY =
+  "BFX4DWhXbZcIGVG_AzLcljZcTGydrXgIGBpSNRDjoNFIH5rKdHsbDkYrxXQshLD_y6sKwBh1d5N6m1z4LiG_Wk0";
+const DEFAULT_VAPID_PRIVATE_KEY =
+  "2C2Ia-kuJiI3AimqTusRYpvKTwNVGhVfVhIQSlEcY9Q";
+
+function ensureVapidConfigured() {
+  const subject = process.env.VAPID_SUBJECT || DEFAULT_VAPID_SUBJECT;
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY || DEFAULT_VAPID_PRIVATE_KEY;
+
   try {
-    webpush.setVapidDetails(
-      process.env.VAPID_SUBJECT,
-      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-      process.env.VAPID_PRIVATE_KEY
-    );
+    webpush.setVapidDetails(subject, publicKey, privateKey);
   } catch (err) {
-    console.error("Error initializing web-push VAPID details:", err);
+    console.error("Error setting VAPID details:", err);
   }
 }
+
+// Initialize on load
+ensureVapidConfigured();
 
 // Helper to format date into "30 August"
 function formatDayMonth(dateStr?: string): string {
@@ -49,6 +53,7 @@ function formatDayMonth(dateStr?: string): string {
 export async function POST(req: NextRequest) {
   let client;
   try {
+    ensureVapidConfigured();
     const body: PushNotificationRequest = await req.json();
     const {
       type = "next_game",
