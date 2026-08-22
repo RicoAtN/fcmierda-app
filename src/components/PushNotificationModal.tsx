@@ -3,6 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+// Fallback VAPID public key
+const FALLBACK_VAPID_KEY =
+  "BFX4DWhXbZcIGVG_AzLcljZcTGydrXgIGBpSNRDjoNFIH5rKdHsbDkYrxXQshLD_y6sKwBh1d5N6m1z4LiG_Wk0";
+
 // Utility to convert VAPID public key from base64 to Uint8Array
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -21,7 +25,6 @@ export default function PushNotificationModal() {
   const [showModal, setShowModal] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -31,9 +34,7 @@ export default function PushNotificationModal() {
     // Detect device environment
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
-    const isMobileDevice = /iphone|ipad|ipod|android|mobile/.test(userAgent);
     setIsIOS(isIosDevice);
-    setIsDesktop(!isMobileDevice);
 
     // Check if running as installed PWA (standalone mode)
     const isPWA =
@@ -41,32 +42,42 @@ export default function PushNotificationModal() {
       (window.navigator as any).standalone === true;
     setIsStandalone(isPWA);
 
-    // Check for query parameter to force open for testing e.g. ?prompt=true or ?notify=true
+    // Force prompt check via URL parameter e.g. ?prompt=true
     const urlParams = new URLSearchParams(window.location.search);
     const forcePrompt = urlParams.get("prompt") === "true" || urlParams.get("notify") === "true";
 
-    // If user has already dismissed or accepted in localStorage (and not forcing via URL param)
-    const hasSeen = localStorage.getItem("fcmierda_push_modal_seen");
-    if (hasSeen === "true" && !forcePrompt) {
+    // If user is already subscribed, don't show
+    const isSubscribed = localStorage.getItem("fcmierda_push_subscribed") === "true";
+    if (isSubscribed && !forcePrompt) {
       return;
     }
 
-    // If user already explicitly denied notifications in browser settings, do not annoy
+    // If user clicked 'Not now', only ask again after 7 days (1 week)
+    const dismissedAt = localStorage.getItem("fcmierda_push_dismissed_at");
+    if (dismissedAt && !forcePrompt) {
+      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+      const timePassed = Date.now() - parseInt(dismissedAt, 10);
+      if (timePassed < ONE_WEEK_MS) {
+        return;
+      }
+    }
+
+    // If browser notifications are explicitly blocked by the user, don't prompt
     if ("Notification" in window && Notification.permission === "denied" && !forcePrompt) {
       return;
     }
 
-    // Register service worker in background if supported
+    // Register service worker in background
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch((err) => {
-        console.warn("ServiceWorker registration info:", err);
+        console.warn("ServiceWorker registration notice:", err);
       });
     }
 
-    // Show popup with a slight delay for smooth page entrance
+    // Show modal with a short smooth entrance delay
     const timer = setTimeout(() => {
       setShowModal(true);
-    }, 900);
+    }, 800);
 
     return () => clearTimeout(timer);
   }, []);
@@ -74,10 +85,10 @@ export default function PushNotificationModal() {
   const handleSubscribe = async () => {
     setLoading(true);
     try {
-      // iOS Safari requires adding to Home Screen first to use Web Push
+      // iOS Safari requires adding to Home Screen first for Web Push support
       if (isIOS && !isStandalone) {
         alert(
-          "📱 To enable notifications on your iPhone/iPad:\n\n1. Tap the Share button (square with arrow) at the bottom of Safari.\n2. Tap 'Add to Home Screen'.\n3. Open FC Mierda from your Home Screen to activate notifications."
+          "📱 To enable notifications on your iPhone/iPad:\n\n1. Tap the Share button (square with arrow) in Safari.\n2. Tap 'Add to Home Screen'.\n3. Open FC Mierda from your Home Screen to activate notifications."
         );
         setLoading(false);
         return;
@@ -95,25 +106,34 @@ export default function PushNotificationModal() {
       if (permission === "granted") {
         if ("serviceWorker" in navigator) {
           const registration = await navigator.serviceWorker.ready;
-          const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+          // Retrieve VAPID public key with multi-layer fallback
+          let vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+          if (!vapidPublicKey) {
+            try {
+              const res = await fetch("/api/push/vapid-key");
+              const json = await res.json();
+              vapidPublicKey = json.publicKey;
+            } catch (keyErr) {
+              console.warn("Using fallback VAPID key:", keyErr);
+              vapidPublicKey = FALLBACK_VAPID_KEY;
+            }
+          }
 
           if (!vapidPublicKey) {
-            console.error("VAPID public key is missing in client environment");
-            alert("VAPID public key missing. Check your environment settings.");
-            setLoading(false);
-            return;
+            vapidPublicKey = FALLBACK_VAPID_KEY;
           }
 
           const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
 
-          // Clean up any old subscription with a previous/different VAPID key if present
+          // Clean up any stale subscription with previous/different key
           try {
             const existingSub = await registration.pushManager.getSubscription();
             if (existingSub) {
               await existingSub.unsubscribe();
             }
           } catch (unsubErr) {
-            console.warn("Notice: clearing old subscription key:", unsubErr);
+            console.warn("Notice: cleared existing subscription:", unsubErr);
           }
 
           const subscription = await registration.pushManager.subscribe({
@@ -121,7 +141,7 @@ export default function PushNotificationModal() {
             applicationServerKey: convertedKey,
           });
 
-          // Save subscription to backend
+          // Save subscription in database
           await fetch("/api/push/subscribe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -129,14 +149,15 @@ export default function PushNotificationModal() {
           });
         }
 
-        localStorage.setItem("fcmierda_push_modal_seen", "true");
+        localStorage.setItem("fcmierda_push_subscribed", "true");
+        localStorage.removeItem("fcmierda_push_dismissed_at");
         setShowModal(false);
 
-        // Refer visitor directly to the fixtures page as requested
+        // Redirect visitor to the fixtures page
         router.push("/fixtures");
       } else {
-        // User clicked Deny in browser prompt
-        localStorage.setItem("fcmierda_push_modal_seen", "true");
+        // User chose to deny/block in browser prompt
+        localStorage.setItem("fcmierda_push_dismissed_at", Date.now().toString());
         setShowModal(false);
       }
     } catch (error) {
@@ -149,7 +170,8 @@ export default function PushNotificationModal() {
 
   const handleDismiss = () => {
     setShowModal(false);
-    localStorage.setItem("fcmierda_push_modal_seen", "true");
+    // Remember dismissal timestamp to re-prompt in 1 week
+    localStorage.setItem("fcmierda_push_dismissed_at", Date.now().toString());
   };
 
   if (!showModal) return null;
@@ -176,16 +198,16 @@ export default function PushNotificationModal() {
 
         {/* Content */}
         <div className="flex flex-col items-center text-center">
-          {/* Animated Football / Bell badge */}
+          {/* Bell badge */}
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-700 to-green-950 border border-green-400/60 flex items-center justify-center mb-4 text-3xl shadow-lg animate-bounce">
             🔔
           </div>
 
           <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-wide mb-2">
-            Get FC Mierda Updates! ⚽
+            Never Miss a Match! ⚽
           </h2>
           <p className="text-sm sm:text-base text-gray-300 mb-5 leading-relaxed">
-            Never miss an upcoming match schedule, score update, or player attendance news on your {isDesktop ? "computer" : "phone"}!
+            Get instant match schedules, live score updates, and team announcements directly on your device.
           </p>
 
           {/* iOS Safari instruction banner */}
@@ -193,13 +215,6 @@ export default function PushNotificationModal() {
             <div className="w-full mb-5 p-3.5 rounded-xl bg-amber-950/70 border border-amber-500/50 text-amber-200 text-xs sm:text-sm text-left shadow-inner">
               <span className="font-bold block mb-1 text-amber-300">📱 iPhone & iPad Step:</span>
               Tap <strong>Share</strong> (⬆️) in Safari ➔ <strong>&ldquo;Add to Home Screen&rdquo;</strong>, then open FC Mierda from your Home Screen to enable notifications.
-            </div>
-          )}
-
-          {/* Desktop notice */}
-          {isDesktop && (
-            <div className="w-full mb-4 px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-300 text-xs">
-              💻 Works natively on Chrome, Edge, Firefox, and Safari on Desktop.
             </div>
           )}
 
