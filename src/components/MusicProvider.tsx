@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, createContext, useContext } from 'r
 
 type AudioContextType = {
   isMuted: boolean;
+  isPlaying: boolean;
   toggleMute: () => void;
 };
 
@@ -26,21 +27,93 @@ export default function MusicProvider({ children }: { children: React.ReactNode 
     }
     return false;
   });
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
+  // Sync isPlaying state with audio element events
   useEffect(() => {
-    if (audioRef.current && !isMuted && audioRef.current.paused) {
-      audioRef.current.play().catch(error => console.log("Autoplay was prevented:", error));
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handlePlay = () => {
+      if (!audio.muted) {
+        setIsPlaying(true);
+      }
+    };
+    const handlePause = () => setIsPlaying(false);
+
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('playing', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handlePause);
+
+    return () => {
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('playing', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handlePause);
+    };
+  }, []);
+
+  // Handle mute changes and audio playback
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (!isMuted) {
+      audio.muted = false;
+      if (audio.paused) {
+        audio.play().then(() => {
+          setIsPlaying(true);
+        }).catch(error => {
+          console.log("Autoplay was prevented:", error);
+          setIsPlaying(false);
+        });
+      } else {
+        setIsPlaying(true);
+      }
+    } else {
+      audio.muted = true;
+      setIsPlaying(false);
     }
     localStorage.setItem('fcmierda-music-muted', JSON.stringify(isMuted));
-    if (audioRef.current) {
-      audioRef.current.muted = isMuted;
-    }
   }, [isMuted]);
 
-  const toggleMute = () => setIsMuted(prev => !prev);
+  // First interaction fallback for browsers that block immediate autoplay
+  useEffect(() => {
+    if (isMuted) return;
+
+    const handleFirstInteraction = () => {
+      const audio = audioRef.current;
+      if (audio && !isMuted && audio.paused) {
+        audio.play().then(() => {
+          setIsPlaying(true);
+        }).catch(() => {});
+      }
+    };
+
+    window.addEventListener('click', handleFirstInteraction, { once: true });
+    window.addEventListener('touchstart', handleFirstInteraction, { once: true });
+    window.addEventListener('keydown', handleFirstInteraction, { once: true });
+
+    return () => {
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+    };
+  }, [isMuted]);
+
+  const toggleMute = () => {
+    setIsMuted(prev => {
+      const next = !prev;
+      if (next) {
+        setIsPlaying(false);
+      }
+      return next;
+    });
+  };
 
   return (
-    <AudioContext.Provider value={{ isMuted, toggleMute }}>
+    <AudioContext.Provider value={{ isMuted, isPlaying: !isMuted && isPlaying, toggleMute }}>
       {children}
       <audio ref={audioRef} src="/backgroundTrackMierda.mp3" loop autoPlay />
     </AudioContext.Provider>

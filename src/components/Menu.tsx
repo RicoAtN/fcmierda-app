@@ -3,10 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import AdminMenuDropdown from "./AdminMenuDropdown";
 import { useAudio } from "./MusicProvider";
+import SoundWaveIcon from "./SoundWaveIcon";
 
 
 export default function Menu() {
-  const { isMuted, toggleMute } = useAudio();
+  const { isMuted, isPlaying, toggleMute } = useAudio();
 
   return (
     <nav className="absolute top-0 left-0 w-full flex items-center justify-between py-4 sm:py-6 z-20 px-4 sm:px-6">
@@ -28,11 +29,15 @@ export default function Menu() {
         </Link>
         <button
           onClick={toggleMute}
-          className="text-white text-xl sm:text-2xl hover:text-green-400 transition-colors focus:outline-none"
+          className="text-white hover:text-green-400 transition-all duration-200 focus:outline-none flex items-center justify-center p-1 hover:scale-110 active:scale-95"
           aria-label={isMuted ? "Unmute background music" : "Mute background music"}
           title={isMuted ? "Unmute music" : "Mute music"}
         >
-          {isMuted ? "🔇" : "🔊"}
+          {isMuted ? (
+            <span className="text-xl sm:text-2xl leading-none select-none">🔇</span>
+          ) : (
+            <SoundWaveIcon isAnimated={isPlaying} className="w-6 h-6 sm:w-7 sm:h-7" />
+          )}
         </button>
       </div>
 
