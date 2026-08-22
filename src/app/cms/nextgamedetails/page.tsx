@@ -43,6 +43,26 @@ const playersData = players.map((raw) => {
   return { raw, number, name, key };
 });
 
+// Helper to format date into "30 August"
+function formatDayMonth(dateStr?: string): string {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString("en-US", { day: "numeric", month: "long" });
+    }
+  }
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleDateString("en-US", { day: "numeric", month: "long" });
+  }
+  return dateStr;
+}
+
 type CompetitionRow = { competition_id: string; competition_name: string; opponents: string[] };
 
 export default function NextGameDetailsPage() {
@@ -60,6 +80,8 @@ export default function NextGameDetailsPage() {
   const [currentAttendance, setCurrentAttendance] = useState<Record<string, string>>({});
   const [toBeAnnounced, setToBeAnnounced] = useState(false);
   const [resetAttendance, setResetAttendance] = useState(false);
+  const [notifyUsers, setNotifyUsers] = useState(false);
+  const [customNotificationText, setCustomNotificationText] = useState("");
   const [locationBeforeEdit, setLocationBeforeEdit] = useState("");
   const [isLocationEditable, setIsLocationEditable] = useState(false);
   const router = useRouter();
@@ -108,9 +130,9 @@ export default function NextGameDetailsPage() {
     }
   }, [form.competition, competitions]);
 
-  const currentOpponents = latestCompetition?.opponents ?? [];
-  const currentOpponentsUnique = Array.from(
-    new Set(currentOpponents.map((n) => n.trim()).filter(Boolean))
+  const currentOpponents: string[] = latestCompetition?.opponents ?? [];
+  const currentOpponentsUnique: string[] = Array.from(
+    new Set(currentOpponents.map((n: string) => n.trim()).filter(Boolean))
   );
 
   const handleChange = (
@@ -150,8 +172,49 @@ export default function NextGameDetailsPage() {
         body: JSON.stringify({ ...form, opponent: finalOpponent, attendance: finalAttendance, timestamp }),
       });
       if (!res.ok) throw new Error(`Save failed (${res.status})`);
-      setStatus("Saved! The fixtures page now shows your update.");
-      setTimeout(() => router.push("/fixtures#next-game"), 1200);
+
+      if (notifyUsers) {
+        setStatus("Saved match! Sending notifications to subscribers...");
+        const formattedDayMonth = formatDayMonth(form.date);
+        const autoTitle = `Next match update - against ${finalOpponent}`;
+        const schedulePrefix = `${formattedDayMonth ? formattedDayMonth : "Match schedule"}${form.kickoff ? ` at ${form.kickoff}` : ""}.`;
+        const defaultSuffix = "Check out the latest match details and player availability!";
+        const fullNotificationBody = customNotificationText.trim()
+          ? `${schedulePrefix} ${customNotificationText.trim()}`
+          : `${schedulePrefix} ${defaultSuffix}`;
+
+        try {
+          const notifyRes = await fetch("/api/push/notify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "next_game",
+              title: autoTitle,
+              body: fullNotificationBody,
+              nextGameData: {
+                opponent: finalOpponent,
+                date: form.date,
+                kickoff: form.kickoff,
+                note: form.note,
+                competition: form.competition,
+              },
+            }),
+          });
+          const notifyData = await notifyRes.json();
+          if (notifyData?.sent && notifyData.sent > 0) {
+            setStatus(`Saved! Notifications sent to ${notifyData.sent} subscribers.`);
+          } else {
+            setStatus("Saved! The fixtures page now shows your update.");
+          }
+        } catch (pushErr) {
+          console.error("Failed to dispatch push notifications:", pushErr);
+          setStatus("Saved match details! (Push notifications could not be sent).");
+        }
+      } else {
+        setStatus("Saved! The fixtures page now shows your update.");
+      }
+
+      setTimeout(() => router.push("/fixtures#next-game"), 1400);
     } catch (err: unknown) {
       console.error(err);
       const message = err instanceof Error ? err.message : "Failed to save. Try again.";
@@ -385,6 +448,58 @@ export default function NextGameDetailsPage() {
               <label htmlFor="resetAttendance" className="ml-3 text-white cursor-pointer select-none">
                 Reset all players availability to unknown
               </label>
+            </div>
+
+            <div className="flex flex-col p-4 bg-gray-800 border border-green-700/60 rounded-xl shadow-md space-y-3">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="notifyUsers"
+                  checked={notifyUsers}
+                  onChange={(e) => setNotifyUsers(e.target.checked)}
+                  className="w-5 h-5 text-green-600 bg-gray-900 border-gray-600 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
+                />
+                <label htmlFor="notifyUsers" className="ml-3 text-white font-semibold cursor-pointer select-none flex items-center gap-2">
+                  <span>🔔</span> Notify subscribers about this match update
+                </label>
+              </div>
+
+              {notifyUsers && (
+                <div className="mt-2 p-3.5 bg-gray-900/90 border border-gray-700 rounded-lg space-y-2.5 text-xs sm:text-sm">
+                  <div className="text-gray-400 font-medium">Push Notification Preview:</div>
+                  <div className="p-3 bg-gray-800/90 rounded border border-gray-700 space-y-1">
+                    <div className="font-bold text-green-400">
+                      📢 Next match update - against {toBeAnnounced ? "To be announced soon" : (form.opponent || "our next opponent")}
+                    </div>
+                    <div className="text-gray-200 text-xs sm:text-sm leading-relaxed">
+                      <span className="font-bold text-green-300">
+                        {formatDayMonth(form.date) || "Match schedule"}{form.kickoff ? ` at ${form.kickoff}` : ""}.
+                      </span>{" "}
+                      {customNotificationText.trim() || "Check out the latest match details and player availability!"}
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <label className="block text-gray-300 font-semibold mb-1 text-xs">
+                      Custom message note (optional):
+                    </label>
+                    <input
+                      type="text"
+                      value={customNotificationText}
+                      onChange={(e) => setCustomNotificationText(e.target.value)}
+                      placeholder="e.g. Bring both green and black shirts! Arrive 30 mins before kickoff."
+                      className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white text-xs sm:text-sm placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                    />
+                    <p className="mt-1 text-[11px] text-gray-400">
+                      The match date & time (<span className="text-green-300 font-semibold">{formatDayMonth(form.date) || "Date"}{form.kickoff ? ` at ${form.kickoff}` : ""}</span>) is always kept at the front.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <p className="mt-1 text-xs text-gray-300">
+                Check this box to automatically send a push notification to all subscribed visitors and players when saving.
+              </p>
             </div>
 
             <button

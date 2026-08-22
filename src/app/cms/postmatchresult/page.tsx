@@ -44,6 +44,26 @@ type MatchResult = {
   fcmierdaManOfTheMatch?: string;
 };
 
+// Helper to format date into "30 August"
+function formatDayMonth(dateStr?: string): string {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString("en-US", { day: "numeric", month: "long" });
+    }
+  }
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleDateString("en-US", { day: "numeric", month: "long" });
+  }
+  return dateStr;
+}
+
 export default function PostMatchResultPage() {
   const router = useRouter();
 
@@ -62,6 +82,8 @@ export default function PostMatchResultPage() {
   const [goalsOpponent, setGoalsOpponent] = useState(0);
   const [gameResult, setGameResult] = useState(""); // NEW FIELD
   const [fcmierdaManOfTheMatch, setFcmierdaManOfTheMatch] = useState("");
+  const [notifyUsers, setNotifyUsers] = useState(false);
+  const [customNotificationText, setCustomNotificationText] = useState("");
   const [goalScorers, setGoalScorers] = useState<
     { scorer: string; assist: string; goalNumber: string }[]
   >([{ scorer: "", assist: "", goalNumber: "" }]);
@@ -240,8 +262,49 @@ export default function PostMatchResultPage() {
         return;
       }
 
+      if (notifyUsers) {
+        setStatus("Saved match result! Sending notifications to subscribers...");
+        const formattedDayMonth = formatDayMonth(lastMatch.date);
+        const datePrefix = formattedDayMonth ? `${formattedDayMonth}: ` : "";
+        const resultWord = gameResult === "win" ? "won" : gameResult === "loss" ? "lost" : gameResult === "draw" ? "drew" : "played";
+        const resultTitleWord = gameResult === "win" ? "Win" : gameResult === "loss" ? "Loss" : gameResult === "draw" ? "Draw" : "Result";
+        const scoreText = `${goalsFCMierda} - ${goalsOpponent}`;
+        const autoTitle = `Match result: ${resultTitleWord} vs ${lastMatch.opponent || "opponent"} ⚽`;
+        const resultPrefix = `${datePrefix}FC Mierda ${resultWord} (${scoreText}) against ${lastMatch.opponent || "our opponent"}.`;
+        const defaultSuffix = "Check out the goal scorers and match recap!";
+        const fullBody = customNotificationText.trim()
+          ? `${resultPrefix} ${customNotificationText.trim()}`
+          : `${resultPrefix} ${defaultSuffix}`;
+
+        try {
+          const notifyRes = await fetch("/api/push/notify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "match_result",
+              title: autoTitle,
+              body: fullBody,
+              matchResultData: {
+                opponent: lastMatch.opponent,
+                date: lastMatch.date,
+                gameResult,
+                goalsFCMierda,
+                goalsOpponent,
+                manOfTheMatch: fcmierdaManOfTheMatch,
+              },
+            }),
+          });
+          const notifyData = await notifyRes.json();
+          if (notifyData?.sent && notifyData.sent > 0) {
+            setStatus(`Saved! Match result notification sent to ${notifyData.sent} subscribers.`);
+          }
+        } catch (pushErr) {
+          console.error("Failed to dispatch match result notification:", pushErr);
+        }
+      }
+
       setStatus("Saved! Redirecting...");
-      router.push("/results");
+      setTimeout(() => router.push("/results"), 1200);
     } catch (err) {
       setStatus("Network error while saving.");
       console.error(err);
@@ -662,6 +725,60 @@ export default function PostMatchResultPage() {
                 </div>
               ))}
             </div>
+
+            {/* Notification section */}
+            <div className="flex flex-col p-4 bg-gray-800 border border-blue-700/60 rounded-xl shadow-md space-y-3">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="notifyMatchResult"
+                  checked={notifyUsers}
+                  onChange={(e) => setNotifyUsers(e.target.checked)}
+                  className="w-5 h-5 text-blue-600 bg-gray-900 border-gray-600 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                />
+                <label htmlFor="notifyMatchResult" className="ml-3 text-white font-semibold cursor-pointer select-none flex items-center gap-2">
+                  <span>🔔</span> Notify subscribers about this match result
+                </label>
+              </div>
+
+              {notifyUsers && (
+                <div className="mt-2 p-3.5 bg-gray-900/90 border border-gray-700 rounded-lg space-y-2.5 text-xs sm:text-sm">
+                  <div className="text-gray-400 font-medium">Push Notification Preview:</div>
+                  <div className="p-3 bg-gray-800/90 rounded border border-gray-700 space-y-1">
+                    <div className="font-bold text-blue-400">
+                      📢 Match result: {gameResult === "win" ? "Win" : gameResult === "loss" ? "Loss" : gameResult === "draw" ? "Draw" : "Result"} vs {lastMatch.opponent || "opponent"} ⚽
+                    </div>
+                    <div className="text-gray-200 text-xs sm:text-sm leading-relaxed">
+                      <span className="font-bold text-blue-300">
+                        {formatDayMonth(lastMatch.date) ? `${formatDayMonth(lastMatch.date)}: ` : ""}FC Mierda {gameResult === "win" ? "won" : gameResult === "loss" ? "lost" : gameResult === "draw" ? "drew" : "played"} ({goalsFCMierda} - {goalsOpponent}) against {lastMatch.opponent || "our opponent"}.
+                      </span>{" "}
+                      {customNotificationText.trim() || "Check out the goal scorers and match recap!"}
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <label className="block text-gray-300 font-semibold mb-1 text-xs">
+                      Custom message note (optional):
+                    </label>
+                    <input
+                      type="text"
+                      value={customNotificationText}
+                      onChange={(e) => setCustomNotificationText(e.target.value)}
+                      placeholder="e.g. Kevin scored a brace and was awarded Man of the Match!"
+                      className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white text-xs sm:text-sm placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                    <p className="mt-1 text-[11px] text-gray-400">
+                      The opponent, score, date, and result (Win/Loss/Draw) are always automatically included at the start.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <p className="mt-1 text-xs text-gray-300">
+                Sends a push notification to all subscribers taking them directly to the Results page.
+              </p>
+            </div>
+
             <button
               type="submit"
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[150px] sm:min-w-[200px] w-full sm:w-auto"

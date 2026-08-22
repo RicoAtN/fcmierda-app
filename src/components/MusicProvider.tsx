@@ -20,14 +20,22 @@ export const useAudio = () => {
 
 export default function MusicProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isMuted, setIsMuted] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const savedMuteState = localStorage.getItem('fcmierda-music-muted');
-      return savedMuteState ? JSON.parse(savedMuteState) : false;
-    }
-    return false;
-  });
+  const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const isLoaded = useRef<boolean>(false);
+
+  // Load saved mute preference after client mount to prevent SSR hydration mismatch
+  useEffect(() => {
+    try {
+      const savedMuteState = localStorage.getItem('fcmierda-music-muted');
+      if (savedMuteState !== null) {
+        setIsMuted(JSON.parse(savedMuteState));
+      }
+    } catch (e) {
+      console.warn("Could not read music preference:", e);
+    }
+    isLoaded.current = true;
+  }, []);
 
   // Sync isPlaying state with audio element events
   useEffect(() => {
@@ -75,7 +83,14 @@ export default function MusicProvider({ children }: { children: React.ReactNode 
       audio.muted = true;
       setIsPlaying(false);
     }
-    localStorage.setItem('fcmierda-music-muted', JSON.stringify(isMuted));
+
+    if (isLoaded.current) {
+      try {
+        localStorage.setItem('fcmierda-music-muted', JSON.stringify(isMuted));
+      } catch {
+        // ignore
+      }
+    }
   }, [isMuted]);
 
   // First interaction fallback for browsers that block immediate autoplay

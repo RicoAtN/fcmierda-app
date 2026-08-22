@@ -1,0 +1,21 @@
+{
+  "name": "FC Mierda",
+  "short_name": "FC Mierda",
+  "description": "FC Mierda Official App - Match schedules, player availability, results, and statistics.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#006400",
+  "icons": [
+    {
+      "src": "/FCMierda-team-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/FCMierda-team-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

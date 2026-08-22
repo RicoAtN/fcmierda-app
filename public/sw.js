@@ -1,34 +1,47 @@
 self.addEventListener('push', function (event) {
-  if (event.data) {
+  if (!event.data) return;
+
+  try {
     const data = event.data.json();
+    const title = data.title || 'FC Mierda ⚽';
     const options = {
-      body: data.body,
+      body: data.body || 'New update available!',
       icon: data.icon || '/FCMierda-team-logo.png',
-      badge: '/FCMierda-team-logo.png',
+      badge: data.badge || '/FCMierda-team-logo.png',
       vibrate: [100, 50, 100],
       data: {
+        url: data.url || '/fixtures#next-game',
         dateOfArrival: Date.now(),
-        primaryKey: '2'
-      }
+      },
     };
-    event.waitUntil(self.registration.showNotification(data.title, options));
+
+    event.waitUntil(self.registration.showNotification(title, options));
+  } catch (err) {
+    console.error('Error handling push event:', err);
   }
 });
 
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
+
+  const targetUrl = (event.notification.data && event.notification.data.url)
+    ? event.notification.data.url
+    : '/fixtures#next-game';
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
-      if (clientList.length > 0) {
-        let client = clientList[0];
-        for (let i = 0; i < clientList.length; i++) {
-          if (clientList[i].focused) {
-            client = clientList[i];
+      for (let i = 0; i < clientList.length; i++) {
+        const client = clientList[i];
+        if (client.url && 'focus' in client) {
+          if ('navigate' in client) {
+            client.navigate(targetUrl);
           }
+          return client.focus();
         }
-        return client.focus();
       }
-      return clients.openWindow('/');
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
     })
   );
 });

@@ -4,6 +4,7 @@ import "./globals.css";
 import ClientAnalytics from "./analytics/ClientAnalytics";
 import { Analytics } from "@vercel/analytics/react";
 import MusicProvider from "@/components/MusicProvider";
+import PushNotificationModal from "@/components/PushNotificationModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,7 +20,9 @@ export const metadata: Metadata = {
   title: "FC Mierda - Official Website",
   icons: {
     icon: "/FCMierda-team-logo.png",
+    apple: "/FCMierda-team-logo.png",
   },
+  manifest: "/manifest.json",
   description: "Welcome to the official website of FC Mierda. Get the latest game recaps, results, and more.",
   keywords: [
     "football",
@@ -59,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <MusicProvider>
           {children}
+          <PushNotificationModal />
           <ClientAnalytics />
           <Analytics />
         </MusicProvider>
