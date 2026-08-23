@@ -35,22 +35,23 @@ export async function POST(req: NextRequest) {
     client = await pool.connect();
     await client.query(
       `INSERT INTO match_result 
-        (date, opponent, location, competition, attendance, support_coach, goals_fcmierda, goals_opponent, game_result, goal_scorers, timestamp, youtube, fcmierda_man_of_the_match)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+        (date, opponent, location, competition, attendance, support_coach, goals_fcmierda, goals_opponent, game_result, goal_scorers, timestamp, youtube, fcmierda_man_of_the_match, match_summary)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
       [
         body.date || "",
         body.opponent || "",
         body.location || "",
         body.competition || "",
         JSON.stringify(body.attendance || []),
-        JSON.stringify(body.supportCoach || []),
-        body.goalsFCMierda ?? 0,
-        body.goalsOpponent ?? 0,
-        body.gameResult || "",
-        JSON.stringify(body.goalScorers || []),
+        JSON.stringify(body.supportCoach || body.support_coach || []),
+        body.goalsFCMierda ?? body.goals_fcmierda ?? 0,
+        body.goalsOpponent ?? body.goals_opponent ?? 0,
+        body.gameResult || body.game_result || "",
+        JSON.stringify(body.goalScorers || body.goal_scorers || []),
         body.timestamp || "",
         body.youtube || "",
         body.fcmierda_man_of_the_match || body.fcmierdaManOfTheMatch || "",
+        body.match_summary || body.matchSummary || "",
       ]
     );
     return NextResponse.json({ success: true });
@@ -82,22 +83,24 @@ export async function PUT(req: NextRequest) {
         goal_scorers = $10,
         lastEdited = $11,
         fcmierda_man_of_the_match = $12,
-        youtube = $13
-      WHERE id = $14`,
+        youtube = $13,
+        match_summary = $14
+      WHERE id = $15`,
       [
         body.date || "",
         body.opponent || "",
         body.location || "",
         body.competition || "",
         JSON.stringify(body.attendance || []),
-        JSON.stringify(body.support_coach || []),
-        body.goals_fcmierda ?? 0,
-        body.goals_opponent ?? 0,
+        JSON.stringify(body.support_coach || body.supportCoach || []),
+        body.goals_fcmierda ?? body.goalsFCMierda ?? 0,
+        body.goals_opponent ?? body.goalsOpponent ?? 0,
         body.gameResult || body.game_result || "",
-        JSON.stringify(body.goal_scorers || []),
+        JSON.stringify(body.goal_scorers || body.goalScorers || []),
         body.lastEdited || "",
         body.fcmierda_man_of_the_match || body.fcmierdaManOfTheMatch || "",
         body.youtube || "",
+        body.match_summary || body.matchSummary || "",
         body.id,
       ]
     );

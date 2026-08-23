@@ -27,6 +27,8 @@ type MatchResult = {
   goal_scorers?: GoalScorer[] | string;
   fcmierda_man_of_the_match?: string;
   fcmierda_man_of_the_match_id?: string;
+  match_summary?: string;
+  matchSummary?: string;
 };
 
 const playerNameToIdMap: { [key: string]: number } = {
@@ -412,6 +414,19 @@ export default function ClientMatchResults({
                 <div className="text-gray-400 text-center text-base py-6">No video summary available yet.</div>
               )}
             </div>
+
+            {/* Match Summary */}
+            {(selectedResult.match_summary || selectedResult.matchSummary) && (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-base">📝</span>
+                  <h3 className="font-semibold text-green-300 text-base">Match Summary</h3>
+                </div>
+                <div className="p-4 bg-gray-900 rounded-xl text-gray-200 text-sm sm:text-base whitespace-pre-wrap leading-relaxed border border-gray-700/80 shadow-inner">
+                  {selectedResult.match_summary || selectedResult.matchSummary}
+                </div>
+              </div>
+            )}
 
             {/* Extra Info */}
             <div className="mb-6 flex flex-col gap-2">

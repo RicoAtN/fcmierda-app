@@ -42,6 +42,8 @@ type MatchResult = {
   youtube?: string; // <-- Add this line
   fcmierda_man_of_the_match?: string;
   fcmierdaManOfTheMatch?: string;
+  match_summary?: string;
+  matchSummary?: string;
 };
 
 // Helper to format date into "30 August"
@@ -82,6 +84,7 @@ export default function PostMatchResultPage() {
   const [goalsOpponent, setGoalsOpponent] = useState(0);
   const [gameResult, setGameResult] = useState(""); // NEW FIELD
   const [fcmierdaManOfTheMatch, setFcmierdaManOfTheMatch] = useState("");
+  const [matchSummary, setMatchSummary] = useState("");
   const [notifyUsers, setNotifyUsers] = useState(false);
   const [customNotificationText, setCustomNotificationText] = useState("");
   const [goalScorers, setGoalScorers] = useState<
@@ -246,6 +249,8 @@ export default function PostMatchResultPage() {
           fcmierda_man_of_the_match: fcmierdaManOfTheMatch,
           fcmierdaManOfTheMatch,
           goalScorers: filteredGoalScorers,
+          match_summary: matchSummary,
+          matchSummary,
           timestamp
         }),
       });
@@ -385,6 +390,8 @@ export default function PostMatchResultPage() {
         support_coach: supportArr,
         supportCoach: supportArr,
         youtube: editForm.youtube ?? "",
+        match_summary: editForm.match_summary ?? editForm.matchSummary ?? "",
+        matchSummary: editForm.match_summary ?? editForm.matchSummary ?? "",
         lastEdited,
     };
 
@@ -726,6 +733,20 @@ export default function PostMatchResultPage() {
               ))}
             </div>
 
+            {/* Match Summary */}
+            <div>
+              <label className="block font-semibold mb-1">
+                Match Summary <span className="text-gray-400 text-xs font-normal">(optional)</span>
+              </label>
+              <textarea
+                rows={4}
+                value={matchSummary}
+                onChange={(e) => setMatchSummary(e.target.value)}
+                placeholder="Write a summary or match recap (key moments, highlights, tactical notes)..."
+                className="w-full p-2.5 rounded bg-gray-800 border border-gray-600 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+              />
+            </div>
+
             {/* Notification section */}
             <div className="flex flex-col p-4 bg-gray-800 border border-blue-700/60 rounded-xl shadow-md space-y-3">
               <div className="flex items-center">
@@ -964,6 +985,16 @@ export default function PostMatchResultPage() {
                       )}
                     </div>
                     <div className="mb-2">
+                      <strong>Match Summary:</strong>{" "}
+                      {selectedResult.match_summary || selectedResult.matchSummary ? (
+                        <div className="mt-1 p-3 bg-gray-800 rounded text-gray-200 text-sm whitespace-pre-wrap border border-gray-700 leading-relaxed">
+                          {selectedResult.match_summary || selectedResult.matchSummary}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">No match summary</span>
+                      )}
+                    </div>
+                    <div className="mb-2">
                       <strong>Last Edited:</strong> <span className="text-gray-300">{selectedResult.lastedited || selectedResult.lastEdited || "-"}</span>
                     </div>
                   </>
@@ -1184,6 +1215,17 @@ export default function PostMatchResultPage() {
                         placeholder="Paste YouTube link here"
                       />
                       <span className="text-gray-400 text-xs">Paste the full YouTube URL for the match video.</span>
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold mb-1">Match Summary</label>
+                      <textarea
+                        rows={4}
+                        value={editForm?.match_summary ?? editForm?.matchSummary ?? ""}
+                        onChange={e => handleEditChange("match_summary", e.target.value)}
+                        className="w-full p-2.5 rounded bg-gray-800 border border-gray-600 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                        placeholder="Write or edit match summary..."
+                      />
                     </div>
                     <button
                       type="submit"
