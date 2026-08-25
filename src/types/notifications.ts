@@ -40,5 +40,22 @@ export interface StoredPushSubscription {
   endpoint: string;
   p256dh: string;
   auth: string;
+  device_type?: string;
+  user_agent?: string;
   created_at: string;
 }
+
+export interface PushDeviceBreakdown {
+  desktop: number;
+  android: number;
+  ios: number;
+  other: number;
+}
+
+export interface PushStatsResponse {
+  success: boolean;
+  total: number;
+  breakdown: PushDeviceBreakdown;
+  error?: string;
+}
+

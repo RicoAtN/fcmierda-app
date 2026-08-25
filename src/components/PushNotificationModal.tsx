@@ -21,6 +21,58 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+// Helper to detect device platform accurately
+function detectDeviceType(): "android" | "ios" | "desktop" {
+  if (typeof window === "undefined") return "desktop";
+  const ua = (window.navigator.userAgent || "").toLowerCase();
+  const platform = (window.navigator.platform || "").toLowerCase();
+  const maxTouchPoints = window.navigator.maxTouchPoints || 0;
+  const uaDataPlatform = (((window.navigator as any).userAgentData?.platform || "") as string).toLowerCase();
+
+  // 1. Check iOS / iPadOS
+  if (/iphone|ipad|ipod/.test(ua) || (platform.includes("macintel") && maxTouchPoints > 1)) {
+    return "ios";
+  }
+
+  // 2. Check Android (Chrome, Firefox, Samsung Internet, Edge, etc.)
+  if (/android/.test(ua) || /android/.test(uaDataPlatform)) {
+    return "android";
+  }
+
+  // 3. Desktop
+  return "desktop";
+}
+
+// Background sync function to update existing subscribers' device type in DB
+async function syncExistingSubscription() {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const sub = await registration.pushManager.getSubscription();
+    if (sub) {
+      const rawSub = sub.toJSON();
+      const deviceType = detectDeviceType();
+      const ua = window.navigator.userAgent || "";
+
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endpoint: sub.endpoint,
+          keys: {
+            p256dh: rawSub.keys?.p256dh,
+            auth: rawSub.keys?.auth,
+          },
+          deviceType,
+          userAgent: ua,
+        }),
+      });
+    }
+  } catch (err) {
+    // Non-critical background sync error
+  }
+}
+
 export default function PushNotificationModal() {
   const [showModal, setShowModal] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -42,13 +94,28 @@ export default function PushNotificationModal() {
       (window.navigator as any).standalone === true;
     setIsStandalone(isPWA);
 
+    // Register service worker and sync existing subscription device type in background
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then(() => {
+          syncExistingSubscription();
+        })
+        .catch((err) => {
+          console.warn("ServiceWorker registration notice:", err);
+        });
+    }
+
     // Force prompt check via URL parameter e.g. ?prompt=true
     const urlParams = new URLSearchParams(window.location.search);
     const forcePrompt = urlParams.get("prompt") === "true" || urlParams.get("notify") === "true";
 
-    // If user is already subscribed, don't show
-    const isSubscribed = localStorage.getItem("fcmierda_push_subscribed") === "true";
-    if (isSubscribed && !forcePrompt) {
+    // Clean up legacy v1 key so existing subscribers are prompted to re-subscribe with platform detection
+    localStorage.removeItem("fcmierda_push_subscribed");
+
+    // If user is already subscribed with platform tracking (v2), don't show
+    const isSubscribedV2 = localStorage.getItem("fcmierda_push_v2_subscribed") === "true";
+    if (isSubscribedV2 && !forcePrompt) {
       return;
     }
 
@@ -65,13 +132,6 @@ export default function PushNotificationModal() {
     // If browser notifications are explicitly blocked by the user, don't prompt
     if ("Notification" in window && Notification.permission === "denied" && !forcePrompt) {
       return;
-    }
-
-    // Register service worker in background
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch((err) => {
-        console.warn("ServiceWorker registration notice:", err);
-      });
     }
 
     // Show modal with a short smooth entrance delay
@@ -141,15 +201,28 @@ export default function PushNotificationModal() {
             applicationServerKey: convertedKey,
           });
 
+          const rawSub = subscription.toJSON();
+          const deviceType = detectDeviceType();
+          const ua = window.navigator.userAgent || "";
+
           // Save subscription in database
           await fetch("/api/push/subscribe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(subscription),
+            body: JSON.stringify({
+              endpoint: subscription.endpoint,
+              keys: {
+                p256dh: rawSub.keys?.p256dh,
+                auth: rawSub.keys?.auth,
+              },
+              deviceType,
+              userAgent: ua,
+            }),
           });
         }
 
-        localStorage.setItem("fcmierda_push_subscribed", "true");
+        localStorage.setItem("fcmierda_push_v2_subscribed", "true");
+        localStorage.removeItem("fcmierda_push_subscribed");
         localStorage.removeItem("fcmierda_push_dismissed_at");
         setShowModal(false);
 

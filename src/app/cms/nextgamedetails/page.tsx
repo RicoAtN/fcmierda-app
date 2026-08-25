@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
+import SubscriberStatsBadge from "@/components/SubscriberStatsBadge";
 import { useRouter } from "next/navigation";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
@@ -462,6 +463,11 @@ export default function NextGameDetailsPage() {
                 <label htmlFor="notifyUsers" className="ml-3 text-white font-semibold cursor-pointer select-none flex items-center gap-2">
                   <span>🔔</span> Notify subscribers about this match update
                 </label>
+              </div>
+
+              {/* Subscriber Audience Count & Platform Breakdown */}
+              <div className="pt-0.5">
+                <SubscriberStatsBadge theme="green" />
               </div>
 
               {notifyUsers && (
