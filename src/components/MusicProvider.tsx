@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  createContext,
+  useContext,
+  useCallback,
+} from "react";
 
 type AudioContextType = {
   isMuted: boolean;
@@ -13,31 +20,71 @@ export const AudioContext = createContext<AudioContextType | null>(null);
 export const useAudio = () => {
   const context = useContext(AudioContext);
   if (!context) {
-    throw new Error('useAudio must be used within an AudioProvider');
+    throw new Error("useAudio must be used within an AudioProvider");
   }
   return context;
 };
 
-export default function MusicProvider({ children }: { children: React.ReactNode }) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const isLoaded = useRef<boolean>(false);
+const STORAGE_KEY = "fcmierda-music-muted";
 
-  // Load saved mute preference after client mount to prevent SSR hydration mismatch
+export default function MusicProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize from localStorage if available (client-side), default to false (unmuted) for new users
+  const [isMuted, setIsMuted] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved !== null) {
+          return JSON.parse(saved) === true;
+        }
+      } catch {}
+    }
+    return false;
+  });
+
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const userInteracted = useRef<boolean>(false);
+
+  // Sync state with localStorage on initial mount & handle initial play
   useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
     try {
-      const savedMuteState = localStorage.getItem('fcmierda-music-muted');
-      if (savedMuteState !== null) {
-        setIsMuted(JSON.parse(savedMuteState));
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved !== null) {
+        const shouldMute = JSON.parse(saved) === true;
+        setIsMuted(shouldMute);
+        audio.muted = shouldMute;
+        if (shouldMute) {
+          audio.pause();
+          setIsPlaying(false);
+          return;
+        }
       }
     } catch (e) {
       console.warn("Could not read music preference:", e);
     }
-    isLoaded.current = true;
+
+    // New user (or unmuted returning user): attempt autoplay
+    audio.muted = false;
+    audio
+      .play()
+      .then(() => {
+        setIsPlaying(true);
+      })
+      .catch(() => {
+        // Autoplay policy prevented immediate playback; interaction listeners will trigger it
+        setIsPlaying(false);
+      });
   }, []);
 
-  // Sync isPlaying state with audio element events
+  // Listen for native audio events to keep isPlaying in sync
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -49,88 +96,107 @@ export default function MusicProvider({ children }: { children: React.ReactNode 
     };
     const handlePause = () => setIsPlaying(false);
 
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('playing', handlePlay);
-    audio.addEventListener('pause', handlePause);
-    audio.addEventListener('ended', handlePause);
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("playing", handlePlay);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("ended", handlePause);
 
     return () => {
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('playing', handlePlay);
-      audio.removeEventListener('pause', handlePause);
-      audio.removeEventListener('ended', handlePause);
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("playing", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("ended", handlePause);
     };
   }, []);
 
-  // Handle mute changes and audio playback
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (!isMuted) {
-      audio.muted = false;
-      if (audio.paused) {
-        audio.play().then(() => {
-          setIsPlaying(true);
-        }).catch(error => {
-          console.log("Autoplay was prevented:", error);
-          setIsPlaying(false);
-        });
-      } else {
-        setIsPlaying(true);
-      }
-    } else {
-      audio.muted = true;
-      setIsPlaying(false);
-    }
-
-    if (isLoaded.current) {
-      try {
-        localStorage.setItem('fcmierda-music-muted', JSON.stringify(isMuted));
-      } catch {
-        // ignore
-      }
-    }
-  }, [isMuted]);
-
-  // First interaction fallback for browsers that block immediate autoplay
+  // First interaction fallback for browsers that block immediate autoplay (only for unmuted users)
   useEffect(() => {
     if (isMuted) return;
 
     const handleFirstInteraction = () => {
+      userInteracted.current = true;
       const audio = audioRef.current;
-      if (audio && !isMuted && audio.paused) {
-        audio.play().then(() => {
-          setIsPlaying(true);
-        }).catch(() => {});
+      if (!audio) return;
+
+      // Double check localStorage before starting playback on interaction
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved !== null && JSON.parse(saved) === true) {
+          return;
+        }
+      } catch {}
+
+      if (!audio.muted && audio.paused) {
+        audio
+          .play()
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch(() => {});
       }
     };
 
-    window.addEventListener('click', handleFirstInteraction, { once: true });
-    window.addEventListener('touchstart', handleFirstInteraction, { once: true });
-    window.addEventListener('keydown', handleFirstInteraction, { once: true });
+    window.addEventListener("click", handleFirstInteraction, { once: true });
+    window.addEventListener("touchstart", handleFirstInteraction, { once: true });
+    window.addEventListener("keydown", handleFirstInteraction, { once: true });
 
     return () => {
-      window.removeEventListener('click', handleFirstInteraction);
-      window.removeEventListener('touchstart', handleFirstInteraction);
-      window.removeEventListener('keydown', handleFirstInteraction);
+      window.removeEventListener("click", handleFirstInteraction);
+      window.removeEventListener("touchstart", handleFirstInteraction);
+      window.removeEventListener("keydown", handleFirstInteraction);
     };
   }, [isMuted]);
 
-  const toggleMute = () => {
-    setIsMuted(prev => {
+  // Toggle Mute handler
+  const toggleMute = useCallback(() => {
+    setIsMuted((prev) => {
       const next = !prev;
-      if (next) {
-        setIsPlaying(false);
+      const audio = audioRef.current;
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+
+      if (audio) {
+        if (next) {
+          // Muting
+          audio.muted = true;
+          audio.pause();
+          setIsPlaying(false);
+        } else {
+          // Unmuting
+          audio.muted = false;
+          audio
+            .play()
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch(() => {
+              setIsPlaying(false);
+            });
+        }
       }
+
       return next;
     });
-  };
+  }, []);
 
   return (
-    <AudioContext.Provider value={{ isMuted, isPlaying: !isMuted && isPlaying, toggleMute }}>
+    <AudioContext.Provider
+      value={{
+        isMuted,
+        isPlaying: !isMuted && isPlaying,
+        toggleMute,
+      }}
+    >
       {children}
-      <audio ref={audioRef} src="/backgroundTrackMierda.mp3" loop autoPlay />
+      <audio
+        ref={audioRef}
+        src="/backgroundTrackMierda.mp3"
+        loop
+        muted={isMuted}
+        preload="auto"
+      />
     </AudioContext.Provider>
   );
 }
