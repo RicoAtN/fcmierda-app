@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   let client;
   try {
     const body = await req.json();
-    const { endpoint, keys, deviceType, userAgent } = body || {};
+    const { endpoint, keys, deviceType, userAgent, oldEndpoint } = body || {};
 
     if (!endpoint || !keys || !keys.p256dh || !keys.auth) {
       return NextResponse.json(
@@ -42,6 +42,11 @@ export async function POST(req: NextRequest) {
       ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS device_type VARCHAR(50);
       ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS user_agent TEXT;
     `);
+
+    // Clean up replaced old endpoint if provided
+    if (oldEndpoint && oldEndpoint !== endpoint) {
+      await client.query("DELETE FROM push_subscriptions WHERE endpoint = $1", [oldEndpoint]);
+    }
 
     await client.query(
       `INSERT INTO push_subscriptions (endpoint, p256dh, auth, device_type, user_agent, created_at)

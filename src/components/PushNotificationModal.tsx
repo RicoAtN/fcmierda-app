@@ -44,8 +44,8 @@ function detectDeviceType(): "android" | "ios" | "desktop" {
 }
 
 // Background sync function to update existing subscribers' device type in DB
-async function syncExistingSubscription() {
-  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+async function syncExistingSubscription(): Promise<boolean> {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return false;
   try {
     const registration = await navigator.serviceWorker.ready;
     const sub = await registration.pushManager.getSubscription();
@@ -67,10 +67,14 @@ async function syncExistingSubscription() {
           userAgent: ua,
         }),
       });
+
+      localStorage.setItem("fcmierda_push_v2_subscribed", "true");
+      return true;
     }
   } catch (err) {
     // Non-critical background sync error
   }
+  return false;
 }
 
 export default function PushNotificationModal() {
@@ -94,24 +98,37 @@ export default function PushNotificationModal() {
       (window.navigator as any).standalone === true;
     setIsStandalone(isPWA);
 
+    // Force prompt check via URL parameter e.g. ?prompt=true
+    const urlParams = new URLSearchParams(window.location.search);
+    const forcePrompt = urlParams.get("prompt") === "true" || urlParams.get("notify") === "true";
+
+    // Clean up legacy v1 key
+    localStorage.removeItem("fcmierda_push_subscribed");
+
     // Register service worker and sync existing subscription device type in background
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js")
-        .then(() => {
-          syncExistingSubscription();
+        .then(async () => {
+          const synced = await syncExistingSubscription();
+          if (synced && !forcePrompt) {
+            setShowModal(false);
+          }
         })
         .catch((err) => {
           console.warn("ServiceWorker registration notice:", err);
         });
     }
 
-    // Force prompt check via URL parameter e.g. ?prompt=true
-    const urlParams = new URLSearchParams(window.location.search);
-    const forcePrompt = urlParams.get("prompt") === "true" || urlParams.get("notify") === "true";
-
-    // Clean up legacy v1 key so existing subscribers are prompted to re-subscribe with platform detection
-    localStorage.removeItem("fcmierda_push_subscribed");
+    // If browser notifications are already granted or denied, don't show modal
+    if ("Notification" in window) {
+      if (Notification.permission === "granted" && !forcePrompt) {
+        return;
+      }
+      if (Notification.permission === "denied" && !forcePrompt) {
+        return;
+      }
+    }
 
     // If user is already subscribed with platform tracking (v2), don't show
     const isSubscribedV2 = localStorage.getItem("fcmierda_push_v2_subscribed") === "true";
@@ -129,13 +146,11 @@ export default function PushNotificationModal() {
       }
     }
 
-    // If browser notifications are explicitly blocked by the user, don't prompt
-    if ("Notification" in window && Notification.permission === "denied" && !forcePrompt) {
-      return;
-    }
-
     // Show modal with a short smooth entrance delay
     const timer = setTimeout(() => {
+      if ("Notification" in window && Notification.permission === "granted" && !forcePrompt) {
+        return;
+      }
       setShowModal(true);
     }, 800);
 
@@ -186,20 +201,16 @@ export default function PushNotificationModal() {
 
           const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
 
-          // Clean up any stale subscription with previous/different key
-          try {
-            const existingSub = await registration.pushManager.getSubscription();
-            if (existingSub) {
-              await existingSub.unsubscribe();
-            }
-          } catch (unsubErr) {
-            console.warn("Notice: cleared existing subscription:", unsubErr);
-          }
+          let subscription = await registration.pushManager.getSubscription();
+          let oldEndpoint: string | undefined;
 
-          const subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: convertedKey,
-          });
+          // If no subscription exists, create one
+          if (!subscription) {
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: convertedKey,
+            });
+          }
 
           const rawSub = subscription.toJSON();
           const deviceType = detectDeviceType();
@@ -217,6 +228,7 @@ export default function PushNotificationModal() {
               },
               deviceType,
               userAgent: ua,
+              oldEndpoint,
             }),
           });
         }
