@@ -350,7 +350,6 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
                       <DetailItem label="Callsign" value={renderValue(selectedPlayer.player_callsign || selectedPlayer.nickname)} />
                       <DetailItem label="Position" value={renderValue(selectedPlayer.player_position || selectedPlayer.role)} />
                       <DetailItem label="Main Player" value={selectedPlayer.main_player ? "Yes" : "No"} />
-                      <DetailItem label="Photo Link" value={renderValue(selectedPlayer.photo_link || selectedPlayer.photo)} />
                     </div>
                   </div>
 

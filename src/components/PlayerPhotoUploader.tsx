@@ -17,8 +17,6 @@ export default function PlayerPhotoUploader({
 }: PlayerPhotoUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showUrlInput, setShowUrlInput] = useState(false);
-  const [manualUrl, setManualUrl] = useState(currentPhotoUrl || "");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,13 +57,11 @@ export default function PlayerPhotoUploader({
       }
 
       onPhotoChange(data.url);
-      setManualUrl(data.url);
     } catch (err: any) {
       console.error("Photo upload error:", err);
       setError(err?.message || "Could not upload image. Please try again.");
     } finally {
       setUploading(false);
-      // Reset input value so same file can be re-uploaded if desired
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -75,14 +71,8 @@ export default function PlayerPhotoUploader({
   const handleRemovePhoto = () => {
     if (confirm("Are you sure you want to remove this player's photo?")) {
       onPhotoChange(null);
-      setManualUrl("");
       setError(null);
     }
-  };
-
-  const handleManualUrlBlur = () => {
-    const trimmed = manualUrl.trim();
-    onPhotoChange(trimmed ? trimmed : null);
   };
 
   return (
@@ -162,39 +152,11 @@ export default function PlayerPhotoUploader({
                 <span>Remove</span>
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={() => setShowUrlInput(!showUrlInput)}
-              className="text-xs text-gray-400 hover:text-gray-200 underline ml-auto transition"
-            >
-              {showUrlInput ? "Hide URL input" : "Paste URL instead"}
-            </button>
           </div>
 
           <p className="text-[11px] text-gray-400 leading-tight">
-            Supports PNG, JPG, WebP up to 5MB. Photo will be automatically optimized and hosted on cloud storage.
+            Select a photo (PNG, JPG, WebP up to 5MB) to upload directly to Vercel Blob cloud storage.
           </p>
-
-          {showUrlInput && (
-            <div className="mt-1 flex items-center gap-2">
-              <input
-                type="text"
-                placeholder="https://... or /players/..."
-                value={manualUrl}
-                onChange={(e) => setManualUrl(e.target.value)}
-                onBlur={handleManualUrlBlur}
-                className="w-full bg-gray-900 border border-gray-600 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-green-500 font-mono"
-              />
-              <button
-                type="button"
-                onClick={handleManualUrlBlur}
-                className="px-2.5 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded font-medium"
-              >
-                Apply
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
