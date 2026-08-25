@@ -262,7 +262,7 @@ export default function TeamPage() {
                               src={p.photo}
                               alt={p.name}
                               fill
-                              unoptimized={p.photo.startsWith("data:")}
+                              unoptimized
                               className="object-cover scale-125"
                             />
                           </div>
@@ -302,7 +302,7 @@ export default function TeamPage() {
                           src={selectedDb.photo}
                           width={280}
                           height={280}
-                          unoptimized={selectedDb.photo.startsWith("data:")}
+                          unoptimized
                           className="rounded-xl object-cover"
                           alt={selectedDb.name}
                         />
