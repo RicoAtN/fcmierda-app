@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { updatePlayerAction } from "./actions";
+import PlayerPhotoUploader from "@/components/PlayerPhotoUploader";
 
 function ExpandableText({ text }: { text: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -263,12 +264,18 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
                       </select>
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Photo Link</label>
-                      <input
-                        type="text"
-                        value={editForm.photo_link || editForm.photo || ""}
-                        onChange={(e) => setEditForm({ ...editForm, photo_link: e.target.value })}
-                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500"
+                      <label className="text-gray-400 block text-xs uppercase tracking-wider mb-2">Player Profile Photo</label>
+                      <PlayerPhotoUploader
+                        currentPhotoUrl={editForm.photo_link || editForm.photo || null}
+                        playerName={editForm.player_name || selectedPlayer?.player_name || "player"}
+                        onPhotoChange={(newUrl) =>
+                          setEditForm({
+                            ...editForm,
+                            photo_link: newUrl,
+                            photo: newUrl,
+                          })
+                        }
+                        disabled={isSaving}
                       />
                     </div>
                     <div className="sm:col-span-2 flex items-center gap-2 mt-2">

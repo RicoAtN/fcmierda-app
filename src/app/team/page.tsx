@@ -258,7 +258,13 @@ export default function TeamPage() {
 
                         {hasPhoto(p) && p.photo ? (
                           <div className="w-14 h-14 relative rounded-full overflow-hidden flex-shrink-0">
-                            <Image src={p.photo} alt={p.name} fill className="object-cover scale-125" />
+                            <Image
+                              src={p.photo}
+                              alt={p.name}
+                              fill
+                              unoptimized={p.photo.startsWith("data:")}
+                              className="object-cover scale-125"
+                            />
                           </div>
                         ) : (
                           <div className="w-14 h-14 rounded-full bg-gray-700 flex items-center justify-center text-sm font-bold text-gray-200">
@@ -292,7 +298,14 @@ export default function TeamPage() {
                   <div className="flex-shrink-0 relative">
                     {hasPhoto(selectedDb) && selectedDb.photo ? (
                       <div className="relative">
-                        <Image src={selectedDb.photo} width={280} height={280} className="rounded-xl object-cover" alt={selectedDb.name} />
+                        <Image
+                          src={selectedDb.photo}
+                          width={280}
+                          height={280}
+                          unoptimized={selectedDb.photo.startsWith("data:")}
+                          className="rounded-xl object-cover"
+                          alt={selectedDb.name}
+                        />
                       </div>
                     ) : (
                       <div className="w-[280px] h-[280px] rounded-xl bg-gray-700 flex items-center justify-center text-5xl font-bold text-gray-200">

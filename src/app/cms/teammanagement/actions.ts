@@ -2,14 +2,41 @@
 
 import { Pool } from "pg";
 import { revalidatePath } from "next/cache";
+import { del } from "@vercel/blob";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-export async function updatePlayerAction(playerId: number, data: any) {
+export async function updatePlayerAction(playerId: number | string, data: any) {
   if (!playerId) {
     throw new Error("Player ID is missing.");
+  }
+
+  // Check if there was an old photo that needs deletion from Vercel Blob
+  const oldPhotoRes = await pool.query(
+    "SELECT photo_link FROM player_statistics WHERE player_id = $1",
+    [playerId]
+  );
+  const oldPhoto = oldPhotoRes.rows[0]?.photo_link;
+  const newPhoto = data.photo_link ?? null;
+
+  if (
+    oldPhoto &&
+    oldPhoto !== newPhoto &&
+    process.env.BLOB_READ_WRITE_TOKEN
+  ) {
+    try {
+      if (oldPhoto.includes("/api/blob?pathname=")) {
+        const urlObj = new URL(oldPhoto, "http://localhost");
+        const pathname = urlObj.searchParams.get("pathname");
+        if (pathname) await del(pathname);
+      } else if (oldPhoto.includes(".blob.vercel-storage.com")) {
+        await del(oldPhoto);
+      }
+    } catch (delErr) {
+      console.warn("Notice: could not delete replaced blob:", delErr);
+    }
   }
 
   const query = `
@@ -32,7 +59,7 @@ export async function updatePlayerAction(playerId: number, data: any) {
     data.player_number || data.number || null,
     data.player_callsign || data.nickname || null,
     data.player_position || data.role || null,
-    data.photo_link || data.photo || null,
+    newPhoto,
     data.main_player || false,
     data.biography_main || data.biography || null,
     data.biography_detail || null,
@@ -41,8 +68,10 @@ export async function updatePlayerAction(playerId: number, data: any) {
 
   await pool.query(query, values);
 
-  // Purge the cached data so the page displays the latest values immediately
+  // Purge cached pages so changes reflect immediately
   revalidatePath("/cms/teammanagement");
+  revalidatePath("/team");
+  return { success: true };
 }
 
 export async function addPlayerAction(data: any) {
@@ -70,13 +99,13 @@ export async function addPlayerAction(data: any) {
   const values = [
     data.player_id,
     data.player_name,
-    data.player_number,
-    data.player_callsign,
-    data.player_position,
-    data.photo_link,
+    data.player_number || null,
+    data.player_callsign || null,
+    data.player_position || null,
+    data.photo_link || null,
     data.main_player || false,
-    data.biography_main,
-    data.biography_detail
+    data.biography_main || null,
+    data.biography_detail || null
   ];
 
   try {
@@ -84,13 +113,13 @@ export async function addPlayerAction(data: any) {
 
     // Purge the cached data so the page displays the latest values immediately
     revalidatePath("/cms/teammanagement");
+    revalidatePath("/team");
     return { success: true };
   } catch (error: any) {
     if (error.code === '23505') {
-      // Expose the exact Postgres constraint detail (e.g. "Key (player_name)=(John) already exists.")
       return { success: false, error: `Duplicate entry error: ${error.detail || 'A player with this ID or Name already exists.'}` };
     }
     console.error("Database Error:", error);
     return { success: false, error: "Failed to add player to the database." };
   }
-}
+}

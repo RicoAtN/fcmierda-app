@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { addPlayerAction } from "./actions";
+import PlayerPhotoUploader from "@/components/PlayerPhotoUploader";
 
 export default function ClientAddPlayer() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -143,13 +144,14 @@ export default function ClientAddPlayer() {
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Photo Link</label>
-              <input
-                type="text"
-                value={formData.photo_link}
-                onChange={(e) => setFormData({ ...formData, photo_link: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-green-500"
-                placeholder="E.g. https://example.com/photo.jpg or filename"
+              <label className="text-gray-400 block text-xs uppercase tracking-wider mb-2">Player Profile Photo</label>
+              <PlayerPhotoUploader
+                currentPhotoUrl={formData.photo_link || null}
+                playerName={formData.player_name || "new-player"}
+                onPhotoChange={(newUrl) =>
+                  setFormData({ ...formData, photo_link: newUrl || "" })
+                }
+                disabled={isSaving}
               />
             </div>
             <div className="sm:col-span-2 flex items-center gap-2 mt-2">
