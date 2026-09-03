@@ -116,64 +116,41 @@ export default async function ResultsPage() {
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
       <Menu />
 
-      {/* Results Intro Section */}
-      <section
-        className="w-full flex justify-center items-center py-10 px-4 bg-gray-900"
-        style={{
-          background: "linear-gradient(135deg, #232526 0%, #414345 100%)",
-        }}
-      >
-        <div className="max-w-2xl w-full flex flex-col items-center text-center mt-16 sm:mt-32">
-          <h1
-            className={`text-3xl sm:text-5xl font-extrabold mb-4 ${robotoSlab.className}`}
-            style={{
-              letterSpacing: "0.07em",
-              textShadow: `
-                0 0 4px #0b3d1a,
-                0 2px 0 #0b3d1a,
-                0 1px 0 #fff
-              `,
-              color: "#fff",
-              textTransform: "uppercase",
-            }}
-          >
-            Team Results
-          </h1>
-          <p
-            className={`text-lg sm:text-xl text-white font-medium mb-8 drop-shadow-lg ${montserrat.className}`}
-            style={{ maxWidth: 600 }}
-          >
-            Here you can find the latest result of FC Mierda. Relive the match, check the score, and watch the video summary if available. <b>Click on the match below for more details.</b>
+      {/* Main Results Section */}
+      <section className="w-full flex flex-col items-center gap-8 pt-24 sm:pt-32 pb-12 px-4 bg-gray-800">
+        {/* Intro Description */}
+        <div className="max-w-2xl w-full text-center">
+          <p className={`text-base sm:text-lg text-gray-200 font-medium max-w-xl mx-auto ${montserrat.className}`}>
+            Here you can find all information about FC Mierda&apos;s latest match results, scores, recaps, and competition standings.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 mt-2">
-            <a
-              href="#all-results"
-              className="px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-green-300 transition"
-              aria-label="Go to All match results"
-              style={{ letterSpacing: "0.03em" }}
-            >
-              See match results
-            </a>
-            <a
-              href="#competitions-overview"
-              className="px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-yellow-300 transition"
-              aria-label="Go to Competitions overview"
-              style={{ letterSpacing: "0.03em" }}
-            >
-              Competitions overview
-            </a>
-          </div>
         </div>
-      </section>
 
-      {/* Two-section content (removed Latest game result) */}
-      <section className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800">
         {/* All match results */}
         <div id="all-results" className="max-w-6xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-900 shadow-xl mx-auto">
-                    <TeamForm teamId={1} className="mt-1" />
+          <TeamForm teamId={1} className="mt-1" />
 
           <ClientMatchResults allResults={allResults} rowsToShow={5} />
-          
+        </div>
+
+        {/* League Table & Opponents Link Section (Compact) */}
+        <div
+          id="league-info"
+          className="max-w-xl w-full bg-gray-900/80 rounded-xl p-4 text-center border border-gray-700/60 shadow-md"
+        >
+          <h3 className="text-base font-bold text-white mb-1">
+            League Table &amp; Opponents
+          </h3>
+          <p className="text-xs sm:text-sm text-gray-300 mb-2">
+            For live division standings, upcoming results, and opponent information:
+          </p>
+          <a
+            href="https://www.powerleague.com/nl/5-a-side-leagues-near-me-nl?search_location=Rotterdam%2C+NL&single_location=&default_lat=&default_lng=&search_lat=51.9244424&search_lng=4.47775&territory_id=322&search_range=35&search_league_type_category=&search_league_type=&search_league_day=&action=searchLeagueSites"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-emerald-400 hover:text-emerald-300 underline transition-colors"
+          >
+            <span>Visit official Powerleague Rotterdam standings &amp; schedule ↗</span>
+          </a>
         </div>
 
         {/* Competitions overview */}

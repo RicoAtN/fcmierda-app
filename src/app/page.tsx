@@ -5,6 +5,7 @@ import Menu from "@/components/Menu"; // <-- Import your Menu component
 import Footer from "@/components/Footer";
 import TeamForm from "@/components/TeamForm";
 import UpcomingMatch from "@/components/UpcomingMatch";
+import Sponsors from "@/components/Sponsors";
 
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
@@ -66,6 +67,10 @@ export default function Home() {
           <TeamForm teamId={1} className="mt-6" />
         </div>
       </main>
+
+      {/* Club Sponsors Section - Prominent Placement */}
+      <Sponsors />
+
       {/* Lower scrollable section remains */}
       <section
         className="w-full flex justify-center items-center py-12 px-3"

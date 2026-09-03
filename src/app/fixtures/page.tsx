@@ -3,6 +3,7 @@ import Menu from "@/components/Menu";
 import Footer from "@/components/Footer"; // Add this import at the top
 import { Pool } from "pg";
 import TeamForm from "@/components/TeamForm"; // NEW: import
+import Sponsors from "@/components/Sponsors";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -120,57 +121,15 @@ export default async function FixturesPage() {
       {/* Navigation Bar */}
       <Menu />
 
-      {/* Fixtures Intro Section */}
-      <section
-        className="w-full flex justify-center items-center py-10 px-4 bg-gray-900"
-        style={{
-          background: "linear-gradient(135deg, #232526 0%, #414345 100%)",
-        }}
-      >
-        <div className="max-w-2xl w-full flex flex-col items-center text-center mt-16 sm:mt-32">
-          <h1
-            className={`text-3xl sm:text-5xl font-extrabold mb-4 ${robotoSlab.className}`}
-            style={{
-              letterSpacing: "0.07em",
-              textShadow: `
-                0 0 4px #0b3d1a,
-                0 2px 0 #0b3d1a,
-                0 1px 0 #fff
-              `,
-              color: "#fff",
-              textTransform: "uppercase",
-            }}
-          >
-            Fixtures
-          </h1>
-          <p
-            className={`text-lg sm:text-xl text-white font-medium mb-8 drop-shadow-lg ${montserrat.className}`}
-            style={{ maxWidth: 600 }}
-          >
-            Here you can find FC Mierda&apos;s latest schedule and league table standings.
-          
+      {/* Next Game Section */}
+      <section id="next-game" className="w-full flex flex-col items-center gap-6 pt-24 sm:pt-32 pb-12 px-4 bg-gray-800">
+        {/* Intro Description */}
+        <div className="max-w-2xl w-full text-center">
+          <p className={`text-base sm:text-lg text-gray-200 font-medium max-w-xl mx-auto ${montserrat.className}`}>
+            Here you can find all information about FC Mierda&apos;s next game, including kickoff details, location, and squad attendance.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 mt-2">
-            <a
-              href="#next-game"
-              className="px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-green-300 transition"
-              style={{ letterSpacing: "0.03em" }}
-            >
-              Next Game Details
-            </a>
-            <a
-              href="#league-table"
-              className="px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-yellow-300 transition"
-              style={{ letterSpacing: "0.03em" }}
-            >
-              League Table
-            </a>
-          </div>
         </div>
-      </section>
 
-      {/* Next Game Update Section */}
-      <section id="next-game" className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800">
         <div className="max-w-2xl w-full rounded-2xl p-6 sm:p-10 text-white text-center bg-gray-900 shadow-xl mx-auto">
 
           {/* Team recent form — above the header */}
@@ -268,40 +227,10 @@ export default async function FixturesPage() {
             </div>
           </div>
         </div>
-
-        {/* League Table Section */}
-        <div id="league-table" className="max-w-4xl w-full rounded-2xl p-6 sm:p-10 text-white text-center bg-gray-900 shadow-xl mx-auto mt-8">
-          <h2
-            className={`text-xl sm:text-2xl font-bold mb-4 ${robotoSlab.className}`}
-          >
-            League Table
-          </h2>
-          <div className={`mb-2 text-base sm:text-lg ${montserrat.className}`}>
-            <span className="font-semibold text-green-300">Division:</span>{" "}
-            First Division Rotterdam 7vs7 - March 2026
-          </div>
-          <div className="flex flex-col items-center gap-6 my-6">
-            <img
-              src="/currentLeagueTable.jpg"
-              alt="Current League Table"
-              className="rounded-lg shadow-lg max-w-full h-auto border border-green-700"
-              style={{ maxHeight: 500 }}
-            />
-          </div>
-          <p className={`text-base sm:text-lg font-bold ${montserrat.className} mt-4`}>
-            View the current standings and results for Powerleague First Division
-            Rotterdam 7vs7.
-          </p>
-          <a
-            href="https://www.powerleague.com/nl/competitie?league_id=dd6599fd-1839-8f85-eb14-ca954827b233&division_id="
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-green-300 font-bold underline"
-          >
-            Visit Powerleague.com for the latest info the league standings, results, and program.
-          </a>
-        </div>
       </section>
+
+      {/* Club Sponsors Section */}
+      <Sponsors />
 
       {/* Footer */}
       <Footer />

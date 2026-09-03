@@ -55,6 +55,11 @@ export default function CMSPage() {
             <span className="font-semibold">
               Manage team members and their information.
             </span>
+            <br />
+            <br />
+            <span className="font-semibold">
+              Add or edit club sponsors and partners with Vercel cloud logo storage.
+            </span>
           </p>
           <div className="w-full max-w-md flex flex-col gap-3 mt-6">
             <button
@@ -87,6 +92,14 @@ export default function CMSPage() {
               className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-purple-300 transition min-h-[44px]"
             >
               Update team management
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/cms/sponsors")}
+              className="inline-flex w-full justify-center items-center gap-2.5 px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-emerald-300 transition min-h-[44px]"
+            >
+              Add/edit sponsors
             </button>
           </div>
         </div>
