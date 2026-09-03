@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import AvailabilityPushModal from "@/components/AvailabilityPushModal";
 
 type UiPlayer = { key: string; name: string; number?: string };
 type Substitute = { name: string; status: string };
@@ -21,6 +22,38 @@ export default function PlayerAttendance() {
   const [subs, setSubs] = useState<Substitute[]>([{ name: "", status: "unknown" }]);
   const [knownSubs, setKnownSubs] = useState<string[]>([]);
   const [status, setStatus] = useState("");
+  const [showPushModal, setShowPushModal] = useState(false);
+
+  // Helper to check if user is already subscribed to push notifications
+  async function checkIsSubscribed(): Promise<boolean> {
+    if (typeof window === "undefined") return false;
+
+    // 1. Browser Notification permission granted
+    if ("Notification" in window && Notification.permission === "granted") {
+      return true;
+    }
+
+    // 2. Local storage v2 subscription flag
+    if (localStorage.getItem("fcmierda_push_v2_subscribed") === "true") {
+      return true;
+    }
+
+    // 3. Active service worker push subscription
+    if ("serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg?.pushManager?.getSubscription();
+        if (sub) {
+          localStorage.setItem("fcmierda_push_v2_subscribed", "true");
+          return true;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    return false;
+  }
 
   // normalize keys like "#12 John Doe" => "John Doe"
   function normalizeKey(k: string) {
@@ -172,7 +205,14 @@ export default function PlayerAttendance() {
         body: JSON.stringify({ ...form, attendance: mergedAttendance, timestamp }),
       });
       setStatus("Saved! Availability has been recorded.");
-      setTimeout(() => router.push("/fixtures#next-game"), 900);
+
+      const isSubscribed = await checkIsSubscribed();
+      if (isSubscribed) {
+        setTimeout(() => router.push("/fixtures#next-game"), 900);
+      } else {
+        // Show push notification call-to-action modal
+        setShowPushModal(true);
+      }
     } catch {
       setStatus("Failed to save. Try again.");
     }
@@ -273,6 +313,11 @@ export default function PlayerAttendance() {
         </button>
         <div className="text-green-400">{status}</div>
       </div>
+
+      <AvailabilityPushModal
+        isOpen={showPushModal}
+        onClose={() => setShowPushModal(false)}
+      />
     </form>
   );
 }

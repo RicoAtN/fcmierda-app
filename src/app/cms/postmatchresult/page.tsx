@@ -101,6 +101,8 @@ export default function PostMatchResultPage() {
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState<MatchResult | null>(null);
   const [editStatus, setEditStatus] = useState("");
+  const [editNotifyUsers, setEditNotifyUsers] = useState(false);
+  const [editCustomNotificationText, setEditCustomNotificationText] = useState("");
 
   // attendance add-field state
   const [newAttendanceName, setNewAttendanceName] = useState("");
@@ -166,6 +168,8 @@ export default function PostMatchResultPage() {
     }
     setEditStatus("");
     setNewAttendanceName("");
+    setEditNotifyUsers(false);
+    setEditCustomNotificationText("");
   }, [selectedResult]);
 
   // Attendance handlers for edit form
@@ -414,8 +418,58 @@ export default function PostMatchResultPage() {
       return;
     }
 
-    setEditStatus("Saved! The match result has been updated.");
+    if (editNotifyUsers) {
+      setEditStatus("Saved! Sending notifications to subscribers...");
+      const formattedDayMonth = formatDayMonth(editForm.date);
+      const datePrefix = formattedDayMonth ? `${formattedDayMonth}: ` : "";
+      const currentResult = editForm.gameResult ?? editForm.game_result ?? "";
+      const resultWord = currentResult === "win" ? "won" : currentResult === "loss" ? "lost" : currentResult === "draw" ? "drew" : "played";
+      const resultTitleWord = currentResult === "win" ? "Win" : currentResult === "loss" ? "Loss" : currentResult === "draw" ? "Draw" : "Result";
+      const goalsFC = editForm.goalsFCMierda ?? editForm.goals_fcmierda ?? 0;
+      const goalsOpp = editForm.goalsOpponent ?? editForm.goals_opponent ?? 0;
+      const scoreText = `${goalsFC} - ${goalsOpp}`;
+      const autoTitle = `Match result: ${resultTitleWord} vs ${editForm.opponent || "opponent"} ⚽`;
+      const resultPrefix = `${datePrefix}FC Mierda ${resultWord} (${scoreText}) against ${editForm.opponent || "our opponent"}.`;
+      const defaultSuffix = "Check out the goal scorers and match recap!";
+      const fullBody = editCustomNotificationText.trim()
+        ? `${resultPrefix} ${editCustomNotificationText.trim()}`
+        : `${resultPrefix} ${defaultSuffix}`;
+
+      try {
+        const notifyRes = await fetch("/api/push/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "match_result",
+            title: autoTitle,
+            body: fullBody,
+            matchResultData: {
+              opponent: editForm.opponent,
+              date: editForm.date,
+              gameResult: currentResult,
+              goalsFCMierda: goalsFC,
+              goalsOpponent: goalsOpp,
+              manOfTheMatch: editForm.fcmierda_man_of_the_match ?? editForm.fcmierdaManOfTheMatch ?? "",
+            },
+          }),
+        });
+        const notifyData = await notifyRes.json();
+        if (notifyData?.sent && notifyData.sent > 0) {
+          setEditStatus(`Saved! Match result notification sent to ${notifyData.sent} subscribers.`);
+        } else {
+          setEditStatus("Saved! The match result has been updated.");
+        }
+      } catch (pushErr) {
+        console.error("Failed to dispatch match result notification:", pushErr);
+        setEditStatus("Saved match result! (Push notifications could not be sent).");
+      }
+    } else {
+      setEditStatus("Saved! The match result has been updated.");
+    }
+
     setEditMode(false);
+    setEditNotifyUsers(false);
+    setEditCustomNotificationText("");
 
     // Refresh all results
     fetch(`/api/match-result?all=true&_t=${Date.now()}`, { cache: "no-store" })
@@ -881,6 +935,8 @@ export default function PostMatchResultPage() {
                         onClick={() => {
                           setEditMode(true);
                           setEditForm({ ...selectedResult });
+                          setEditNotifyUsers(false);
+                          setEditCustomNotificationText("");
                         }}
                       >
                         Edit here
@@ -1003,6 +1059,11 @@ export default function PostMatchResultPage() {
                     <div className="mb-2">
                       <strong>Last Edited:</strong> <span className="text-gray-300">{selectedResult.lastedited || selectedResult.lastEdited || "-"}</span>
                     </div>
+                    {editStatus && (
+                      <div className="mt-4 p-3 bg-green-950/80 border border-green-700/60 rounded text-green-300 text-sm font-semibold">
+                        {editStatus}
+                      </div>
+                    )}
                   </>
                 ) : (
                   <form
@@ -1233,6 +1294,81 @@ export default function PostMatchResultPage() {
                         placeholder="Write or edit match summary..."
                       />
                     </div>
+
+                    {/* Notification section for Edit */}
+                    <div className="flex flex-col p-4 bg-gray-800 border border-green-700/60 rounded-xl shadow-md space-y-3">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="editNotifyMatchResult"
+                          checked={editNotifyUsers}
+                          onChange={(e) => setEditNotifyUsers(e.target.checked)}
+                          className="w-5 h-5 text-green-600 bg-gray-900 border-gray-600 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
+                        />
+                        <label htmlFor="editNotifyMatchResult" className="ml-3 text-white font-semibold cursor-pointer select-none flex items-center gap-2">
+                          <span>🔔</span> Notify subscribers about this match result
+                        </label>
+                      </div>
+
+                      {/* Subscriber Audience Count & Platform Breakdown */}
+                      <div className="pt-0.5">
+                        <SubscriberStatsBadge theme="green" />
+                      </div>
+
+                      {editNotifyUsers && (
+                        <div className="mt-2 p-3.5 bg-gray-900/90 border border-gray-700 rounded-lg space-y-2.5 text-xs sm:text-sm">
+                          <div className="text-gray-400 font-medium">Push Notification Preview:</div>
+                          <div className="p-3 bg-gray-800/90 rounded border border-gray-700 space-y-1">
+                            <div className="font-bold text-green-400">
+                              📢 Match result: {
+                                (editForm?.gameResult || editForm?.game_result) === "win"
+                                  ? "Win"
+                                  : (editForm?.gameResult || editForm?.game_result) === "loss"
+                                  ? "Loss"
+                                  : (editForm?.gameResult || editForm?.game_result) === "draw"
+                                  ? "Draw"
+                                  : "Result"
+                              } vs {editForm?.opponent || "opponent"} ⚽
+                            </div>
+                            <div className="text-gray-200 text-xs sm:text-sm leading-relaxed">
+                              <span className="font-bold text-green-300">
+                                {formatDayMonth(editForm?.date) ? `${formatDayMonth(editForm?.date)}: ` : ""}FC Mierda {
+                                  (editForm?.gameResult || editForm?.game_result) === "win"
+                                    ? "won"
+                                    : (editForm?.gameResult || editForm?.game_result) === "loss"
+                                    ? "lost"
+                                    : (editForm?.gameResult || editForm?.game_result) === "draw"
+                                    ? "drew"
+                                    : "played"
+                                } ({editForm?.goals_fcmierda ?? editForm?.goalsFCMierda ?? 0} - {editForm?.goals_opponent ?? editForm?.goalsOpponent ?? 0}) against {editForm?.opponent || "our opponent"}.
+                              </span>{" "}
+                              {editCustomNotificationText.trim() || "Check out the goal scorers and match recap!"}
+                            </div>
+                          </div>
+
+                          <div className="pt-2">
+                            <label className="block text-gray-300 font-semibold mb-1 text-xs">
+                              Custom message note (optional):
+                            </label>
+                            <input
+                              type="text"
+                              value={editCustomNotificationText}
+                              onChange={(e) => setEditCustomNotificationText(e.target.value)}
+                              placeholder="e.g. Score updated or Kevin awarded Man of the Match!"
+                              className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white text-xs sm:text-sm placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                            />
+                            <p className="mt-1 text-[11px] text-gray-400">
+                              The opponent, score, date, and result (Win/Loss/Draw) are always automatically included at the start.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="mt-1 text-xs text-gray-300">
+                        Sends a push notification to all subscribers taking them directly to the Results page.
+                      </p>
+                    </div>
+
                     <button
                       type="submit"
                       className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
@@ -1242,7 +1378,11 @@ export default function PostMatchResultPage() {
                     <button
                       type="button"
                       className="ml-4 bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
-                      onClick={() => setEditMode(false)}
+                      onClick={() => {
+                        setEditMode(false);
+                        setEditNotifyUsers(false);
+                        setEditCustomNotificationText("");
+                      }}
                     >
                       Cancel
                     </button>

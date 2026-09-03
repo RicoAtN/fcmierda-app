@@ -8,6 +8,19 @@ import TeamForm from "@/components/TeamForm";
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
 
+function CrownIcon({ className = "w-3.5 h-3.5 text-amber-400" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
+    </svg>
+  );
+}
+
 type PlayerStats = {
   player_id: number;
   player_name?: string;
@@ -164,6 +177,156 @@ export default function StatisticsPage() {
 
   const mains = stats.filter(s => s.main_player === true);
 
+  interface TopPerformerBlock {
+    heading: string;
+    subtitle?: string;
+    list?: PlayerStats[];
+    groupedList?: GroupedStat[];
+    valueKey: StatKey;
+    isAvg?: boolean;
+    invert?: boolean;
+  }
+
+  const renderTopPerformerCards = (blocks: TopPerformerBlock[], isLoading: boolean = false) =>
+    blocks.map((block, i) => (
+      <div
+        key={i}
+        className="bg-gray-900/50 rounded-lg p-4 border border-gray-700/50 hover:border-gray-600/70 transition-colors flex flex-col justify-between"
+      >
+        <div>
+          {/* Card Header */}
+          <div className="flex items-center justify-between gap-2 mb-3 pb-2 border-b border-gray-700/40">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-300">
+              {block.heading}
+            </span>
+            {block.subtitle && (
+              <span className="text-[11px] text-gray-400 font-normal">
+                {block.subtitle}
+              </span>
+            )}
+          </div>
+
+          {/* List */}
+          <ul className="space-y-1.5">
+            {(block.list || []).map((ps, idx) => {
+              const name = (ps.player_name || `Player ${ps.player_id}`).trim();
+              const raw = toNum((ps as any)[block.valueKey]) ?? 0;
+              const val = block.isAvg ? raw.toFixed(2) : String(raw);
+              const isFirst = idx === 0;
+
+              return (
+                <li
+                  key={`${block.valueKey}-${ps.player_id}`}
+                  className={`flex items-center justify-between rounded-md px-3 py-2 cursor-pointer transition-colors group text-sm ${
+                    isFirst
+                      ? "bg-amber-500/10 border border-amber-500/30 text-amber-100 hover:bg-amber-500/15"
+                      : "bg-black/20 hover:bg-black/40 text-gray-200"
+                  }`}
+                  onClick={() => window.location.assign(`/team?playerId=${ps.player_id}#player-bio`)}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="flex items-center gap-1 w-7 shrink-0">
+                      {isFirst ? (
+                        <>
+                          <span className="font-bold text-amber-400">1.</span>
+                          <CrownIcon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        </>
+                      ) : (
+                        <span className="text-gray-400">{idx + 1}.</span>
+                      )}
+                    </span>
+                    <span
+                      className={`truncate font-medium transition-colors ${
+                        isFirst
+                          ? "text-amber-100 group-hover:text-amber-50 font-semibold"
+                          : "text-gray-200 group-hover:text-green-300"
+                      }`}
+                    >
+                      {name}
+                    </span>
+                  </div>
+
+                  <span
+                    className={`ml-3 tabular-nums font-semibold ${
+                      isFirst ? "text-amber-300" : "text-green-300"
+                    }`}
+                  >
+                    {val}
+                  </span>
+                </li>
+              );
+            })}
+
+            {(block.groupedList || []).map((group, idx) => {
+              const val = block.isAvg ? group.score.toFixed(2) : String(group.score);
+              const isFirst = idx === 0;
+
+              return (
+                <li
+                  key={`${block.valueKey}-group-${idx}`}
+                  className={`flex items-start justify-between rounded-md px-3 py-2 transition-colors text-sm ${
+                    isFirst
+                      ? "bg-amber-500/10 border border-amber-500/30 text-amber-100"
+                      : "bg-black/20 text-gray-200"
+                  }`}
+                >
+                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                    <span className="flex items-center gap-1 w-7 shrink-0 mt-0.5">
+                      {isFirst ? (
+                        <>
+                          <span className="font-bold text-amber-400">1.</span>
+                          <CrownIcon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        </>
+                      ) : (
+                        <span className="text-gray-400">{idx + 1}.</span>
+                      )}
+                    </span>
+
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 flex-1 min-w-0">
+                      {group.players.map((ps, pIdx) => {
+                        const name = (ps.player_name || `Player ${ps.player_id}`).trim();
+                        return (
+                          <React.Fragment key={ps.player_id}>
+                            <a
+                              href={`/team?playerId=${ps.player_id}#player-bio`}
+                              className={`transition-colors truncate max-w-full ${
+                                isFirst
+                                  ? "font-semibold text-amber-100 hover:text-white"
+                                  : "font-medium text-gray-200 hover:text-green-300"
+                              }`}
+                            >
+                              {name}
+                            </a>
+                            {pIdx < group.players.length - 1 && (
+                              <span className={isFirst ? "text-amber-400/60" : "text-gray-500"}>,</span>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <span
+                    className={`ml-3 tabular-nums font-semibold shrink-0 ${
+                      isFirst ? "text-amber-300" : "text-green-300"
+                    }`}
+                  >
+                    {val}
+                  </span>
+                </li>
+              );
+            })}
+
+            {isLoading ? (
+              <li className="text-xs text-gray-500 animate-pulse py-2 text-center">Loading data...</li>
+            ) : !(block.list?.length) && !(block.groupedList?.length) ? (
+              <li className="text-xs text-gray-500 py-1 text-center">No data.</li>
+            ) : null}
+          </ul>
+        </div>
+      </div>
+    ));
+
   const renderStatBlocks = (blocks: StatBlock[], scrollable: boolean = false, isLoading: boolean = false) => blocks.map((block, i) => (
     <div key={i}>
       <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">{block.heading}</div>
@@ -309,42 +472,58 @@ export default function StatisticsPage() {
         </section>
 
         {/* All-time top performers */}
-        <section id="top-performers" className="mb-8 bg-gray-800 rounded-xl p-5 shadow">
-          <header className="mb-6 text-center">
-            <h2 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>All-time top performers</h2>
-            <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
-              Check the leading players in key performance metrics throughout FC Mierda's history. Click on the player's name to see more information and other statistics of the player.
+        <section
+          id="top-performers"
+          className="relative mb-10 bg-gradient-to-b from-gray-850 via-gray-800 to-gray-850 rounded-2xl p-5 sm:p-8 border border-amber-500/25 shadow-xl overflow-hidden"
+        >
+          {/* Subtle Ambient Accent Glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-28 bg-gradient-to-b from-amber-500/10 via-emerald-500/5 to-transparent blur-2xl pointer-events-none" />
+
+          <header className="relative mb-8 text-center flex flex-col items-center">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-amber-500/15 border border-amber-400/40 text-amber-300 text-xs font-semibold tracking-wider uppercase mb-3 shadow-sm">
+              <CrownIcon className="w-3.5 h-3.5 text-amber-400" />
+              <span>Hall of Fame</span>
+            </div>
+            <h2
+              className={`text-3xl sm:text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-transparent tracking-tight drop-shadow-sm ${robotoSlab.className}`}
+            >
+              All-Time Top Performers
+            </h2>
+            <p className={`mt-2.5 text-sm sm:text-base text-gray-300 max-w-2xl ${montserrat.className}`}>
+              Leading players in key performance metrics throughout FC Mierda&apos;s history. The top spot in each category holds the crown. Click on any player to view their profile.
             </p>
           </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {renderStatBlocks([
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {renderTopPerformerCards([
               { heading: "Top goal scorers", groupedList: rankGroupedTop(mains, "goals"), valueKey: "goals" },
               { heading: "Top assists", groupedList: rankGroupedTop(mains, "assists"), valueKey: "assists" },
               { heading: "Top goal involvement", groupedList: rankGroupedTop(mains, "goals_involvement"), valueKey: "goals_involvement" },
               { heading: "Most Man of the Match awards", groupedList: rankGroupedTop(mains, "fcmierda_man_of_the_match_awards"), valueKey: "fcmierda_man_of_the_match_awards" },
               {
                 heading: "Top avg goals per match",
+                subtitle: "min. 5 matches",
                 list: rankTop(
                   mains.filter(s => (s.match_played ?? 0) >= 5),
                   "average_goals_per_match"
                 ),
                 valueKey: "average_goals_per_match",
-                isAvg: true
+                isAvg: true,
               },
               {
                 heading: "Lowest avg goals conceded per match",
+                subtitle: "min. 5 matches",
                 list: rankLowest(
                   mains.filter(s => (s.match_played ?? 0) >= 5),
                   "average_goals_conceded_per_match"
                 ),
                 valueKey: "average_goals_conceded_per_match",
                 isAvg: true,
-                invert: true
+                invert: true,
               },
               { heading: "Most clean sheets", groupedList: rankGroupedTop(mains, "clean_sheets"), valueKey: "clean_sheets" },
               { heading: "Most matches played", groupedList: rankGroupedTop(mains, "match_played"), valueKey: "match_played" },
-            ], false, isLoadingStats)}
+            ], isLoadingStats)}
           </div>
         </section>
 

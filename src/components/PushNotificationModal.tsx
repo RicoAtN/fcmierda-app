@@ -87,6 +87,11 @@ export default function PushNotificationModal() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // Do not show the generic initial page-load prompt on the player availability page
+    if (window.location.pathname.includes("/cms/nextgameplayeravailability")) {
+      return;
+    }
+
     // Detect device environment
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
