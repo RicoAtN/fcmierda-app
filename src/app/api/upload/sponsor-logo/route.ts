@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
           success: true,
           url: blob.url,
           source: "vercel-blob-public",
+          fileName: file.name,
         });
       } catch (pubErr: any) {
         // If the store requires private access
@@ -113,6 +114,7 @@ export async function POST(req: NextRequest) {
             success: true,
             url: serveUrl,
             source: "vercel-blob-private",
+            fileName: file.name,
           });
         }
         throw pubErr;
@@ -128,6 +130,7 @@ export async function POST(req: NextRequest) {
       success: true,
       url: base64Data,
       source: "data-url-fallback",
+      fileName: file.name,
     });
   } catch (err: any) {
     console.error("Sponsor logo upload error:", err);

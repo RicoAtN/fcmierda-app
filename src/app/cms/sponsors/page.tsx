@@ -36,6 +36,31 @@ const emptyForm: Sponsor = {
   display_order: 1,
 };
 
+function getLogoTitle(logoUrl: string, uploadedName?: string, sponsorName?: string): string {
+  if (uploadedName && uploadedName.trim()) {
+    return uploadedName.trim();
+  }
+  if (!logoUrl) return "";
+  if (logoUrl.startsWith("data:")) {
+    return sponsorName && sponsorName.trim()
+      ? `${sponsorName.trim().toLowerCase().replace(/[^a-z0-9]/g, "_")}_logo.png`
+      : "uploaded_logo.png";
+  }
+  try {
+    const urlParts = logoUrl.split("/");
+    const lastPart = urlParts[urlParts.length - 1] || "";
+    const cleanName = lastPart.split("?")[0];
+    if (cleanName && cleanName.length > 0 && cleanName.length < 60) {
+      return decodeURIComponent(cleanName);
+    }
+  } catch {
+    // fallback
+  }
+  return sponsorName && sponsorName.trim()
+    ? `${sponsorName.trim().toLowerCase().replace(/[^a-z0-9]/g, "_")}_logo.png`
+    : "sponsor_logo.png";
+}
+
 export default function SponsorsCMSPage() {
   const router = useRouter();
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
@@ -45,6 +70,7 @@ export default function SponsorsCMSPage() {
   // Form states
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Sponsor>(emptyForm);
+  const [logoFileName, setLogoFileName] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   // File upload state
@@ -100,12 +126,13 @@ export default function SponsorsCMSPage() {
         throw new Error(data.error || "Upload failed");
       }
 
-      // Update logo URL directly with the Vercel Blob URL
+      // Update logo URL directly with the Vercel Blob URL or fallback
       setFormData((prev) => ({ ...prev, logo: data.url }));
-      setStatusMessage({ type: "success", text: "Logo uploaded to Vercel Blob successfully!" });
+      setLogoFileName(data.fileName || file.name);
+      setStatusMessage({ type: "success", text: "Logo uploaded successfully!" });
     } catch (err: any) {
       console.error("Vercel Blob upload error:", err);
-      setUploadError(err.message || "Failed to upload image to Vercel Blob.");
+      setUploadError(err.message || "Failed to upload image.");
     } finally {
       setUploadingLogo(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -117,6 +144,7 @@ export default function SponsorsCMSPage() {
       ...emptyForm,
       display_order: sponsors.length + 1,
     });
+    setLogoFileName("");
     setIsEditing(true);
     setStatusMessage(null);
     setUploadError("");
@@ -125,6 +153,7 @@ export default function SponsorsCMSPage() {
 
   const handleStartEdit = (s: Sponsor) => {
     setFormData({ ...s });
+    setLogoFileName(getLogoTitle(s.logo, "", s.name));
     setIsEditing(true);
     setStatusMessage(null);
     setUploadError("");
@@ -134,6 +163,7 @@ export default function SponsorsCMSPage() {
   const handleCancel = () => {
     setIsEditing(false);
     setFormData(emptyForm);
+    setLogoFileName("");
     setUploadError("");
   };
 
@@ -166,6 +196,7 @@ export default function SponsorsCMSPage() {
       });
       setIsEditing(false);
       setFormData(emptyForm);
+      setLogoFileName("");
       await fetchSponsors();
     } catch (err: any) {
       console.error("Error saving sponsor:", err);
@@ -439,8 +470,11 @@ export default function SponsorsCMSPage() {
                         <span>✓</span>
                         <span>Logo ready</span>
                       </div>
-                      <p className="text-[11px] text-gray-400 break-all font-mono">
-                        {formData.logo}
+                      <p
+                        className="text-xs text-gray-200 font-medium truncate max-w-md"
+                        title={getLogoTitle(formData.logo, logoFileName, formData.name)}
+                      >
+                        {getLogoTitle(formData.logo, logoFileName, formData.name)}
                       </p>
                     </div>
                     <button
