@@ -84,12 +84,12 @@ function SponsorCard({ sponsor, isSecond }: { sponsor: Sponsor; isSecond?: boole
         </div>
 
         {/* Sponsor Name & Tagline */}
-        <h3 className={`text-xl sm:text-2xl font-bold text-white mb-1.5 ${robotoSlab.className}`}>
+        <h3 className={`text-xl sm:text-2xl font-bold text-white mb-1.5 text-center ${robotoSlab.className}`}>
           {sponsor.name}
         </h3>
 
         {sponsor.tagline && (
-          <p className="text-sm font-semibold text-emerald-400 mb-2">
+          <p className="text-sm font-semibold text-emerald-400 mb-2 text-center">
             {sponsor.tagline}
           </p>
         )}
@@ -235,7 +235,7 @@ export default function Sponsors() {
 
     const interval = setInterval(() => {
       nextSlide();
-    }, 5000);
+    }, 7500);
 
     return () => clearInterval(interval);
   }, [isMobile, total, isPaused, animStage, nextSlide]);
