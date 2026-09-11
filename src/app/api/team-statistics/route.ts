@@ -1,10 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+type TeamStats = {
+  match_played: number;
+  clean_sheets: number;
+  total_wins: number;
+  total_losses: number;
+  total_draws: number;
+  goals_scored: number;
+  average_goals_per_match: number;
+  goals_conceded: number;
+  average_goals_conceded_per_match: number;
+  win_percentage: number;
+};
+
+export async function GET(req: NextRequest) {
   try {
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) {
@@ -12,19 +25,70 @@ export async function GET() {
     }
     const sql = neon(dbUrl);
 
-    type TeamStatsRow = {
-      match_played: number;
-      clean_sheets: number;
-      total_wins: number;
-      total_losses: number;
-      total_draws: number;
-      goals_scored: number;
-      average_goals_per_match: number;
-      goals_conceded: number;
-      average_goals_conceded_per_match: number;
-      win_percentage: number;
-    };
+    const { searchParams } = new URL(req.url);
+    const competition = searchParams.get("competition")?.trim();
 
+    if (competition && competition.toLowerCase() !== "all" && competition !== "") {
+      // Calculate team statistics for the specific competition
+      const matches = await sql`
+        SELECT
+          goals_fcmierda,
+          goals_opponent,
+          game_result
+        FROM match_result
+        WHERE TRIM(competition) = TRIM(${competition});
+      `;
+
+      let match_played = matches.length;
+      let total_wins = 0;
+      let total_draws = 0;
+      let total_losses = 0;
+      let goals_scored = 0;
+      let goals_conceded = 0;
+      let clean_sheets = 0;
+
+      for (const m of matches) {
+        const gf = Number(m.goals_fcmierda) || 0;
+        const ga = Number(m.goals_opponent) || 0;
+        goals_scored += gf;
+        goals_conceded += ga;
+        if (ga === 0) clean_sheets++;
+
+        const res = (m.game_result || "").toLowerCase().trim();
+        if (res === "win" || res === "w" || res === "victory") {
+          total_wins++;
+        } else if (res === "draw" || res === "d" || res === "tie") {
+          total_draws++;
+        } else if (res === "loss" || res === "l" || res === "lose") {
+          total_losses++;
+        } else {
+          if (gf > ga) total_wins++;
+          else if (gf === ga) total_draws++;
+          else total_losses++;
+        }
+      }
+
+      const average_goals_per_match = match_played > 0 ? goals_scored / match_played : 0;
+      const average_goals_conceded_per_match = match_played > 0 ? goals_conceded / match_played : 0;
+      const win_percentage = match_played > 0 ? (total_wins / match_played) * 100 : 0;
+
+      const data: TeamStats = {
+        match_played,
+        clean_sheets,
+        total_wins,
+        total_losses,
+        total_draws,
+        goals_scored,
+        average_goals_per_match,
+        goals_conceded,
+        average_goals_conceded_per_match,
+        win_percentage,
+      };
+
+      return NextResponse.json({ data }, { status: 200 });
+    }
+
+    // Default: All-Time team statistics (from team_statistics table with fallback to match_result)
     const rows = (await sql`
       SELECT
         match_played,
@@ -33,7 +97,7 @@ export async function GET() {
         total_losses,
         total_draws,
         goals_scored,
-        win_percentage,
+        win_percentage::float8 AS win_percentage,
         COALESCE(
           average_goals_per_match,
           CASE WHEN match_played > 0 THEN goals_scored::float8 / NULLIF(match_played, 0) ELSE 0 END
@@ -45,9 +109,9 @@ export async function GET() {
         )::float8 AS average_goals_conceded_per_match
       FROM public.team_statistics
       LIMIT 1;
-    `) as TeamStatsRow[];
+    `) as TeamStats[];
 
-    const data =
+    const data: TeamStats =
       rows?.[0] ?? {
         match_played: 0,
         clean_sheets: 0,
@@ -67,4 +131,4 @@ export async function GET() {
     console.error("Team statistics API error:", err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+}
