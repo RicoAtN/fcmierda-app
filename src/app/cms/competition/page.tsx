@@ -2,6 +2,11 @@
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
 import { useEffect, useState } from "react";
+import { Roboto_Slab, Montserrat } from "next/font/google";
+import Link from "next/link";
+
+const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "900"] });
+const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 type CompetitionOverviewRow = {
   id: string;
@@ -31,6 +36,7 @@ type NewCompetition = {
   league_link: string | null;
   opponents: string[];
 };
+
 // Helper to compute default competition name
 function monthName(d: Date) {
   return d.toLocaleString("en", { month: "long" });
@@ -53,16 +59,8 @@ function removeFirstWords(input: string | null, count = 2) {
 function formatMonthYear(dateStr: string | null) {
   if (!dateStr) return "-";
   const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return dateStr; // fallback to raw if not a valid date
+  if (Number.isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-}
-
-// Status pill for current competition when final rank is missing
-function FinalRankCell({ rank }: { rank: number | null }) {
-  if (rank == null) {
-    return <span className="value-text">-</span>;
-  }
-  return <span className="value-text">{rank}</span>;
 }
 
 // Highlight row when champion contains "FC Mierda"
@@ -77,29 +75,23 @@ function ChampionCell({ champion }: { champion: string | null }) {
     const isExactFcMierda = val.toLowerCase() === "fc mierda";
     return (
       <span className="inline-flex items-center gap-1.5">
-        <span className="value-text">{val}</span>
+        <span className="text-gray-200 font-medium">{val}</span>
         {isExactFcMierda && (
           <span
-            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-yellow-600/20 text-yellow-300 border border-yellow-500/40 text-[10px]"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold"
             title="FC Mierda crowned champion"
             aria-label="Champion"
           >
-            {/* Trophy icon */}
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M6 4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2h2a1 1 0 0 1 1 1c0 3.866-3.134 7-7 7h-4c-3.866 0-7-3.134-7-7a1 1 0 0 1 1-1h2V4zm14 3h-2c0 3.314-2.686 6-6 6s-6-2.686-6-6H4c.264 2.997 2.58 5.39 5.55 5.91A5.002 5.002 0 0 0 9 15h6a5.002 5.002 0 0 0-.55-2.09C17.42 12.39 19.736 9.997 20 7zM9 17h6v2a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2z" />
-            </svg>
-            CHAMPION
+            🏆 CHAMPION
           </span>
         )}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-600/20 text-teal-300 border border-teal-500/40 text-[11px] font-semibold">
-      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <circle cx="12" cy="12" r="8" />
-      </svg>
-      ONGOING COMPETITION
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-700/50 text-[10px] font-bold">
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+      ONGOING
     </span>
   );
 }
@@ -108,14 +100,14 @@ export default function CompetitionCMSPage() {
   const [rows, setRows] = useState<CompetitionOverviewRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // NEW: selection + form state
+  // Selection + form state
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [form, setForm] = useState<CompetitionOverviewRow | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
-  // NEW: create competition state
+  // Create competition state
   const [newOpen, setNewOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -135,7 +127,7 @@ export default function CompetitionCMSPage() {
     opponents: [],
   });
 
-  // NEW: delete competition state
+  // Delete competition state
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePw, setDeletePw] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -160,7 +152,6 @@ export default function CompetitionCMSPage() {
     })();
   }, []);
 
-  // NEW: load details from selected row
   async function handleSelect(row: CompetitionOverviewRow) {
     setLoadingDetails(true);
     setSaveError(null);
@@ -172,7 +163,7 @@ export default function CompetitionCMSPage() {
       const src: CompetitionOverviewRow = res.ok && json?.data ? json.data : row;
       const formData = {
         id: src.id,
-        organisation: src.organisation, // canonical from DB
+        organisation: src.organisation,
         division: src.division,
         competition_name: src.competition_name,
         total_teams: src.total_teams,
@@ -190,7 +181,6 @@ export default function CompetitionCMSPage() {
     }
   }
 
-  // NEW: save updates
   async function handleSave() {
     if (!form) return;
     setSaving(true);
@@ -208,7 +198,7 @@ export default function CompetitionCMSPage() {
           competition_champion:
             form.competition_champion && form.competition_champion.trim().length
               ? form.competition_champion.trim()
-              : null, // send null when empty
+              : null,
           league_link:
             form.league_link && form.league_link.trim().length
               ? form.league_link.trim()
@@ -231,7 +221,7 @@ export default function CompetitionCMSPage() {
           (r.id && canonical.id ? String(r.id) === String(canonical.id) : r.competition_name === canonical.competition_name)
             ? {
                 ...r,
-                organisation: canonical.organisation, // keep in sync
+                organisation: canonical.organisation,
                 division: canonical.division,
                 competition_name: canonical.competition_name,
                 total_teams: canonical.total_teams,
@@ -258,7 +248,6 @@ export default function CompetitionCMSPage() {
     }
   }
 
-  // NEW: create competition
   async function handleCreate() {
     setCreating(true);
     setCreateError(null);
@@ -275,8 +264,8 @@ export default function CompetitionCMSPage() {
           start_period: newForm.start_period ?? null,
           end_period: newForm.end_period ?? null,
           football_type: newForm.football_type ?? null,
-          fcmierda_final_rank: null, // explicitly blank
-          competition_champion: null, // explicitly blank
+          fcmierda_final_rank: null,
+          competition_champion: null,
           league_link:
             newForm.league_link && newForm.league_link.trim().length
               ? newForm.league_link.trim()
@@ -289,7 +278,6 @@ export default function CompetitionCMSPage() {
 
       const created: CompetitionOverviewRow = json.data;
 
-      // Add to overview and open it in the editor
       setRows((prev) => [created, ...prev]);
       setForm({
         id: created.id,
@@ -306,7 +294,6 @@ export default function CompetitionCMSPage() {
         opponents: Array.isArray(created.opponents) ? created.opponents : [],
       });
 
-      // Reset create form and collapse
       setNewForm({
         organisation: "Powerleague Rotterdam",
         division: 1,
@@ -332,7 +319,6 @@ export default function CompetitionCMSPage() {
     }
   }
 
-  // Opponents handlers
   function handleOpponentChange(idx: number, value: string) {
     if (!form) return;
     const current = Array.isArray(form.opponents) ? [...form.opponents] : [];
@@ -369,13 +355,13 @@ export default function CompetitionCMSPage() {
     setNewForm({ ...newForm, opponents: current });
   }
 
-  // Update helpers to auto-update name unless user edited it
   const setDivision = (val: number | null) =>
     setNewForm((prev) => {
       const next = { ...prev, division: val };
       if (!newNameTouched) next.competition_name = computeDefaultName(val, prev.start_period);
       return next;
     });
+
   const setStartPeriod = (iso: string | null) =>
     setNewForm((prev) => {
       const next = { ...prev, start_period: iso };
@@ -396,7 +382,6 @@ export default function CompetitionCMSPage() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || "Delete failed");
 
-      // Remove from overview and clear selection
       setRows((prev) =>
         prev.filter((r) => (form.id ? r.id !== form.id : r.competition_name !== form.competition_name))
       );
@@ -411,65 +396,93 @@ export default function CompetitionCMSPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
+    <div className={`relative min-h-screen flex flex-col items-center bg-gray-900 text-white overflow-x-hidden ${montserrat.className}`}>
       <Menu />
 
-      {/* Intro section */}
-      <section className="w-full flex justify-center items-center py-12 px-4 bg-gray-900">
-        <div className="max-w-2xl w-full flex flex-col items-center text-center mt-16 sm:mt-28">
-          <h1 className="text-3xl sm:text-5xl font-extrabold mb-4 text-white uppercase tracking-wider">
-            Competitions
+      <main className="w-full flex-1 flex flex-col items-center pt-24 sm:pt-36 pb-20 px-3.5 sm:px-6">
+        {/* Navigation Breadcrumb */}
+        <div className="max-w-4xl w-full mb-6 flex items-center justify-between">
+          <Link
+            href="/cms"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gray-900/90 hover:bg-gray-800 border border-gray-700 text-xs sm:text-sm font-semibold text-gray-200 hover:text-emerald-300 transition-all shadow-sm"
+          >
+            <span>←</span>
+            <span>Back to CMS</span>
+          </Link>
+          <span className="text-xs text-gray-400 font-medium hidden sm:inline-block">
+            Competition Rounds & Tables
+          </span>
+        </div>
+
+        {/* Hero Header */}
+        <div className="max-w-2xl w-full text-center mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-2xl mb-3 shadow-inner">
+            🏟️
+          </div>
+          <h1 className={`text-2xl sm:text-4xl font-black tracking-tight text-white mb-2 ${robotoSlab.className}`}>
+            Competitions Management
           </h1>
-          <p className="text-white/80 text-lg sm:text-xl">
-            Manage competition rounds: overview and creation.
+          <p className="text-xs sm:text-sm text-gray-400 font-medium max-w-lg mx-auto">
+            Manage league seasons, registered opponents, final team rankings, champions, and organiser portal links.
           </p>
         </div>
-      </section>
 
-      {/* Main content */}
-      <section className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800">
-        {/* Competitions overview */}
-        <div className="max-w-4xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-900 shadow-xl mx-auto">
-          <h2 className="text-xl sm:text-2xl font-bold mb-4">Competitions overview</h2>
-          <div className="overflow-x-auto max-h-64 overflow-y-auto">
-            <table className="responsive-table min-w-full border border-gray-700 rounded-lg">
-              <thead className="bg-gray-800">
+        {/* Competitions Overview Table Card */}
+        <div className="max-w-4xl w-full rounded-2xl p-5 sm:p-8 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-md mx-auto mb-10">
+          <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-800">
+            <div>
+              <h2 className={`text-lg sm:text-xl font-bold text-white ${robotoSlab.className}`}>
+                Competitions Archive & Status
+              </h2>
+              <p className="text-xs text-gray-400 mt-0.5">Click any row below to load into the details editor.</p>
+            </div>
+            <span className="text-xs text-gray-400 font-semibold">{rows.length} records</span>
+          </div>
+
+          <div className="rounded-xl border border-gray-800 bg-gray-900/60 overflow-hidden shadow-inner max-h-[320px] overflow-y-auto">
+            <table className="w-full text-xs sm:text-sm">
+              <thead className="bg-black/50 border-b border-gray-800 sticky top-0">
                 <tr>
-                  <th className="px-4 py-2 border-b border-gray-700">Competition</th>
-                  <th className="px-4 py-2 border-b border-gray-700">End period</th>
-                  <th className="px-4 py-2 border-b border-gray-700 text-center">FC Mierda rank</th>
-                  <th className="px-4 py-2 border-b border-gray-700 text-center">Champion</th>
+                  <th className="py-2.5 px-3.5 text-left text-gray-400 font-semibold">Competition</th>
+                  <th className="py-2.5 px-3 text-left text-gray-400 font-semibold">End Period</th>
+                  <th className="py-2.5 px-3 text-center text-gray-400 font-semibold">FC Mierda Rank</th>
+                  <th className="py-2.5 px-3.5 text-right text-gray-400 font-semibold">Champion</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-800/60">
                 {loading ? (
                   <tr>
-                    <td className="px-4 py-3 text-white/60 text-center" colSpan={4}>
-                      Loading...
+                    <td className="py-8 text-center text-gray-500 italic text-xs" colSpan={4}>
+                      Loading competitions...
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-3 text-white/60 text-center" colSpan={4}>
-                      No competitions found
+                    <td className="py-8 text-center text-gray-500 italic text-xs" colSpan={4}>
+                      No competitions found. Create one below!
                     </td>
                   </tr>
                 ) : (
                   rows.map((r, idx) => {
                     const highlight = isFcMierdaChampion(r.competition_champion);
+                    const isSelected = form && ((form.id && r.id && String(form.id) === String(r.id)) || form.competition_name === r.competition_name);
                     const compLabel = removeFirstWords(r.competition_name);
                     return (
                       <tr
                         key={r.id ?? idx}
                         onClick={() => handleSelect(r)}
-                        className={`transition cursor-pointer ${
-                          highlight ? "bg-yellow-900/20 font-bold" : "hover:bg-gray-800/60"
+                        className={`cursor-pointer transition-colors ${
+                          isSelected
+                            ? "bg-emerald-950/70 text-emerald-200"
+                            : highlight
+                            ? "bg-amber-950/30 text-amber-200 hover:bg-amber-950/50"
+                            : "hover:bg-gray-800/70 text-gray-300"
                         }`}
-                        title="Click to edit"
+                        title="Click to edit competition details"
                       >
-                        <td data-label="Competition" className="px-4 py-2 border-b border-gray-800">
-                          <div className="flex items-center justify-end sm:justify-start gap-2">
-                            <span className="min-w-0 truncate max-w-[16ch] sm:max-w-[34ch]" title={compLabel}>
+                        <td className="py-2.5 px-3.5 font-medium">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate max-w-[200px] sm:max-w-[320px] text-white">
                               {compLabel}
                             </span>
                             {r.league_link && (
@@ -478,7 +491,7 @@ export default function CompetitionCMSPage() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="px-1.5 py-0.5 rounded bg-emerald-900/50 hover:bg-emerald-800 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold inline-flex items-center gap-1 shadow-sm"
+                                className="px-1.5 py-0.5 rounded bg-emerald-900/60 hover:bg-emerald-800 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold inline-flex items-center gap-1 shadow-sm"
                                 title={`Open league link: ${r.league_link}`}
                               >
                                 🔗 Link
@@ -486,13 +499,19 @@ export default function CompetitionCMSPage() {
                             )}
                           </div>
                         </td>
-                        <td data-label="End period" className="px-4 py-2 border-b border-gray-800">
+                        <td className="py-2.5 px-3 whitespace-nowrap text-gray-400">
                           {formatMonthYear(r.end_period)}
                         </td>
-                        <td data-label="FC Mierda rank" className="px-4 py-2 border-b border-gray-800 text-center">
-                          <FinalRankCell rank={r.fcmierda_final_rank} />
+                        <td className="py-2.5 px-3 text-center font-bold">
+                          {r.fcmierda_final_rank != null ? (
+                            <span className="px-2 py-0.5 rounded bg-black/60 border border-gray-700 text-emerald-300">
+                              #{r.fcmierda_final_rank}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">-</span>
+                          )}
                         </td>
-                        <td data-label="Champion" className="px-4 py-2 border-b border-gray-800 text-center">
+                        <td className="py-2.5 px-3.5 text-right">
                           <ChampionCell champion={r.competition_champion} />
                         </td>
                       </tr>
@@ -501,83 +520,48 @@ export default function CompetitionCMSPage() {
                 )}
               </tbody>
             </table>
-            <style jsx>{`
-              @media (max-width: 639px) {
-                .responsive-table {
-                  border: none;
-                  border-radius: 0;
-                  text-align: left;
-                }
-                .responsive-table thead {
-                  display: none;
-                }
-                .responsive-table tbody,
-                .responsive-table tr {
-                  display: block;
-                  width: 100%;
-                }
-                .responsive-table tr {
-                  border: 1px solid #374151;
-                  border-radius: 0.5rem;
-                  margin-bottom: 1rem;
-                  overflow: hidden;
-                }
-                .responsive-table tr:last-child {
-                  margin-bottom: 0;
-                }
-                .responsive-table td {
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                  padding: 0.5rem 1rem;
-                }
-                .responsive-table td:last-child {
-                  border-bottom: 0;
-                }
-                .responsive-table td::before {
-                  font-weight: 700;
-                  color: #9CA3AF;
-                  text-align: left;
-                  white-space: nowrap;
-                  font-size: 0.75rem;
-                  text-transform: uppercase;
-                  flex-shrink: 0;
-                  margin-right: 0.75rem;
-                  content: attr(data-label) ":";
-                }
-              }
-            `}</style>
           </div>
         </div>
 
-        {/* NEW: selected record editor */}
-        <div className="max-w-4xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-900 shadow-xl mx-auto">
-          <h2 className="text-xl sm:text-2xl font-bold mb-4">Selected competition</h2>
+        {/* Selected Record Editor Card */}
+        <div className="max-w-4xl w-full rounded-2xl p-5 sm:p-8 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-md mx-auto mb-10">
+          <div className="flex items-center justify-between pb-4 mb-6 border-b border-gray-800">
+            <div>
+              <h2 className={`text-lg sm:text-xl font-bold text-white ${robotoSlab.className}`}>
+                {form ? `Edit: ${form.competition_name}` : "Selected Competition"}
+              </h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {form ? "Update competition metadata, opponents, and official portal link." : "Select a row from the archive table above to edit."}
+              </p>
+            </div>
+            {form && (
+              <button
+                type="button"
+                onClick={() => setForm(null)}
+                className="text-xs text-gray-400 hover:text-gray-200"
+              >
+                ✕ Deselect
+              </button>
+            )}
+          </div>
 
-          {loadingDetails && <p className="text-white/60">Loading details...</p>}
+          {loadingDetails && <p className="text-xs text-gray-400 py-4 text-center">Loading record details...</p>}
 
           {!form && !loadingDetails && (
-            <p className="text-white/60">Select a row above to edit its details.</p>
+            <div className="text-center py-6 text-gray-500 text-xs sm:text-sm">
+              👆 Click any competition from the table above to view and modify its fields.
+            </div>
           )}
 
           {form && (
-            <div className="space-y-6">
-              {/* Visual Success Confirmation Banner */}
+            <div className="space-y-5">
               {saveSuccess && (
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-950/80 border-2 border-emerald-500 text-emerald-200 text-sm font-semibold shadow-lg shadow-emerald-950/50">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center flex-shrink-0 text-emerald-400">
-                    <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-emerald-100 font-bold">{saveSuccess}</p>
+                <div className="flex items-center gap-3 p-3.5 rounded-xl bg-emerald-950/80 border border-emerald-600 text-emerald-200 text-xs sm:text-sm font-semibold shadow">
+                  <span>✓</span>
+                  <div>
+                    <p className="font-bold">{saveSuccess}</p>
                     {form.league_link && (
-                      <p className="text-xs text-emerald-300/80 mt-0.5 font-normal">
+                      <p className="text-[11px] text-emerald-300/80 font-normal">
                         Active League Link: <span className="font-mono underline">{form.league_link}</span>
                       </p>
                     )}
@@ -587,34 +571,42 @@ export default function CompetitionCMSPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">Organisation</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Organisation
+                  </label>
                   <input
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none"
                     value={form.organisation ?? ""}
                     onChange={(e) => setForm({ ...form, organisation: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">Division</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Division
+                  </label>
                   <input
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none"
                     value={form.division ?? ""}
                     onChange={(e) => setForm({ ...form, division: e.target.value })}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-white/70 mb-1">Competition name</label>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Competition Name
+                  </label>
                   <input
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none"
                     value={form.competition_name}
                     onChange={(e) => setForm({ ...form, competition_name: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">Total teams</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Total Teams
+                  </label>
                   <input
                     type="number"
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none"
                     value={form.total_teams ?? ""}
                     onChange={(e) =>
                       setForm({ ...form, total_teams: e.target.value ? Number(e.target.value) : null })
@@ -622,36 +614,45 @@ export default function CompetitionCMSPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">Start period</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Football Type
+                  </label>
                   <input
-                    type="date"
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
-                    value={(form.start_period ?? "").slice(0, 10)}
-                    onChange={(e) => setForm({ ...form, start_period: e.target.value || null })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-white/70 mb-1">End period</label>
-                  <input
-                    type="date"
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
-                    value={(form.end_period ?? "").slice(0, 10)}
-                    onChange={(e) => setForm({ ...form, end_period: e.target.value || null })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-white/70 mb-1">Football type</label>
-                  <input
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none"
                     value={form.football_type ?? ""}
                     onChange={(e) => setForm({ ...form, football_type: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">FC Mierda final rank</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Start Period
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none"
+                    value={(form.start_period ?? "").slice(0, 10)}
+                    onChange={(e) => setForm({ ...form, start_period: e.target.value || null })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    End Period
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none"
+                    value={(form.end_period ?? "").slice(0, 10)}
+                    onChange={(e) => setForm({ ...form, end_period: e.target.value || null })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    FC Mierda Final Rank
+                  </label>
                   <input
                     type="number"
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
+                    placeholder="e.g. 1, 2, 3..."
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none"
                     value={form.fcmierda_final_rank ?? ""}
                     onChange={(e) =>
                       setForm({
@@ -662,33 +663,38 @@ export default function CompetitionCMSPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">Competition champion</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Competition Champion
+                  </label>
                   <input
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
-                    value={form.competition_champion ?? ""} // show empty when null
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none"
+                    placeholder="e.g. FC Mierda"
+                    value={form.competition_champion ?? ""}
                     onChange={(e) =>
-                      setForm({ ...form, competition_champion: e.target.value || null }) // store null when blank
+                      setForm({ ...form, competition_champion: e.target.value || null })
                     }
                   />
                 </div>
-                <div className="sm:col-span-2 p-4 rounded-xl bg-gray-800/80 border border-gray-700/80 space-y-2">
+
+                {/* League Link Box */}
+                <div className="sm:col-span-2 p-4 rounded-xl bg-gradient-to-b from-gray-900/90 to-gray-950 border border-emerald-800/40 space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="block text-sm font-semibold text-white">
-                      League / Organiser Link (Powerleague schedule &amp; standings URL)
+                    <label className="block text-xs font-bold text-emerald-300 uppercase tracking-wider">
+                      🔗 Official Organiser League Portal Link
                     </label>
                     {form.league_link ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-semibold">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        Link Configured
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Configured
                       </span>
                     ) : (
-                      <span className="text-xs text-white/40">No link set</span>
+                      <span className="text-[11px] text-gray-500">Not configured</span>
                     )}
                   </div>
                   <div className="flex gap-2 items-center">
                     <input
                       type="url"
-                      className="flex-1 rounded-md bg-gray-900 border border-gray-700 px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-teal-500"
+                      className="flex-1 rounded-xl bg-black/80 border border-gray-700 px-3.5 py-2 text-white font-mono text-xs sm:text-sm focus:border-emerald-500 outline-none"
                       placeholder="https://www.powerleague.com/..."
                       value={form.league_link ?? ""}
                       onChange={(e) => setForm({ ...form, league_link: e.target.value || null })}
@@ -698,128 +704,134 @@ export default function CompetitionCMSPage() {
                         href={form.league_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3.5 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-xs font-bold whitespace-nowrap text-white transition-colors shadow flex items-center gap-1.5"
+                        className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition-all shadow flex items-center gap-1"
                       >
-                        <span>Test Link</span>
+                        <span>Test</span>
                         <span>↗</span>
                       </a>
                     )}
                   </div>
-                  <p className="text-xs text-white/60">
-                    This link displays the organiser&apos;s division standings and match schedules for this competition on the Fixtures and Match Results pages.
+                  <p className="text-[11px] text-gray-400">
+                    This link is linked on the Fixtures & Match Results pages so players and supporters can inspect live standings.
                   </p>
                 </div>
+
+                {/* Opponents List */}
                 <div className="sm:col-span-2">
-                  <label className="block text-sm text-white/70 mb-1">Opponents</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                    Opponent Teams in Division
+                  </label>
                   <div className="space-y-2">
                     {(Array.isArray(form.opponents) ? [...form.opponents] : []).concat("").map((val, idx) => (
                       <div key={idx} className="flex items-center gap-2">
                         <input
-                          className="flex-1 rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
-                          placeholder="Add opponent..."
+                          className="flex-1 rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
+                          placeholder="Type team name..."
                           value={val}
                           onChange={(e) => handleOpponentChange(idx, e.target.value)}
                         />
                         {idx < (form.opponents?.length ?? 0) && (
                           <button
                             type="button"
-                            className="px-2 py-2 rounded-md bg-red-600/80 hover:bg-red-600 text-sm"
+                            className="px-3 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs font-bold transition-all cursor-pointer"
                             onClick={() => handleOpponentRemove(idx)}
                             aria-label="Remove opponent"
-                            title="Remove opponent"
                           >
                             Remove
                           </button>
                         )}
                       </div>
                     ))}
-                    <p className="text-xs text-white/50">Fill the empty field to add a new opponent. You can remove any filled row.</p>
+                    <p className="text-[11px] text-gray-500">
+                      Type into the empty row at the bottom to register a new opponent.
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {saveError && <p className="text-red-400 text-sm">{saveError}</p>}
+              {saveError && (
+                <div className="p-3 bg-rose-950/70 border border-rose-800 rounded-xl text-rose-300 text-xs font-semibold">
+                  {saveError}
+                </div>
+              )}
 
               <div className="flex flex-wrap gap-3 items-center pt-2">
                 <button
-                  className="px-5 py-2.5 rounded-md bg-teal-600 hover:bg-teal-500 font-semibold text-white shadow-md disabled:opacity-50 transition-colors flex items-center gap-2"
+                  className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 font-bold text-xs sm:text-sm text-white shadow-lg shadow-emerald-600/20 disabled:opacity-50 transition-all cursor-pointer flex items-center gap-2"
                   onClick={handleSave}
                   disabled={saving}
                 >
-                  {saving && (
-                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                    </svg>
-                  )}
-                  <span>{saving ? "Saving changes..." : "Save changes"}</span>
+                  {saving ? "Saving..." : "💾 Save Changes"}
                 </button>
                 <button
-                  className="px-4 py-2.5 rounded-md bg-gray-700 hover:bg-gray-600 font-medium text-white transition-colors"
+                  className="px-4 py-2.5 rounded-full bg-gray-800 hover:bg-gray-700 font-semibold text-xs sm:text-sm text-gray-300 transition-all cursor-pointer"
                   onClick={() => setForm(null)}
                 >
                   Close
                 </button>
 
-                {/* Delete toggle */}
                 <button
-                  className="ml-auto px-4 py-2.5 rounded-md bg-red-600/90 hover:bg-red-600 font-medium text-white transition-colors"
+                  className="ml-auto px-4 py-2 rounded-full bg-rose-950/80 hover:bg-rose-900 border border-rose-800/80 font-semibold text-xs text-rose-300 transition-all cursor-pointer"
                   onClick={() => setDeleteOpen((v) => !v)}
-                  title="Delete competition"
-                  aria-label="Delete competition"
                 >
-                  Delete competition
+                  🗑️ Delete Competition
                 </button>
               </div>
 
               {deleteOpen && (
-                <div className="mt-2 rounded-md border border-red-700 bg-red-900/20 p-4 space-y-3">
-                  <p className="text-sm text-white/80">
-                    Type the admin password to enable deletion. This action cannot be undone.
+                <div className="mt-3 rounded-2xl border border-rose-800/80 bg-rose-950/30 p-4 sm:p-5 space-y-3">
+                  <p className="text-xs text-rose-200">
+                    Type the admin password to authorize permanent deletion of this competition round.
                   </p>
-                  <div className="flex gap-3 items-center">
+                  <div className="flex gap-2 items-center">
                     <input
                       type="password"
-                      className="flex-1 rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
-                      placeholder="Password"
+                      className="flex-1 rounded-xl bg-black/80 border border-rose-700 px-3.5 py-2 text-xs sm:text-sm text-white focus:outline-none"
+                      placeholder="Enter admin password"
                       value={deletePw}
                       onChange={(e) => setDeletePw(e.target.value)}
                     />
                     <button
-                      className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-500 disabled:opacity-50"
+                      className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white disabled:opacity-50 cursor-pointer"
                       disabled={!pwOk || deleting}
                       onClick={handleDeleteConfirm}
                     >
-                      {deleting ? "Deleting..." : "Confirm delete"}
+                      {deleting ? "Deleting..." : "Confirm Delete"}
                     </button>
                   </div>
-                  {deleteError && <p className="text-red-400 text-sm">{deleteError}</p>}
+                  {deleteError && <p className="text-xs text-rose-400">{deleteError}</p>}
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* NEW: create new competition */}
-        <div className="max-w-4xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-900 shadow-xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl sm:text-2xl font-bold">Create new competition</h2>
+        {/* Create New Competition Card */}
+        <div className="max-w-4xl w-full rounded-2xl p-5 sm:p-8 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-md mx-auto">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className={`text-lg sm:text-xl font-bold text-white ${robotoSlab.className}`}>
+                Create New Competition Round
+              </h2>
+              <p className="text-xs text-gray-400 mt-0.5">Initialize a new tournament season or division.</p>
+            </div>
             <button
-              className="px-3 py-2 rounded-md bg-gray-700 hover:bg-gray-600"
+              className="px-4 py-1.5 rounded-full bg-gray-900 hover:bg-gray-800 border border-gray-700 text-xs font-semibold text-gray-200 cursor-pointer"
               onClick={() => setNewOpen((v) => !v)}
             >
-              {newOpen ? "Hide" : "Open"}
+              {newOpen ? "▲ Collapse" : "➕ Open Creator"}
             </button>
           </div>
 
           {newOpen && (
-            <div className="space-y-6">
+            <div className="space-y-5 pt-6 mt-4 border-t border-gray-800">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">Organisation</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Organisation
+                  </label>
                   <input
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
-                    // Prefilled value (editable)
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
                     value={newForm.organisation ?? ""}
                     onChange={(e) =>
                       setNewForm({ ...newForm, organisation: e.target.value || null })
@@ -827,9 +839,11 @@ export default function CompetitionCMSPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">Division (1–10)</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Division (1–10)
+                  </label>
                   <select
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none cursor-pointer"
                     value={newForm.division ?? ""}
                     onChange={(e) =>
                       setDivision(e.target.value ? Number(e.target.value) : null)
@@ -838,16 +852,17 @@ export default function CompetitionCMSPage() {
                     <option value="">Select division</option>
                     {[...Array(10)].map((_, i) => (
                       <option key={i + 1} value={i + 1}>
-                        {i + 1}
+                        Division {i + 1}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm text-white/70 mb-1">Competition name</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Competition Name
+                  </label>
                   <input
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
-                    // Prefilled and auto-updated; mark as touched when user edits
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
                     value={newForm.competition_name}
                     onChange={(e) => {
                       setNewNameTouched(true);
@@ -856,27 +871,33 @@ export default function CompetitionCMSPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">Start period</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Start Period
+                  </label>
                   <input
                     type="date"
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
                     value={(newForm.start_period ?? "").slice(0, 10)}
                     onChange={(e) => setStartPeriod(e.target.value || null)}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">End period</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    End Period
+                  </label>
                   <input
                     type="date"
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
                     value={(newForm.end_period ?? "").slice(0, 10)}
                     onChange={(e) => setNewForm({ ...newForm, end_period: e.target.value || null })}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">Football type</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Football Type
+                  </label>
                   <input
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
                     value={newForm.football_type ?? ""}
                     onChange={(e) =>
                       setNewForm({ ...newForm, football_type: e.target.value || null })
@@ -884,124 +905,84 @@ export default function CompetitionCMSPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">FC Mierda final rank</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Total Teams
+                  </label>
                   <input
                     type="number"
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
-                    value={newForm.fcmierda_final_rank ?? ""}
+                    className="w-full rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2.5 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
+                    value={newForm.total_teams ?? ""}
                     onChange={(e) =>
                       setNewForm({
                         ...newForm,
-                        fcmierda_final_rank: e.target.value ? Number(e.target.value) : null,
+                        total_teams: e.target.value ? Number(e.target.value) : null,
                       })
                     }
                   />
                 </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm text-white/70 mb-1">Competition champion</label>
+
+                <div className="sm:col-span-2 p-4 rounded-xl bg-gradient-to-b from-gray-900/90 to-gray-950 border border-emerald-800/40 space-y-2">
+                  <label className="block text-xs font-bold text-emerald-300 uppercase tracking-wider">
+                    Official Organiser League Portal Link (Optional)
+                  </label>
                   <input
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
-                    value={newForm.competition_champion ?? ""}
+                    type="url"
+                    className="w-full rounded-xl bg-black/80 border border-gray-700 px-3.5 py-2 text-white font-mono text-xs sm:text-sm focus:border-emerald-500 outline-none"
+                    placeholder="https://www.powerleague.com/..."
+                    value={newForm.league_link ?? ""}
                     onChange={(e) =>
                       setNewForm({
                         ...newForm,
-                        competition_champion: e.target.value || null,
+                        league_link: e.target.value || null,
                       })
                     }
                   />
                 </div>
-                <div className="sm:col-span-2 p-4 rounded-xl bg-gray-800/80 border border-gray-700/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-sm font-semibold text-white">
-                      League / Organiser Link (Powerleague schedule &amp; standings URL)
-                    </label>
-                    {newForm.league_link ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-semibold">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        Link Configured
-                      </span>
-                    ) : (
-                      <span className="text-xs text-white/40">Optional</span>
-                    )}
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="url"
-                      className="flex-1 rounded-md bg-gray-900 border border-gray-700 px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
-                      placeholder="https://www.powerleague.com/..."
-                      value={newForm.league_link ?? ""}
-                      onChange={(e) =>
-                        setNewForm({
-                          ...newForm,
-                          league_link: e.target.value || null,
-                        })
-                      }
-                    />
-                    {newForm.league_link && (
-                      <a
-                        href={newForm.league_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3.5 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-xs font-bold whitespace-nowrap text-white transition-colors shadow flex items-center gap-1.5"
-                      >
-                        <span>Test Link</span>
-                        <span>↗</span>
-                      </a>
-                    )}
-                  </div>
-                  <p className="text-xs text-white/60">
-                    Add the organiser&apos;s league schedule or standings page link for this competition.
-                  </p>
-                </div>
+
                 <div className="sm:col-span-2">
-                  <label className="block text-sm text-white/70 mb-1">Opponents</label>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                    Opponents in Division
+                  </label>
                   <div className="space-y-2">
                     {(Array.isArray(newForm.opponents) ? [...newForm.opponents] : []).concat("").map((val, idx) => (
                       <div key={idx} className="flex items-center gap-2">
                         <input
-                          className="flex-1 rounded-md bg-gray-800 border border-gray-700 px-3 py-2"
-                          placeholder="Add opponent..."
+                          className="flex-1 rounded-xl border border-gray-700 bg-black/60 px-3.5 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
+                          placeholder="Type team name..."
                           value={val}
                           onChange={(e) => handleNewOpponentChange(idx, e.target.value)}
                         />
                         {idx < (newForm.opponents?.length ?? 0) && (
                           <button
                             type="button"
-                            className="px-2 py-2 rounded-md bg-red-600/80 hover:bg-red-600 text-sm"
+                            className="px-3 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs font-bold transition-all cursor-pointer"
                             onClick={() => handleNewOpponentRemove(idx)}
-                            aria-label="Remove opponent"
-                            title="Remove opponent"
                           >
                             Remove
                           </button>
                         )}
                       </div>
                     ))}
-                    <p className="text-xs text-white/50">
-                      Fill the empty field to add a new opponent. You can remove any filled row.
-                    </p>
                   </div>
                 </div>
               </div>
 
-              {createError && <p className="text-red-400 text-sm">{createError}</p>}
+              {createError && (
+                <div className="p-3 bg-rose-950/70 border border-rose-800 rounded-xl text-rose-300 text-xs font-semibold">
+                  {createError}
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <button
-                  className="px-5 py-2.5 rounded-md bg-blue-600 hover:bg-blue-500 font-semibold text-white shadow-md disabled:opacity-50 transition-colors flex items-center gap-2"
+                  className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 font-bold text-xs sm:text-sm text-white shadow-lg shadow-emerald-600/20 disabled:opacity-50 transition-all cursor-pointer flex items-center gap-2"
                   onClick={handleCreate}
                   disabled={creating}
                 >
-                  {creating && (
-                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                    </svg>
-                  )}
-                  <span>{creating ? "Creating..." : "Create new competition"}</span>
+                  {creating ? "Creating..." : "✨ Create Competition"}
                 </button>
                 <button
-                  className="px-4 py-2.5 rounded-md bg-gray-700 hover:bg-gray-600 font-medium text-white transition-colors"
+                  className="px-4 py-2.5 rounded-full bg-gray-800 hover:bg-gray-700 font-semibold text-xs sm:text-sm text-gray-300 transition-all cursor-pointer"
                   onClick={() => setNewOpen(false)}
                 >
                   Cancel
@@ -1010,7 +991,7 @@ export default function CompetitionCMSPage() {
             </div>
           )}
         </div>
-      </section>
+      </main>
 
       <Footer />
     </div>

@@ -77,9 +77,9 @@ export default function PlayerPhotoUploader({
 
   return (
     <div className="w-full flex flex-col gap-3">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-gray-800/80 p-3.5 rounded-xl border border-gray-700">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-gray-900/60 p-3.5 sm:p-4 rounded-xl border border-gray-800/90 shadow-inner">
         {/* Photo Thumbnail / Avatar */}
-        <div className="relative w-20 h-20 rounded-full bg-gray-900 border-2 border-gray-600 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-inner group">
+        <div className="relative w-20 h-20 rounded-2xl bg-black/60 border-2 border-gray-700 group-hover:border-emerald-500/50 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-lg transition-colors">
           {currentPhotoUrl ? (
             <img
               src={currentPhotoUrl}
@@ -89,14 +89,14 @@ export default function PlayerPhotoUploader({
           ) : (
             <div className="flex flex-col items-center justify-center text-gray-500 text-xs">
               <span className="text-2xl mb-0.5">👤</span>
-              <span>No photo</span>
+              <span className="text-[10px]">No photo</span>
             </div>
           )}
 
           {uploading && (
-            <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center text-white text-xs">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs">
               <svg
-                className="animate-spin h-5 w-5 text-green-400 mb-1"
+                className="animate-spin h-5 w-5 text-emerald-400 mb-1"
                 viewBox="0 0 24 24"
               >
                 <circle
@@ -114,7 +114,7 @@ export default function PlayerPhotoUploader({
                   d="M4 12a8 8 0 018-8v8H4z"
                 />
               </svg>
-              <span>Uploading</span>
+              <span className="text-[10px] text-emerald-300 font-semibold">Uploading</span>
             </div>
           )}
         </div>
@@ -130,12 +130,12 @@ export default function PlayerPhotoUploader({
             disabled={disabled || uploading}
           />
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
               disabled={disabled || uploading}
               onClick={() => fileInputRef.current?.click()}
-              className="px-3.5 py-1.5 rounded-lg bg-green-700 hover:bg-green-600 active:bg-green-800 text-white text-xs sm:text-sm font-semibold transition border border-green-600 shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs sm:text-sm font-semibold transition border border-emerald-500/40 shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
               <span>📷</span>
               <span>{currentPhotoUrl ? "Change Photo" : "Upload Photo"}</span>
@@ -146,7 +146,7 @@ export default function PlayerPhotoUploader({
                 type="button"
                 disabled={disabled || uploading}
                 onClick={handleRemovePhoto}
-                className="px-3 py-1.5 rounded-lg bg-red-900/40 hover:bg-red-800/60 active:bg-red-900 text-red-300 text-xs sm:text-sm font-semibold transition border border-red-700/60 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                className="px-3.5 py-2 rounded-full bg-red-950/50 hover:bg-red-900/70 active:bg-red-900 text-red-300 text-xs sm:text-sm font-semibold transition border border-red-800/50 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
                 <span>🗑️</span>
                 <span>Remove</span>
@@ -161,7 +161,7 @@ export default function PlayerPhotoUploader({
       </div>
 
       {error && (
-        <div className="p-2.5 rounded-lg bg-red-950/80 border border-red-500/60 text-red-300 text-xs flex items-center gap-2">
+        <div className="p-3 rounded-xl bg-red-950/80 border border-red-500/50 text-red-300 text-xs flex items-center gap-2">
           <span>⚠️</span>
           <span>{error}</span>
         </div>

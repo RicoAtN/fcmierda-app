@@ -48,17 +48,17 @@ export default function SubscriberStatsBadge({
   }, [fetchStats]);
 
   const borderColor =
-    theme === "green" ? "border-green-700/50" : "border-blue-700/50";
+    theme === "green" ? "border-emerald-500/30" : "border-blue-500/30";
   const badgeTextColor =
-    theme === "green" ? "text-green-400" : "text-blue-400";
+    theme === "green" ? "text-emerald-400" : "text-blue-400";
   const indicatorColor =
-    theme === "green" ? "bg-green-500" : "bg-blue-500";
+    theme === "green" ? "bg-emerald-500" : "bg-blue-500";
 
   return (
     <div className="flex flex-col gap-2 w-full">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div
-          className={`inline-flex items-center gap-2 bg-gray-900/90 border ${borderColor} rounded-lg px-2.5 py-1 text-xs text-gray-200 shadow-sm`}
+          className={`inline-flex items-center gap-2 bg-gray-900/90 border ${borderColor} rounded-full px-3 py-1.5 text-xs text-gray-200 shadow-sm backdrop-blur-md`}
         >
           <span
             className={`inline-block w-2 h-2 rounded-full ${indicatorColor} ${
@@ -73,7 +73,7 @@ export default function SubscriberStatsBadge({
             type="button"
             onClick={() => fetchStats(true)}
             title="Refresh subscriber count"
-            className="text-gray-400 hover:text-white transition-colors p-0.5 ml-0.5 rounded hover:bg-gray-800 focus:outline-none"
+            className="text-gray-400 hover:text-white transition-colors p-0.5 ml-0.5 rounded-full hover:bg-gray-800 focus:outline-none cursor-pointer"
             aria-label="Refresh subscriber count"
           >
             <svg
@@ -94,7 +94,7 @@ export default function SubscriberStatsBadge({
 
         {/* Device breakdown pills */}
         <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs text-gray-300">
-          <div className="inline-flex items-center gap-1 bg-gray-900/90 px-2 py-0.5 rounded border border-gray-700 text-gray-300">
+          <div className="inline-flex items-center gap-1.5 bg-gray-900/90 px-2.5 py-1 rounded-full border border-gray-700/80 text-gray-300 shadow-xs">
             <span>💻</span>
             <span>Desktop:</span>
             <strong className="text-white font-mono">
@@ -102,7 +102,7 @@ export default function SubscriberStatsBadge({
             </strong>
           </div>
 
-          <div className="inline-flex items-center gap-1 bg-gray-900/90 px-2 py-0.5 rounded border border-gray-700 text-gray-300">
+          <div className="inline-flex items-center gap-1.5 bg-gray-900/90 px-2.5 py-1 rounded-full border border-gray-700/80 text-gray-300 shadow-xs">
             <span>🤖</span>
             <span>Android:</span>
             <strong className="text-white font-mono">
@@ -110,7 +110,7 @@ export default function SubscriberStatsBadge({
             </strong>
           </div>
 
-          <div className="inline-flex items-center gap-1 bg-gray-900/90 px-2 py-0.5 rounded border border-gray-700 text-gray-300">
+          <div className="inline-flex items-center gap-1.5 bg-gray-900/90 px-2.5 py-1 rounded-full border border-gray-700/80 text-gray-300 shadow-xs">
             <span>🍎</span>
             <span>iOS:</span>
             <strong className="text-white font-mono">
@@ -120,7 +120,7 @@ export default function SubscriberStatsBadge({
 
           {stats.breakdown.other > 0 && (
             <div
-              className="inline-flex items-center gap-1 bg-gray-900/90 px-2 py-0.5 rounded border border-amber-600/40 text-amber-300"
+              className="inline-flex items-center gap-1.5 bg-gray-900/90 px-2.5 py-1 rounded-full border border-amber-500/40 text-amber-300 shadow-xs"
               title="Legacy subscriptions without device info. Updates automatically when visitors open the webapp."
             >
               <span>📱</span>

@@ -508,175 +508,238 @@ export default function PostMatchResultPage() {
   }, [editMode, editForm]);
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
+    <div className={`relative min-h-screen flex flex-col items-center bg-gray-900 text-white overflow-x-hidden ${montserrat.className}`}>
       <Menu />
-      <section
-        className="w-full flex justify-center items-center py-8 px-2 sm:px-4 bg-gray-900"
-        style={{
-          background: "linear-gradient(135deg, #232526 0%, #414345 100%)",
-        }}
-      >
-        <div className="max-w-2xl w-full flex flex-col items-center text-center mt-10 sm:mt-20">
-          <h1
-            className={`text-2xl sm:text-4xl font-extrabold mb-3 sm:mb-4 ${robotoSlab.className}`}
-            style={{
-              letterSpacing: "0.07em",
-              textShadow: `
-                0 0 4px #0b3d1a,
-                0 2px 0 #0b3d1a,
-                0 1px 0 #fff
-              `,
-              color: "#fff",
-              textTransform: "uppercase",
-            }}
-          >
-            Manage Match Results
-          </h1>
-          <p
-            className={`text-base sm:text-lg text-white font-medium mb-6 drop-shadow-lg ${montserrat.className}`}
-            style={{ maxWidth: 600 }}
-          >
-            Besides posting new match results, you can also edit past match results here.<br />
-            Keep your team’s history up to date by filling in or correcting all relevant match information.
-          </p>
+
+      <main className="w-full flex-1 flex flex-col items-center pt-24 sm:pt-36 pb-20 px-3.5 sm:px-6">
+        {/* Top Breadcrumb & Jump Bar */}
+        <div className="max-w-5xl w-full mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <button
             type="button"
             onClick={() => router.push("/cms")}
-            className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-md font-bold text-base sm:text-lg shadow transition-all duration-150 border border-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 mt-2 sm:mt-4"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gray-900/90 hover:bg-gray-800 border border-gray-700 text-xs sm:text-sm font-semibold text-gray-200 hover:text-emerald-300 transition-all shadow-sm cursor-pointer"
           >
-            Back to CMS
+            <span>←</span>
+            <span>Back to CMS</span>
           </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                document.getElementById("fill-last-match")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="px-3.5 py-1.5 rounded-full bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 font-semibold text-xs transition-all cursor-pointer"
+            >
+              ⚽ Post Latest Result
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                document.getElementById("edit-match-results")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="px-3.5 py-1.5 rounded-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 font-semibold text-xs transition-all cursor-pointer"
+            >
+              📝 Edit Past Matches
+            </button>
+          </div>
         </div>
-      </section>
-      <section className="w-full flex justify-center items-center py-2 px-2 sm:px-4 bg-gray-900">
-        <div className="flex gap-4 max-w-2xl w-full justify-center">
-          <button
-            onClick={() => {
-              document.getElementById("fill-last-match")?.scrollIntoView({ behavior: "smooth" });
-            }}
-            className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded font-semibold shadow border border-green-900 transition"
-          >
-            Fill-in Last Match Result
-          </button>
-          <button
-            onClick={() => {
-              document.getElementById("edit-match-results")?.scrollIntoView({ behavior: "smooth" });
-            }}
-            className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded font-semibold shadow border border-blue-900 transition"
-          >
-            Edit Match Results
-          </button>
+
+        {/* Hero Header */}
+        <div className="max-w-2xl w-full text-center mb-10">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-2xl mb-3 shadow-inner">
+            🏆
+          </div>
+          <h1 className={`text-2xl sm:text-4xl font-black tracking-tight text-white mb-2 ${robotoSlab.className}`}>
+            Manage Match Results
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-400 font-medium max-w-lg mx-auto">
+            Post newly concluded match results, record goal scorers & assists, assign Man of the Match, or update past scorelines.
+          </p>
         </div>
-      </section>
-      <section
-        id="fill-last-match"
-        className="w-full flex flex-col items-center gap-8 py-8 px-2 sm:px-4 bg-gray-800"
-      >
-        <div className="max-w-2xl w-full rounded-2xl p-4 sm:p-8 text-white text-left bg-gray-900 shadow-xl mx-auto">
-          <h2
-            className={`text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-center ${robotoSlab.className}`}
-          >
-            Fill-in Last Match Details
-          </h2>
-          <div className="mb-6 space-y-2">
+
+        {/* Section 1: Fill-in Last Match Result */}
+        <div
+          id="fill-last-match"
+          className="max-w-3xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-md mx-auto mb-14"
+        >
+          <div className="flex items-center justify-between pb-4 mb-6 border-b border-gray-800">
             <div>
-              <strong>Date:</strong> {lastMatch.date}
+              <h2 className={`text-xl sm:text-2xl font-bold text-white ${robotoSlab.className}`}>
+                Post Concluded Match Result
+              </h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Automatically pre-filled with the latest scheduled matchday data.
+              </p>
             </div>
-            <div>
-              <strong>Opponent:</strong> {lastMatch.opponent}
+            <span className="px-2.5 py-1 rounded-md bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 text-xs font-bold">
+              Step 1 of 2
+            </span>
+          </div>
+
+          {/* Match Info Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-gray-900/90 border border-gray-800">
+              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">Date</span>
+              <span className="text-xs sm:text-sm font-bold text-white block truncate mt-0.5">{lastMatch.date || "-"}</span>
             </div>
-            <div>
-              <strong>Location:</strong> {lastMatch.location}
+            <div className="p-3 rounded-xl bg-gray-900/90 border border-gray-800">
+              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">Opponent</span>
+              <span className="text-xs sm:text-sm font-bold text-white block truncate mt-0.5">{lastMatch.opponent || "-"}</span>
             </div>
-            <div>
-              <strong>Competition:</strong> {lastMatch.competition}
+            <div className="p-3 rounded-xl bg-gray-900/90 border border-gray-800">
+              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">Competition</span>
+              <span className="text-xs sm:text-sm font-bold text-white block truncate mt-0.5">{lastMatch.competition || "-"}</span>
             </div>
-            <div>
-              <strong>Attendance:</strong>{" "}
-              {lastMatch.attendance.length > 0 ? (
-                <>
-                  <span className="font-semibold text-green-400">
-                    {lastMatch.attendance.length}
-                  </span>{" "}
-                  <span className="text-gray-300">players</span>
-                  <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1">
-                    {lastMatch.attendance.map((name, idx) => (
-                      <span
-                        key={idx}
-                        className="bg-gray-800 rounded px-2 py-1 text-white text-xs break-words"
-                        style={{ wordBreak: "break-word" }}
-                      >
-                        {name}
-                      </span>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                "No attendance data"
-              )}
-            </div>
-            <div>
-              <strong>Support/Coach:</strong>{" "}
-              {lastMatch.supportCoach.length > 0 ? (
-                <ul className="mt-2 ml-2 sm:ml-4 list-disc text-blue-300 text-sm flex flex-wrap gap-x-2 gap-y-1">
-                  {lastMatch.supportCoach.map((name, idx) => (
-                    <li key={idx} className="mb-1 break-words max-w-[140px] sm:max-w-none">{name}</li>
-                  ))}
-                </ul>
-              ) : (
-                <span className="text-gray-400">None</span>
-              )}
+            <div className="p-3 rounded-xl bg-gray-900/90 border border-gray-800">
+              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">Location</span>
+              <span className="text-xs sm:text-sm font-bold text-white block truncate mt-0.5">{lastMatch.location || "-"}</span>
             </div>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Game Result selection - move this above the scores */}
+
+          {/* Attendance Preview Badges */}
+          <div className="mb-6 p-3.5 rounded-xl bg-gray-900/60 border border-gray-800/80 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-gray-300">
+                Squad Attendance ({lastMatch.attendance.length} players)
+              </span>
+              {lastMatch.supportCoach.length > 0 && (
+                <span className="text-cyan-400">
+                  + {lastMatch.supportCoach.length} Supporters/Coach
+                </span>
+              )}
+            </div>
+            {lastMatch.attendance.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {lastMatch.attendance.map((name, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2 py-0.5 rounded-md bg-black/60 border border-gray-800 text-[11px] text-gray-300 font-medium"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 italic">No attendance data recorded yet.</p>
+            )}
+          </div>
+
+          {/* Main Submission Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Match Outcome Selector */}
             <div>
-              <label className="block font-semibold mb-1">Game Result</label>
-              <div className="flex gap-2">
+              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                Match Outcome
+              </label>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => setGameResult("win")}
-                  className={`px-4 py-2 rounded font-bold border transition-all duration-150 ${
+                  className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     gameResult === "win"
-                      ? "bg-green-600 text-white border-green-700"
-                      : "bg-gray-800 text-green-400 border-green-700"
+                      ? "bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/30"
+                      : "bg-gray-900/80 text-emerald-400 border-gray-800 hover:border-emerald-800"
                   }`}
                 >
-                  Win
+                  <span>🏆</span>
+                  <span>Win</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setGameResult("draw")}
-                  className={`px-4 py-2 rounded font-bold border transition-all duration-150 ${
+                  className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     gameResult === "draw"
-                      ? "bg-amber-500 text-white border-amber-600"
-                      : "bg-gray-800 text-amber-400 border-amber-600"
+                      ? "bg-amber-600 text-white border-amber-500 shadow-lg shadow-amber-600/30"
+                      : "bg-gray-900/80 text-amber-400 border-gray-800 hover:border-amber-800"
                   }`}
                 >
-                  Draw
+                  <span>🤝</span>
+                  <span>Draw</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setGameResult("loss")}
-                  className={`px-4 py-2 rounded font-bold border transition-all duration-150 ${
+                  className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     gameResult === "loss"
-                      ? "bg-red-600 text-white border-red-700"
-                      : "bg-gray-800 text-red-400 border-red-700"
+                      ? "bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-600/30"
+                      : "bg-gray-900/80 text-rose-400 border-gray-800 hover:border-rose-800"
                   }`}
                 >
-                  Loss
+                  <span>⚠️</span>
+                  <span>Loss</span>
                 </button>
               </div>
             </div>
-            {/* Man of the Match section */}
+
+            {/* Scoreline Counter */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gray-900/90 border border-gray-800 flex items-center justify-around gap-4">
+              {/* FC Mierda Goals */}
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">
+                  FC Mierda
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setGoalsFCMierda((prev) => Math.max(0, prev - 1))}
+                    className="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-bold text-lg flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    -
+                  </button>
+                  <span className="text-3xl font-black font-mono w-12 text-center text-white">
+                    {goalsFCMierda}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setGoalsFCMierda((prev) => prev + 1)}
+                    className="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-bold text-lg flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-2xl font-black text-gray-600 font-mono">:</div>
+
+              {/* Opponent Goals */}
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-bold uppercase tracking-wider text-gray-300 mb-2 truncate max-w-[120px] sm:max-w-[160px]">
+                  {lastMatch.opponent || "Opponent"}
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setGoalsOpponent((prev) => Math.max(0, prev - 1))}
+                    className="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-bold text-lg flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    -
+                  </button>
+                  <span className="text-3xl font-black font-mono w-12 text-center text-white">
+                    {goalsOpponent}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setGoalsOpponent((prev) => prev + 1)}
+                    className="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-bold text-lg flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Man of the Match Selection */}
             <div>
-              <label className="block font-semibold mb-1">FC Mierda Man of the Match</label>
+              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                ⭐ FC Mierda Man of the Match
+              </label>
               <select
                 value={fcmierdaManOfTheMatch}
                 onChange={(e) => setFcmierdaManOfTheMatch(e.target.value)}
-                className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
+                className="w-full rounded-xl border border-gray-700 bg-black/60 px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none transition-all cursor-pointer"
               >
-                <option value="">-- Select Man of the Match --</option>
+                <option value="">Select player from matchday attendance</option>
                 {lastMatch.attendance.map((name, idx) => (
                   <option key={idx} value={name}>
                     {name}
@@ -684,728 +747,589 @@ export default function PostMatchResultPage() {
                 ))}
               </select>
             </div>
-            {/* Scores section */}
-            <div className="flex gap-2 sm:gap-4 items-end justify-between w-full">
-              <div className="flex flex-col items-center flex-1">
-                <label className="block font-semibold mb-1 text-center">
-                  FC Mierda
-                </label>
-                <div className="flex items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    aria-label="Decrease FC Mierda goals"
-                    onClick={() => setGoalsFCMierda((prev) => Math.max(0, prev - 1))}
-                    className="bg-gray-700 text-white px-2 py-1 rounded-full text-lg font-bold"
-                  >
-                    -
-                  </button>
-                  <span className="text-2xl font-bold w-10 text-center">{goalsFCMierda}</span>
-                  <button
-                    type="button"
-                    aria-label="Increase FC Mierda goals"
-                    onClick={() => setGoalsFCMierda((prev) => prev + 1)}
-                    className="bg-gray-700 text-white px-2 py-1 rounded-full text-lg font-bold"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              <div className="flex flex-col items-center flex-1">
-                <label className="block font-semibold mb-1 text-center">
-                  {lastMatch.opponent || "Opponent"}
-                </label>
-                <div className="flex items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    aria-label="Decrease opponent goals"
-                    onClick={() => setGoalsOpponent((prev) => Math.max(0, prev - 1))}
-                    className="bg-gray-700 text-white px-2 py-1 rounded-full text-lg font-bold"
-                  >
-                    -
-                  </button>
-                  <span className="text-2xl font-bold w-10 text-center">{goalsOpponent}</span>
-                  <button
-                    type="button"
-                    aria-label="Increase opponent goals"
-                    onClick={() => setGoalsOpponent((prev) => prev + 1)}
-                    className="bg-gray-700 text-white px-2 py-1 rounded-full text-lg font-bold"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label className="block font-semibold mb-1">
-                FC Mierda Goal Scorers & Assists
-              </label>
 
-              {/* Suggestions: attendees from last match */}
+            {/* Goal Scorers & Assists Table */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                  ⚽ Goal Scorers & Assists
+                </label>
+                <span className="text-[11px] text-gray-400">Add scorers in chronological order</span>
+              </div>
+
               <datalist id="attendees-list">
                 {lastMatch.attendance.map((name) => (
                   <option key={name} value={name} />
                 ))}
               </datalist>
 
-              {goalScorers.map((g, idx) => (
-                <div
-                  key={idx}
-                  className="flex flex-col sm:flex-row gap-2 mb-2 items-center w-full"
-                >
-                  <input
-                    type="text"
-                    placeholder="Goal scorer"
-                    value={g.scorer}
-                    onChange={(e) =>
-                      handleGoalScorerChange(idx, "scorer", e.target.value)
-                    }
-                    list="attendees-list" // use attendance suggestions
-                    className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Assist (optional)"
-                    value={g.assist}
-                    onChange={(e) =>
-                      handleGoalScorerChange(idx, "assist", e.target.value)
-                    }
-                    list="attendees-list" // use attendance suggestions
-                    className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Goal 1-0, 2-0, 1-1, etc."
-                    value={g.goalNumber}
-                    onChange={(e) =>
-                      handleGoalScorerChange(idx, "goalNumber", e.target.value)
-                    }
-                    className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
-                  />
-                  {goalScorers.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeGoalScorer(idx)}
-                      className="text-red-400 hover:text-red-600 font-extrabold text-2xl px-2"
-                      title="Remove this goal"
-                      style={{ lineHeight: 1 }}
-                    >
-                      &times;
-                    </button>
-                  )}
-                </div>
-              ))}
+              <div className="space-y-2">
+                {goalScorers.map((g, idx) => (
+                  <div
+                    key={idx}
+                    className="flex flex-col sm:flex-row gap-2 items-center p-2.5 rounded-xl bg-gray-900/90 border border-gray-800"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Goal Scorer (e.g. Rico)"
+                      value={g.scorer}
+                      onChange={(e) => handleGoalScorerChange(idx, "scorer", e.target.value)}
+                      list="attendees-list"
+                      className="w-full sm:w-1/3 rounded-lg border border-gray-700 bg-black/60 px-3 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Assist by (optional)"
+                      value={g.assist}
+                      onChange={(e) => handleGoalScorerChange(idx, "assist", e.target.value)}
+                      list="attendees-list"
+                      className="w-full sm:w-1/3 rounded-lg border border-gray-700 bg-black/60 px-3 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Scoreline (1-0, 2-0, 2-1)"
+                      value={g.goalNumber}
+                      onChange={(e) => handleGoalScorerChange(idx, "goalNumber", e.target.value)}
+                      className="w-full sm:w-1/3 rounded-lg border border-gray-700 bg-black/60 px-3 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
+                    />
+                    {goalScorers.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeGoalScorer(idx)}
+                        className="px-2.5 py-1.5 rounded-lg bg-rose-950/60 border border-rose-800/60 text-rose-300 hover:text-white text-xs font-bold transition-colors"
+                        title="Remove goal"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Match Summary */}
             <div>
-              <label className="block font-semibold mb-1">
-                Match Summary <span className="text-gray-400 text-xs font-normal">(optional)</span>
+              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                Match Recap & Summary (Optional)
               </label>
               <textarea
-                rows={4}
+                rows={3}
                 value={matchSummary}
                 onChange={(e) => setMatchSummary(e.target.value)}
-                placeholder="Write a summary or match recap (key moments, highlights, tactical notes)..."
-                className="w-full p-2.5 rounded bg-gray-800 border border-gray-600 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                placeholder="Write highlights, turning points, great saves or post-match celebration notes..."
+                className="w-full rounded-xl border border-gray-700 bg-black/60 px-4 py-2.5 text-xs sm:text-sm text-white placeholder-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none transition-all"
               />
             </div>
 
-            {/* Notification section */}
-            <div className="flex flex-col p-4 bg-gray-800 border border-blue-700/60 rounded-xl shadow-md space-y-3">
-              <div className="flex items-center">
+            {/* Broadcast Notification Card */}
+            <div className="p-4 sm:p-5 bg-gradient-to-b from-gray-900/90 to-gray-950 border border-emerald-800/40 rounded-2xl shadow-lg space-y-3.5">
+              <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
                   id="notifyMatchResult"
                   checked={notifyUsers}
                   onChange={(e) => setNotifyUsers(e.target.checked)}
-                  className="w-5 h-5 text-blue-600 bg-gray-900 border-gray-600 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                  className="mt-0.5 w-4 h-4 text-emerald-600 bg-black border-gray-700 rounded focus:ring-emerald-500 cursor-pointer accent-emerald-500"
                 />
-                <label htmlFor="notifyMatchResult" className="ml-3 text-white font-semibold cursor-pointer select-none flex items-center gap-2">
-                  <span>🔔</span> Notify subscribers about this match result
-                </label>
+                <div className="flex-1">
+                  <label htmlFor="notifyMatchResult" className="text-xs sm:text-sm font-bold text-emerald-300 cursor-pointer select-none flex items-center gap-1.5">
+                    <span>🔔</span> Broadcast Match Result Push Alert to Subscribers
+                  </label>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    Broadcasts match scoreline, result status, and direct link to the match recap.
+                  </p>
+                </div>
               </div>
 
-              {/* Subscriber Audience Count & Platform Breakdown */}
-              <div className="pt-0.5">
-                <SubscriberStatsBadge theme="blue" />
+              <div className="pt-1">
+                <SubscriberStatsBadge theme="green" />
               </div>
 
               {notifyUsers && (
-                <div className="mt-2 p-3.5 bg-gray-900/90 border border-gray-700 rounded-lg space-y-2.5 text-xs sm:text-sm">
-                  <div className="text-gray-400 font-medium">Push Notification Preview:</div>
-                  <div className="p-3 bg-gray-800/90 rounded border border-gray-700 space-y-1">
-                    <div className="font-bold text-blue-400">
+                <div className="mt-3 p-4 bg-black/60 border border-gray-800 rounded-xl space-y-3 text-xs sm:text-sm">
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>📲</span> Result Push Notification Preview
+                  </div>
+                  <div className="p-3.5 bg-gray-900/90 rounded-xl border border-gray-800 space-y-1">
+                    <div className="font-bold text-emerald-400 text-xs sm:text-sm">
                       📢 Match result: {gameResult === "win" ? "Win" : gameResult === "loss" ? "Loss" : gameResult === "draw" ? "Draw" : "Result"} vs {lastMatch.opponent || "opponent"} ⚽
                     </div>
-                    <div className="text-gray-200 text-xs sm:text-sm leading-relaxed">
-                      <span className="font-bold text-blue-300">
+                    <div className="text-gray-300 text-xs leading-relaxed">
+                      <span className="font-semibold text-emerald-300">
                         {formatDayMonth(lastMatch.date) ? `${formatDayMonth(lastMatch.date)}: ` : ""}FC Mierda {gameResult === "win" ? "won" : gameResult === "loss" ? "lost" : gameResult === "draw" ? "drew" : "played"} ({goalsFCMierda} - {goalsOpponent}) against {lastMatch.opponent || "our opponent"}.
                       </span>{" "}
                       {customNotificationText.trim() || "Check out the goal scorers and match recap!"}
                     </div>
                   </div>
 
-                  <div className="pt-2">
-                    <label className="block text-gray-300 font-semibold mb-1 text-xs">
-                      Custom message note (optional):
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                      Custom Message Note (Optional)
                     </label>
                     <input
                       type="text"
                       value={customNotificationText}
                       onChange={(e) => setCustomNotificationText(e.target.value)}
-                      placeholder="e.g. Kevin scored a brace and was awarded Man of the Match!"
-                      className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white text-xs sm:text-sm placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      placeholder="e.g. Phenomenal comeback! Man of the Match awarded to our keeper."
+                      className="w-full rounded-xl border border-gray-700 bg-black/80 px-3.5 py-2 text-xs sm:text-sm text-white placeholder-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none"
                     />
-                    <p className="mt-1 text-[11px] text-gray-400">
-                      The opponent, score, date, and result (Win/Loss/Draw) are always automatically included at the start.
-                    </p>
                   </div>
                 </div>
               )}
-
-              <p className="mt-1 text-xs text-gray-300">
-                Sends a push notification to all subscribers taking them directly to the Results page.
-              </p>
             </div>
 
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[150px] sm:min-w-[200px] w-full sm:w-auto"
-            >
-              Save Match Result
-            </button>
-            <div className="mt-2 text-green-400">{status}</div>
+            {/* Save & Status Bar */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
+              <button
+                type="submit"
+                className="w-full sm:w-auto px-8 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 font-bold text-sm text-white shadow-lg shadow-emerald-600/25 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
+              >
+                💾 Save Match Result
+              </button>
+              {status && (
+                <div className="text-xs sm:text-sm font-semibold text-emerald-400 bg-emerald-950/50 border border-emerald-800/50 px-3.5 py-2 rounded-xl">
+                  {status}
+                </div>
+              )}
+            </div>
           </form>
         </div>
-      </section>
-      {/* Edit Past Match Results Section */}
-      <section
-        id="edit-match-results"
-        className="w-full flex flex-col items-center gap-8 py-8 px-2 sm:px-4 bg-gray-900"
-      >
-        <div className="max-w-5xl w-full flex flex-col sm:flex-row gap-8 mx-auto">
-          {/* List of past results */}
-          <div className="flex-1">
-            <h2 className="text-xl sm:text-2xl font-bold mb-2 text-center text-green-400">
-              Edit Match Results
+
+        {/* Section 2: Edit Past Match Results */}
+        <div
+          id="edit-match-results"
+          className="max-w-5xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-md mx-auto"
+        >
+          <div className="pb-4 mb-6 border-b border-gray-800">
+            <h2 className={`text-xl sm:text-2xl font-bold text-white ${robotoSlab.className}`}>
+              Past Match Results History & Editor
             </h2>
-            <div className="text-center mb-4 font-bold text-base bg-gray-800/80 py-2 px-4 rounded shadow-sm text-white">
-              Pick the match you want to edit
-            </div>
-            <div
-              className="bg-gray-900 rounded-xl shadow-lg border border-gray-800 overflow-y-auto"
-              style={{ maxHeight: 340, minHeight: 180 }}
-            >
-              <table className="min-w-full text-base">
-                <thead>
-                  <tr className="bg-gray-800">
-                    <th className="py-3 px-4 text-left text-green-300 font-semibold border-b border-gray-800">Date</th>
-                    <th className="py-3 px-4 text-left text-green-300 font-semibold border-b border-gray-800">Opponent</th>
-                    <th className="py-3 px-4 text-left text-green-300 font-semibold border-b border-gray-800">Result</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allResults.map((result, idx) => (
-                    <tr
-                      key={result.id || idx}
-                      className={`cursor-pointer transition ${
-                        selectedResult && selectedResult.id === result.id
-                          ? "bg-green-950/80 text-green-200 font-semibold"
-                          : "hover:bg-gray-800 text-white"
-                      }`}
-                      onClick={() => setSelectedResult(result)}
-                    >
-                      <td className="py-2 px-4 border-b border-gray-800">{result.date}</td>
-                      <td className="py-2 px-4 border-b border-gray-800">{result.opponent}</td>
-                      <td className="py-2 px-4 border-b border-gray-800 capitalize">
-                        {result.gameResult || result.game_result || "-"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Select any past match from the archive table to edit scorelines, scorers, attendance, or add video links.
+            </p>
           </div>
-          {/* Details of selected match */}
-          <div className="flex-1">
-            {selectedResult ? (
-              <div className="bg-gray-900 rounded-2xl shadow-xl p-6 text-white">
-                {/* Add this for consistent header styling */}
-                <div className="text-center mb-4 font-bold text-base bg-gray-800/80 py-2 px-4 rounded shadow-sm text-white">
-                  Edit Match Details
-                </div>
-                {!editMode ? (
-                  <>
-                    {/* Move the Edit button above the date field */}
-                    <div className="mb-6 flex justify-center">
-                      <button
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        onClick={() => {
-                          setEditMode(true);
-                          setEditForm({ ...selectedResult });
-                          setEditNotifyUsers(false);
-                          setEditCustomNotificationText("");
-                        }}
-                      >
-                        Edit here
-                      </button>
-                    </div>
-                    <div className="mb-2">
-                      <strong>Date:</strong> <span className="text-green-300">{selectedResult.date}</span>
-                    </div>
-                    <div className="mb-2">
-                      <strong>Opponent:</strong> <span className="text-red-300">{selectedResult.opponent}</span>
-                    </div>
-                    <div className="mb-2">
-                      <strong>Location:</strong> <span className="text-white">{selectedResult.location}</span>
-                    </div>
-                    <div className="mb-2">
-                      <strong>Competition:</strong> <span className="text-white">{selectedResult.competition}</span>
-                    </div>
-                    <div className="mb-2">
-                      <strong>Game Result:</strong>{" "}
-                      {["win"].includes(selectedResult.gameResult || selectedResult.game_result || "") && (
-                        <span className="px-2 py-1 rounded bg-green-600 text-white font-bold">Win</span>
-                      )}
-                      {["draw"].includes(selectedResult.gameResult || selectedResult.game_result || "") && (
-                        <span className="px-2 py-1 rounded bg-amber-500 text-white font-bold">Draw</span>
-                      )}
-                      {["loss", "lost"].includes(selectedResult.gameResult || selectedResult.game_result || "") && (
-                        <span className="px-2 py-1 rounded bg-red-600 text-white font-bold">Loss</span>
-                      )}
-                      {!["win", "draw", "loss", "lost"].includes(selectedResult.gameResult || selectedResult.game_result || "") && (
-                        <span className="px-2 py-1 rounded bg-gray-700 text-white font-bold">
-                          {selectedResult.gameResult || selectedResult.game_result || "-"}
-                        </span>
-                      )}
-                    </div>
-                    <div className="mb-2">
-                      <strong>Score:</strong>{" "}
-                      <span className="text-green-400 font-bold">{selectedResult.goals_fcmierda ?? selectedResult.goalsFCMierda ?? "-"}</span>
-                      {" - "}
-                      <span className="text-red-400 font-bold">{selectedResult.goals_opponent ?? selectedResult.goalsOpponent ?? "-"}</span>
-                    </div>
-                    <div className="mb-2">
-                      <strong>FC Mierda Man of the Match:</strong>{" "}
-                      <span className="text-yellow-400 font-bold">{selectedResult.fcmierda_man_of_the_match || selectedResult.fcmierdaManOfTheMatch || "-"}</span>
-                    </div>
-                    <div className="mb-2">
-                      <strong>Attendance:</strong>{" "}
-                      <span className="text-green-300">{safeArray(selectedResult.attendance).length}</span>
-                      <div className="mt-1 grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1">
-                        {safeArray(selectedResult.attendance).map((name: string, idx: number) => (
-                          <span
-                            key={idx}
-                            className="bg-gray-800 rounded px-2 py-1 text-white text-xs break-words"
-                            style={{ wordBreak: "break-word" }}
-                          >
-                            {name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="mb-2">
-                      <strong>Support/Coach:</strong>{" "}
-                      <span className="text-blue-300">{safeArray(selectedResult.support_coach).length}</span>
-                      <div className="mt-1 grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1">
-                        {safeArray(selectedResult.support_coach).map((name: string, idx: number) => (
-                          <span
-                            key={idx}
-                            className="bg-gray-800 rounded px-2 py-1 text-white text-xs break-words"
-                            style={{ wordBreak: "break-word" }}
-                          >
-                            {name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="mb-2">
-                      <strong>Goals & Assists:</strong>
-                      {selectedResult.goal_scorers && selectedResult.goal_scorers.length > 0 ? (
-                        <div className="overflow-x-auto mt-2">
-                          <table className="min-w-full text-sm border-separate border-spacing-y-2">
-                            <thead>
-                              <tr>
-                                <th className="text-left text-gray-400 font-semibold px-2">Goal</th>
-                                <th className="text-left text-gray-400 font-semibold px-2">Scorer</th>
-                                <th className="text-left text-gray-400 font-semibold px-2">Assist</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {selectedResult.goal_scorers.map((g: GoalScorer, idx: number) => (
-                                <tr key={idx} className="bg-gray-900 rounded">
-                                  <td className="px-2 py-1 text-green-400 font-semibold">{g.goalNumber || "-"}</td>
-                                  <td className="px-2 py-1 text-white font-bold">{g.scorer || "-"}</td>
-                                  <td className="px-2 py-1 text-blue-300">{g.assist || <span className="text-gray-500">-</span>}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      ) : (
-                        <div className="text-gray-400 text-left mt-2">No goal details available.</div>
-                      )}
-                    </div>
-                    <div className="mb-2">
-                      <strong>Video:</strong>{" "}
-                      {selectedResult.youtube ? (
-                        <span className="text-green-400 break-all">{selectedResult.youtube}</span>
-                      ) : (
-                        <span className="text-gray-400">No video link</span>
-                      )}
-                    </div>
-                    <div className="mb-2">
-                      <strong>Match Summary:</strong>{" "}
-                      {selectedResult.match_summary || selectedResult.matchSummary ? (
-                        <div className="mt-1 p-3 bg-gray-800 rounded text-gray-200 text-sm whitespace-pre-wrap border border-gray-700 leading-relaxed">
-                          {selectedResult.match_summary || selectedResult.matchSummary}
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">No match summary</span>
-                      )}
-                    </div>
-                    <div className="mb-2">
-                      <strong>Last Edited:</strong> <span className="text-gray-300">{selectedResult.lastedited || selectedResult.lastEdited || "-"}</span>
-                    </div>
-                    {editStatus && (
-                      <div className="mt-4 p-3 bg-green-950/80 border border-green-700/60 rounded text-green-300 text-sm font-semibold">
-                        {editStatus}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <form
-                    onSubmit={e => {
-                      e.preventDefault();
-                      handleEditSave();
-                    }}
-                    className="space-y-3"
-                  >
-                    <div>
-                      <label className="block font-semibold mb-1">Date</label>
-                      <input
-                        type="date"
-                        value={editForm?.date || ""}
-                        onChange={e => handleEditChange("date", e.target.value)}
-                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold mb-1">Opponent</label>
-                      <input
-                        type="text"
-                        value={editForm?.opponent || ""}
-                        onChange={e => handleEditChange("opponent", e.target.value)}
-                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold mb-1">Location</label>
-                      <input
-                        type="text"
-                        value={editForm?.location || ""}
-                        onChange={e => handleEditChange("location", e.target.value)}
-                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold mb-1">Competition</label>
-                      <input
-                        type="text"
-                        value={editForm?.competition || ""}
-                        onChange={e => handleEditChange("competition", e.target.value)}
-                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold mb-1">Game Result</label>
-                      <select
-                        value={editForm?.gameResult || editForm?.game_result || ""}
-                        onChange={e => handleEditChange("gameResult", e.target.value)}
-                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                        required
-                      >
-                        <option value="">Select result</option>
-                        <option value="win" className="text-green-600">Win</option>
-                        <option value="draw" className="text-amber-500">Draw</option>
-                        <option value="loss" className="text-red-600">Loss</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block font-semibold mb-1">FC Mierda Man of the Match</label>
-                      <select
-                        value={editForm?.fcmierda_man_of_the_match ?? editForm?.fcmierdaManOfTheMatch ?? ""}
-                        onChange={e => handleEditChange("fcmierda_man_of_the_match", e.target.value)}
-                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                      >
-                        <option value="">-- Select Man of the Match --</option>
-                        {(safeArray(editForm?.attendance) || []).map((name: string, idx: number) => (
-                          <option key={idx} value={name}>
-                            {name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex gap-2 sm:gap-4 items-end justify-between w-full">
-                      <div className="flex flex-col items-center flex-1">
-                        <label className="block font-semibold mb-1 text-center">
-                          FC Mierda
-                        </label>
-                        <input
-                          type="number"
-                          value={editForm?.goals_fcmierda ?? editForm?.goalsFCMierda ?? 0}
-                          onChange={e => handleEditChange("goals_fcmierda", Number(e.target.value))}
-                          className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white text-center"
-                        />
-                      </div>
-                      <div className="flex flex-col items-center flex-1">
-                        <label className="block font-semibold mb-1 text-center">
-                          {editForm?.opponent || "Opponent"}
-                        </label>
-                        <input
-                          type="number"
-                          value={editForm?.goals_opponent ?? editForm?.goalsOpponent ?? 0}
-                          onChange={e => handleEditChange("goals_opponent", Number(e.target.value))}
-                          className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white text-center"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block font-semibold mb-1">
-                        FC Mierda Goal Scorers & Assists
-                      </label>
 
-                      {/* Suggestions: attendees from selected match */}
-                      <datalist id="edit-attendees-list">
-                        {safeArray(editForm?.attendance).map((name: string) => (
-                          <option key={name} value={name} />
-                        ))}
-                      </datalist>
-
-                      {(editForm?.goal_scorers || [{ scorer: "", assist: "", goalNumber: "" }]).map((g, idx) => (
-                        <div
-                          key={idx}
-                          className="flex flex-col sm:flex-row gap-2 mb-2 items-center w-full"
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* List Table */}
+            <div className="lg:col-span-5 flex flex-col">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                Matches Archive ({allResults.length})
+              </span>
+              <div className="rounded-xl border border-gray-800 bg-gray-900/80 overflow-hidden shadow-inner max-h-[480px] overflow-y-auto">
+                <table className="w-full text-xs sm:text-sm">
+                  <thead className="bg-black/40 border-b border-gray-800 sticky top-0">
+                    <tr>
+                      <th className="py-2.5 px-3 text-left text-gray-400 font-semibold">Date</th>
+                      <th className="py-2.5 px-3 text-left text-gray-400 font-semibold">Opponent</th>
+                      <th className="py-2.5 px-3 text-right text-gray-400 font-semibold">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800/60">
+                    {allResults.map((result, idx) => {
+                      const isSelected = selectedResult && selectedResult.id === result.id;
+                      const res = (result.gameResult || result.game_result || "").toLowerCase();
+                      return (
+                        <tr
+                          key={result.id || idx}
+                          onClick={() => setSelectedResult(result)}
+                          className={`cursor-pointer transition-colors ${
+                            isSelected
+                              ? "bg-emerald-950/60 text-emerald-200 font-semibold"
+                              : "hover:bg-gray-800/70 text-gray-300"
+                          }`}
                         >
-                          <input
-                            type="text"
-                            placeholder="Goal scorer"
-                            value={g.scorer}
-                            onChange={e =>
-                              handleEditGoalScorerChange(idx, "scorer", e.target.value)
-                            }
-                            list="edit-attendees-list" // use attendance suggestions
-                            className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Assist (optional)"
-                            value={g.assist}
-                            onChange={e =>
-                              handleEditGoalScorerChange(idx, "assist", e.target.value)
-                            }
-                            list="edit-attendees-list" // use attendance suggestions
-                            className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Goal 1-0, 2-0, 1-1, etc."
-                            value={g.goalNumber}
-                            onChange={e =>
-                              handleEditGoalScorerChange(idx, "goalNumber", e.target.value)
-                            }
-                            className="p-1 rounded bg-gray-800 border border-gray-600 text-white w-full sm:w-1/3"
-                          />
-                          {(editForm?.goal_scorers?.length ?? 0) > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeEditGoalScorer(idx)}
-                              className="text-red-400 hover:text-red-600 font-extrabold text-2xl px-2"
-                              title="Remove this goal"
-                              style={{ lineHeight: 1 }}
+                          <td className="py-2.5 px-3 whitespace-nowrap">{result.date}</td>
+                          <td className="py-2.5 px-3 font-medium truncate max-w-[120px] text-white">
+                            {result.opponent}
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                res === "win"
+                                  ? "bg-emerald-950 text-emerald-400 border border-emerald-800/60"
+                                  : res === "loss" || res === "lost"
+                                  ? "bg-rose-950 text-rose-400 border border-rose-800/60"
+                                  : res === "draw"
+                                  ? "bg-amber-950 text-amber-400 border border-amber-800/60"
+                                  : "bg-gray-800 text-gray-400"
+                              }`}
                             >
-                              &times;
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    {/* Attendance editor */}
-                    <div>
-                      <label className="block font-semibold mb-1">Player Attendance</label>
-                      <div className="space-y-2">
-                        {(safeArray(editForm?.attendance) || []).map((name: string, idx: number) => (
-                          <div key={idx} className="flex gap-2 items-center">
-                            <input
-                              type="text"
-                              value={name}
-                              onChange={(e) => handleEditAttendanceChange(idx, e.target.value)}
-                              className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                              placeholder="Player name"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeEditAttendance(idx)}
-                              className="text-red-400 hover:text-red-600 px-2 py-1 rounded border border-red-700"
-                              aria-label={`Remove ${name}`}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        ))}
-                        <div className="flex gap-2 items-center mt-2">
-                          <input
-                            type="text"
-                            value={newAttendanceName}
-                            onChange={(e) => setNewAttendanceName(e.target.value)}
-                            className="flex-1 p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                            placeholder="Add new player name"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (newAttendanceName.trim() === "") return;
-                              addEditAttendance(newAttendanceName.trim());
-                              setNewAttendanceName("");
-                            }}
-                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                              {res || "-"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Selected Match Details / Editor View */}
+            <div className="lg:col-span-7">
+              {selectedResult ? (
+                <div className="rounded-xl border border-gray-800 bg-gray-900/90 p-5 sm:p-6 shadow-xl">
+                  {!editMode ? (
+                    <div className="space-y-4 text-xs sm:text-sm">
+                      <div className="flex items-center justify-between pb-3 border-b border-gray-800">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-bold text-white">
+                            vs {selectedResult.opponent}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase ${
+                              (selectedResult.gameResult || selectedResult.game_result) === "win"
+                                ? "bg-emerald-950 text-emerald-400 border border-emerald-800"
+                                : (selectedResult.gameResult || selectedResult.game_result) === "loss"
+                                ? "bg-rose-950 text-rose-400 border border-rose-800"
+                                : "bg-amber-950 text-amber-400 border border-amber-800"
+                            }`}
                           >
-                            Add
-                          </button>
+                            {selectedResult.gameResult || selectedResult.game_result || "-"}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditMode(true);
+                            setEditForm({ ...selectedResult });
+                            setEditNotifyUsers(false);
+                            setEditCustomNotificationText("");
+                          }}
+                          className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white shadow transition-all cursor-pointer"
+                        >
+                          ✏️ Edit Match
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <span className="text-gray-400 block">Date</span>
+                          <span className="text-white font-medium">{selectedResult.date}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400 block">Score</span>
+                          <span className="text-emerald-400 font-black font-mono">
+                            {selectedResult.goals_fcmierda ?? selectedResult.goalsFCMierda ?? 0} - {selectedResult.goals_opponent ?? selectedResult.goalsOpponent ?? 0}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400 block">Competition</span>
+                          <span className="text-white font-medium">{selectedResult.competition || "-"}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400 block">Location</span>
+                          <span className="text-white font-medium">{selectedResult.location || "-"}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-gray-400 block">Man of the Match</span>
+                          <span className="text-amber-300 font-bold">
+                            ⭐ {selectedResult.fcmierda_man_of_the_match || selectedResult.fcmierdaManOfTheMatch || "None assigned"}
+                          </span>
                         </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="block font-semibold mb-1">Video Link (YouTube)</label>
-                      <input
-                        type="text"
-                        value={editForm?.youtube || ""}
-                        onChange={e => handleEditChange("youtube", e.target.value)}
-                        className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                        placeholder="Paste YouTube link here"
-                      />
-                      <span className="text-gray-400 text-xs">Paste the full YouTube URL for the match video.</span>
-                    </div>
-
-                    <div>
-                      <label className="block font-semibold mb-1">Match Summary</label>
-                      <textarea
-                        rows={4}
-                        value={editForm?.match_summary ?? editForm?.matchSummary ?? ""}
-                        onChange={e => handleEditChange("match_summary", e.target.value)}
-                        className="w-full p-2.5 rounded bg-gray-800 border border-gray-600 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
-                        placeholder="Write or edit match summary..."
-                      />
-                    </div>
-
-                    {/* Notification section for Edit */}
-                    <div className="flex flex-col p-4 bg-gray-800 border border-green-700/60 rounded-xl shadow-md space-y-3">
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="editNotifyMatchResult"
-                          checked={editNotifyUsers}
-                          onChange={(e) => setEditNotifyUsers(e.target.checked)}
-                          className="w-5 h-5 text-green-600 bg-gray-900 border-gray-600 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
-                        />
-                        <label htmlFor="editNotifyMatchResult" className="ml-3 text-white font-semibold cursor-pointer select-none flex items-center gap-2">
-                          <span>🔔</span> Notify subscribers about this match result
-                        </label>
+                      {/* Goals Table */}
+                      <div>
+                        <span className="text-gray-400 block font-semibold mb-1">Goals & Assists</span>
+                        {selectedResult.goal_scorers && selectedResult.goal_scorers.length > 0 ? (
+                          <div className="space-y-1">
+                            {selectedResult.goal_scorers.map((g: GoalScorer, idx: number) => (
+                              <div key={idx} className="flex items-center gap-2 p-1.5 rounded bg-black/50 text-xs">
+                                <span className="font-bold text-emerald-400 w-10">{g.goalNumber || "Goal"}</span>
+                                <span className="font-semibold text-white flex-1">{g.scorer}</span>
+                                <span className="text-gray-400">{g.assist ? `(Assist: ${g.assist})` : "-"}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-500 italic">No goal details logged.</span>
+                        )}
                       </div>
 
-                      {/* Subscriber Audience Count & Platform Breakdown */}
-                      <div className="pt-0.5">
-                        <SubscriberStatsBadge theme="green" />
-                      </div>
-
-                      {editNotifyUsers && (
-                        <div className="mt-2 p-3.5 bg-gray-900/90 border border-gray-700 rounded-lg space-y-2.5 text-xs sm:text-sm">
-                          <div className="text-gray-400 font-medium">Push Notification Preview:</div>
-                          <div className="p-3 bg-gray-800/90 rounded border border-gray-700 space-y-1">
-                            <div className="font-bold text-green-400">
-                              📢 Match result: {
-                                (editForm?.gameResult || editForm?.game_result) === "win"
-                                  ? "Win"
-                                  : (editForm?.gameResult || editForm?.game_result) === "loss"
-                                  ? "Loss"
-                                  : (editForm?.gameResult || editForm?.game_result) === "draw"
-                                  ? "Draw"
-                                  : "Result"
-                              } vs {editForm?.opponent || "opponent"} ⚽
-                            </div>
-                            <div className="text-gray-200 text-xs sm:text-sm leading-relaxed">
-                              <span className="font-bold text-green-300">
-                                {formatDayMonth(editForm?.date) ? `${formatDayMonth(editForm?.date)}: ` : ""}FC Mierda {
-                                  (editForm?.gameResult || editForm?.game_result) === "win"
-                                    ? "won"
-                                    : (editForm?.gameResult || editForm?.game_result) === "loss"
-                                    ? "lost"
-                                    : (editForm?.gameResult || editForm?.game_result) === "draw"
-                                    ? "drew"
-                                    : "played"
-                                } ({editForm?.goals_fcmierda ?? editForm?.goalsFCMierda ?? 0} - {editForm?.goals_opponent ?? editForm?.goalsOpponent ?? 0}) against {editForm?.opponent || "our opponent"}.
-                              </span>{" "}
-                              {editCustomNotificationText.trim() || "Check out the goal scorers and match recap!"}
-                            </div>
-                          </div>
-
-                          <div className="pt-2">
-                            <label className="block text-gray-300 font-semibold mb-1 text-xs">
-                              Custom message note (optional):
-                            </label>
-                            <input
-                              type="text"
-                              value={editCustomNotificationText}
-                              onChange={(e) => setEditCustomNotificationText(e.target.value)}
-                              placeholder="e.g. Score updated or Kevin awarded Man of the Match!"
-                              className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white text-xs sm:text-sm placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
-                            />
-                            <p className="mt-1 text-[11px] text-gray-400">
-                              The opponent, score, date, and result (Win/Loss/Draw) are always automatically included at the start.
-                            </p>
-                          </div>
+                      {/* Match Summary */}
+                      {(selectedResult.match_summary || selectedResult.matchSummary) && (
+                        <div>
+                          <span className="text-gray-400 block font-semibold mb-1">Match Recap</span>
+                          <p className="p-3 rounded-lg bg-black/40 border border-gray-800 text-gray-300 text-xs leading-relaxed whitespace-pre-wrap">
+                            {selectedResult.match_summary || selectedResult.matchSummary}
+                          </p>
                         </div>
                       )}
 
-                      <p className="mt-1 text-xs text-gray-300">
-                        Sends a push notification to all subscribers taking them directly to the Results page.
-                      </p>
-                    </div>
+                      {/* Video Link */}
+                      {selectedResult.youtube && (
+                        <div className="text-xs">
+                          <span className="text-gray-400 block font-semibold mb-1">Video</span>
+                          <a
+                            href={selectedResult.youtube}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-400 hover:text-emerald-300 underline break-all"
+                          >
+                            {selectedResult.youtube}
+                          </a>
+                        </div>
+                      )}
 
-                    <button
-                      type="submit"
-                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      className="ml-4 bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
-                      onClick={() => {
-                        setEditMode(false);
-                        setEditNotifyUsers(false);
-                        setEditCustomNotificationText("");
+                      {editStatus && (
+                        <div className="p-3 bg-emerald-950/70 border border-emerald-800/70 rounded-xl text-emerald-300 text-xs font-semibold">
+                          {editStatus}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Edit Form */
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleEditSave();
                       }}
+                      className="space-y-4 text-xs sm:text-sm"
                     >
-                      Cancel
-                    </button>
-                    <div className="mt-2 text-green-400">{editStatus}</div>
-                  </form>
-                )}
-              </div>
-            ) : (
-              <div className="bg-gray-800 rounded-lg shadow-xl p-6 text-gray-400 text-center">
-                Select a match result to view details.
-              </div>
-            )}
+                      <div className="flex items-center justify-between pb-3 border-b border-gray-800">
+                        <span className="text-sm font-bold text-emerald-400">Editing Match Details</span>
+                        <button
+                          type="button"
+                          onClick={() => setEditMode(false)}
+                          className="text-xs text-gray-400 hover:text-gray-200"
+                        >
+                          ✕ Cancel
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-300 mb-1">Date</label>
+                          <input
+                            type="date"
+                            value={editForm?.date || ""}
+                            onChange={(e) => handleEditChange("date", e.target.value)}
+                            className="w-full rounded-xl border border-gray-700 bg-black/60 px-3 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-300 mb-1">Opponent</label>
+                          <input
+                            type="text"
+                            value={editForm?.opponent || ""}
+                            onChange={(e) => handleEditChange("opponent", e.target.value)}
+                            className="w-full rounded-xl border border-gray-700 bg-black/60 px-3 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-300 mb-1">Location</label>
+                          <input
+                            type="text"
+                            value={editForm?.location || ""}
+                            onChange={(e) => handleEditChange("location", e.target.value)}
+                            className="w-full rounded-xl border border-gray-700 bg-black/60 px-3 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-300 mb-1">Competition</label>
+                          <input
+                            type="text"
+                            value={editForm?.competition || ""}
+                            onChange={(e) => handleEditChange("competition", e.target.value)}
+                            className="w-full rounded-xl border border-gray-700 bg-black/60 px-3 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* Result & Score */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-300 mb-1">Game Result</label>
+                          <select
+                            value={editForm?.gameResult || editForm?.game_result || ""}
+                            onChange={(e) => handleEditChange("gameResult", e.target.value)}
+                            className="w-full rounded-xl border border-gray-700 bg-black/60 px-3 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none cursor-pointer"
+                            required
+                          >
+                            <option value="">Select result</option>
+                            <option value="win">Win</option>
+                            <option value="draw">Draw</option>
+                            <option value="loss">Loss</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-emerald-400 mb-1">FC Mierda Goals</label>
+                          <input
+                            type="number"
+                            value={editForm?.goals_fcmierda ?? editForm?.goalsFCMierda ?? 0}
+                            onChange={(e) => handleEditChange("goals_fcmierda", Number(e.target.value))}
+                            className="w-full rounded-xl border border-gray-700 bg-black/60 px-3 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none text-center font-bold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-300 mb-1">Opponent Goals</label>
+                          <input
+                            type="number"
+                            value={editForm?.goals_opponent ?? editForm?.goalsOpponent ?? 0}
+                            onChange={(e) => handleEditChange("goals_opponent", Number(e.target.value))}
+                            className="w-full rounded-xl border border-gray-700 bg-black/60 px-3 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none text-center font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Man of the Match */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-300 mb-1">⭐ Man of the Match</label>
+                        <select
+                          value={editForm?.fcmierda_man_of_the_match ?? editForm?.fcmierdaManOfTheMatch ?? ""}
+                          onChange={(e) => handleEditChange("fcmierda_man_of_the_match", e.target.value)}
+                          className="w-full rounded-xl border border-gray-700 bg-black/60 px-3 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none cursor-pointer"
+                        >
+                          <option value="">-- Select Man of the Match --</option>
+                          {(safeArray(editForm?.attendance) || []).map((name: string, idx: number) => (
+                            <option key={idx} value={name}>
+                              {name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Goal Scorers Editor */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-300 mb-1">Goal Scorers</label>
+                        <datalist id="edit-attendees-list">
+                          {safeArray(editForm?.attendance).map((name: string) => (
+                            <option key={name} value={name} />
+                          ))}
+                        </datalist>
+                        <div className="space-y-1.5">
+                          {(editForm?.goal_scorers || [{ scorer: "", assist: "", goalNumber: "" }]).map((g, idx) => (
+                            <div key={idx} className="flex gap-2 items-center">
+                              <input
+                                type="text"
+                                placeholder="Scorer"
+                                value={g.scorer}
+                                onChange={(e) => handleEditGoalScorerChange(idx, "scorer", e.target.value)}
+                                list="edit-attendees-list"
+                                className="w-1/3 rounded-lg border border-gray-700 bg-black/60 px-2.5 py-1.5 text-xs text-white focus:border-emerald-500 outline-none"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Assist"
+                                value={g.assist}
+                                onChange={(e) => handleEditGoalScorerChange(idx, "assist", e.target.value)}
+                                list="edit-attendees-list"
+                                className="w-1/3 rounded-lg border border-gray-700 bg-black/60 px-2.5 py-1.5 text-xs text-white focus:border-emerald-500 outline-none"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Goal #"
+                                value={g.goalNumber}
+                                onChange={(e) => handleEditGoalScorerChange(idx, "goalNumber", e.target.value)}
+                                className="w-1/3 rounded-lg border border-gray-700 bg-black/60 px-2.5 py-1.5 text-xs text-white focus:border-emerald-500 outline-none"
+                              />
+                              {(editForm?.goal_scorers?.length ?? 0) > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeEditGoalScorer(idx)}
+                                  className="px-2 py-1 rounded bg-rose-950/60 border border-rose-800 text-rose-300 hover:text-white text-xs font-bold"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* YouTube Video Link */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-300 mb-1">YouTube Video Link</label>
+                        <input
+                          type="text"
+                          value={editForm?.youtube || ""}
+                          onChange={(e) => handleEditChange("youtube", e.target.value)}
+                          placeholder="https://youtube.com/watch?v=..."
+                          className="w-full rounded-xl border border-gray-700 bg-black/60 px-3 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
+                        />
+                      </div>
+
+                      {/* Match Summary */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-300 mb-1">Match Recap / Summary</label>
+                        <textarea
+                          rows={3}
+                          value={editForm?.match_summary ?? editForm?.matchSummary ?? ""}
+                          onChange={(e) => handleEditChange("match_summary", e.target.value)}
+                          className="w-full rounded-xl border border-gray-700 bg-black/60 px-3 py-2 text-xs sm:text-sm text-white focus:border-emerald-500 outline-none"
+                          placeholder="Recap notes..."
+                        />
+                      </div>
+
+                      {/* Notification on Edit */}
+                      <div className="p-3.5 rounded-xl bg-black/50 border border-emerald-800/40 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="editNotifyMatchResult"
+                            checked={editNotifyUsers}
+                            onChange={(e) => setEditNotifyUsers(e.target.checked)}
+                            className="w-4 h-4 text-emerald-600 bg-black border-gray-700 rounded focus:ring-emerald-500 cursor-pointer accent-emerald-500"
+                          />
+                          <label htmlFor="editNotifyMatchResult" className="text-xs font-bold text-emerald-300 cursor-pointer">
+                            🔔 Send updated result notification to subscribers
+                          </label>
+                        </div>
+                        {editNotifyUsers && (
+                          <input
+                            type="text"
+                            value={editCustomNotificationText}
+                            onChange={(e) => setEditCustomNotificationText(e.target.value)}
+                            placeholder="Optional custom message note"
+                            className="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-1.5 text-xs text-white focus:border-emerald-500 outline-none"
+                          />
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-3 pt-2">
+                        <button
+                          type="submit"
+                          className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 font-bold text-xs sm:text-sm text-white shadow transition-all cursor-pointer"
+                        >
+                          💾 Save Changes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditMode(false);
+                            setEditNotifyUsers(false);
+                            setEditCustomNotificationText("");
+                          }}
+                          className="px-5 py-2.5 rounded-full bg-gray-800 hover:bg-gray-700 font-semibold text-xs sm:text-sm text-gray-300 transition-all cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+
+                      {editStatus && (
+                        <div className="p-2.5 bg-emerald-950/70 border border-emerald-800/70 rounded-xl text-emerald-300 text-xs font-semibold">
+                          {editStatus}
+                        </div>
+                      )}
+                    </form>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-8 text-gray-500 text-center text-sm">
+                  Select any match result from the left table to inspect or edit details.
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </section>
+      </main>
+
       <Footer />
     </div>
   );

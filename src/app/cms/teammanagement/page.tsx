@@ -2,11 +2,12 @@ import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
 import { Pool } from "pg";
+import Link from "next/link";
 import ClientPlayerManagement from "./ClientPlayerManagement";
 import ClientAddPlayer from "./ClientAddPlayer";
 
-const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
-const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
+const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "900"] });
+const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -25,73 +26,55 @@ export default async function TeamManagementPage() {
   const players = await getAllPlayers();
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
+    <div className={`relative min-h-screen flex flex-col items-center bg-gray-900 text-white overflow-x-hidden ${montserrat.className}`}>
       <Menu />
-      
-      {/* Header Section */}
-      <section
-        className="w-full flex justify-center items-center py-10 px-4 bg-gray-900"
-        style={{
-          background: "linear-gradient(135deg, #232526 0%, #414345 100%)",
-        }}
-      >
-        <div className="max-w-2xl w-full flex flex-col items-center text-center mt-16 sm:mt-32">
-          <h1
-            className={`text-3xl sm:text-5xl font-extrabold mb-4 ${robotoSlab.className}`}
-            style={{
-              letterSpacing: "0.07em",
-              textShadow: `
-                0 0 4px #0b3d1a,
-                0 2px 0 #0b3d1a,
-                0 1px 0 #fff
-              `,
-              color: "#fff",
-              textTransform: "uppercase",
-            }}
+
+      <main className="w-full flex-1 flex flex-col items-center pt-24 sm:pt-36 pb-20 px-3.5 sm:px-6">
+        {/* Navigation Breadcrumb */}
+        <div className="max-w-5xl w-full mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <Link
+            href="/cms"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gray-900/90 hover:bg-gray-800 border border-gray-700 text-xs sm:text-sm font-semibold text-gray-200 hover:text-emerald-300 transition-all shadow-sm"
           >
-            Team Management
-          </h1>
-          <p
-            className={`text-lg sm:text-xl text-white font-medium mb-8 drop-shadow-lg ${montserrat.className}`}
-            style={{ maxWidth: 600 }}
-          >
-            Manage the team members here.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 mt-2">
+            <span>←</span>
+            <span>Back to CMS</span>
+          </Link>
+
+          <div className="flex items-center gap-2">
             <a
               href="#current-players"
-              className="px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-green-300 transition"
-              aria-label="View or edit current players"
-              style={{ letterSpacing: "0.03em" }}
+              className="px-3.5 py-1.5 rounded-full bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 font-semibold text-xs transition-all shadow-sm"
             >
-              View or edit current players
+              👥 Squad Overview
             </a>
             <a
               href="#add-new-player"
-              className="px-6 py-3 rounded-lg bg-gray-800 text-gray-100 font-semibold shadow border border-gray-600 hover:bg-gray-700 hover:text-purple-300 transition"
-              aria-label="Add new player"
-              style={{ letterSpacing: "0.03em" }}
+              className="px-3.5 py-1.5 rounded-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 font-semibold text-xs transition-all shadow-sm"
             >
-              Add new player
+              ➕ Add Player
             </a>
           </div>
-          <a
-            href="/cms"
-            className="bg-gray-700 hover:bg-gray-800 text-white px-6 py-3 rounded-md font-bold text-lg shadow transition-all duration-150 border border-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 mt-8 inline-block"
-          >
-            Back to CMS
-          </a>
         </div>
-      </section>
 
-      {/* Main Content Area */}
-      <section className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800 flex-grow">
+        {/* Hero Header */}
+        <div className="max-w-2xl w-full text-center mb-10">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-2xl mb-3 shadow-inner">
+            ⚡
+          </div>
+          <h1 className={`text-2xl sm:text-4xl font-black tracking-tight text-white mb-2 ${robotoSlab.className}`}>
+            Team Management
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-400 font-medium max-w-lg mx-auto">
+            Manage player rosters, update shirt numbers & positions, edit biography cards, and upload profile photos.
+          </p>
+        </div>
+
         {/* Current Players Section */}
         <ClientPlayerManagement players={players} />
 
         {/* Add New Player Section */}
         <ClientAddPlayer />
-      </section>
+      </main>
 
       <Footer />
     </div>

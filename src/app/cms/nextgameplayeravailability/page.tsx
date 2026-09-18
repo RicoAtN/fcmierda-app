@@ -66,55 +66,65 @@ export default function NextGameDetailsPage() {
   }, []);
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center w-full bg-gray-900 text-white overflow-x-hidden">
+    <div className={`relative min-h-screen flex flex-col items-center w-full bg-gray-900 text-white overflow-x-hidden ${montserrat.className}`}>
       <Menu />
 
-      <main className="w-full flex flex-col items-center pt-20 sm:pt-28 pb-12 px-3 sm:px-4">
-        {/* Compact Hero Header */}
-        <div className="max-w-2xl w-full text-center mb-4 sm:mb-5">
-          <h1 className={`text-2xl sm:text-4xl font-extrabold tracking-tight text-white mb-1.5 ${robotoSlab.className}`}>
-            Availability
-          </h1>
-
-          <p className={`text-xs sm:text-sm text-gray-300 font-medium mb-3 ${montserrat.className}`}>
-            Mark your availability for the upcoming match.
-          </p>
-
-          <Link
-            href="/fixtures"
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-xs font-semibold text-gray-200 hover:text-white transition-all shadow-sm"
-          >
-            <span>←</span>
-            <span>Back to fixtures</span>
-          </Link>
+      <main className="w-full flex-1 flex flex-col items-center pt-24 sm:pt-36 pb-16 px-3.5 sm:px-6">
+        {/* Navigation Breadcrumbs */}
+        <div className="max-w-2xl w-full mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Link
+              href="/cms"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gray-900/90 hover:bg-gray-800 border border-gray-700 text-xs font-semibold text-gray-200 hover:text-emerald-300 transition-all shadow-sm"
+            >
+              <span>←</span>
+              <span>Back to CMS</span>
+            </Link>
+            <Link
+              href="/fixtures"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gray-900/90 hover:bg-gray-800 border border-gray-700 text-xs font-semibold text-gray-200 hover:text-emerald-300 transition-all shadow-sm"
+            >
+              <span>View Fixtures</span>
+            </Link>
+          </div>
+          <span className="text-xs text-gray-400 font-medium hidden sm:inline-block">Match Attendance</span>
         </div>
 
-        {/* Main Form Card - Compact & Focused */}
+        {/* Hero Header */}
+        <div className="max-w-2xl w-full text-center mb-6">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-2xl mb-3 shadow-inner">
+            👥
+          </div>
+          <h1 className={`text-2xl sm:text-3xl font-black tracking-tight text-white mb-1.5 ${robotoSlab.className}`}>
+            Player Availability Tracker
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-400 font-medium max-w-md mx-auto">
+            Mark your attendance for the upcoming match. Changes are instantly saved for the entire squad.
+          </p>
+        </div>
+
+        {/* Main Form Card */}
         <div
           id="player-availability"
-          className="max-w-2xl w-full rounded-xl p-4 sm:p-6 text-white bg-gray-950/90 border border-gray-800 shadow-xl mx-auto mb-8"
+          className="max-w-2xl w-full rounded-2xl p-5 sm:p-7 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-md mx-auto mb-8"
         >
-          <h2 className={`text-lg sm:text-xl font-bold mb-3 text-center text-white ${robotoSlab.className}`}>
-            Submit your availability
-          </h2>
-
-          {/* Simple 3-Box Match Info Row */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
-            <div className="p-2 sm:p-2.5 rounded-lg bg-gray-900 border border-gray-800 text-center">
-              <div className="text-[10px] sm:text-xs text-gray-400 font-medium uppercase tracking-wider">Date</div>
-              <div className="text-xs sm:text-sm font-bold text-white truncate mt-0.5">
+          {/* 3-Box Match Info Row */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-gray-900/90 border border-gray-800 text-center">
+              <div className="text-[10px] sm:text-xs text-gray-400 font-semibold uppercase tracking-wider">Date</div>
+              <div className="text-xs sm:text-sm font-bold text-white truncate mt-1">
                 {nextGame.date ? formatDateWithWeekday(nextGame.date) : "-"}
               </div>
             </div>
-            <div className="p-2 sm:p-2.5 rounded-lg bg-gray-900 border border-gray-800 text-center">
-              <div className="text-[10px] sm:text-xs text-emerald-400 font-medium uppercase tracking-wider">Kick-off</div>
-              <div className="text-xs sm:text-sm font-mono font-bold text-emerald-300 truncate mt-0.5">
+            <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-center">
+              <div className="text-[10px] sm:text-xs text-emerald-400 font-semibold uppercase tracking-wider">Kick-off</div>
+              <div className="text-xs sm:text-sm font-mono font-bold text-emerald-300 truncate mt-1">
                 {nextGame.kickoff || "-"}
               </div>
             </div>
-            <div className="p-2 sm:p-2.5 rounded-lg bg-gray-900 border border-gray-800 text-center">
-              <div className="text-[10px] sm:text-xs text-gray-400 font-medium uppercase tracking-wider">Opponent</div>
-              <div className="text-xs sm:text-sm font-bold text-white truncate mt-0.5">
+            <div className="p-3 rounded-xl bg-gray-900/90 border border-gray-800 text-center">
+              <div className="text-[10px] sm:text-xs text-gray-400 font-semibold uppercase tracking-wider">Opponent</div>
+              <div className="text-xs sm:text-sm font-bold text-white truncate mt-1">
                 {nextGame.opponent || "-"}
               </div>
             </div>

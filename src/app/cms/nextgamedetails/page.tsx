@@ -239,123 +239,139 @@ export default function NextGameDetailsPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
+    <div className={`relative min-h-screen flex flex-col items-center bg-gray-900 text-white overflow-x-hidden ${montserrat.className}`}>
       <Menu />
-      <section
-        className="w-full flex justify-center items-center py-10 px-4 bg-gray-900"
-        style={{ background: "linear-gradient(135deg, #232526 0%, #414345 100%)" }}
-      >
-        <div className="max-w-2xl w-full flex flex-col items-center text-center mt-16 sm:mt-32">
-          <h1
-            className={`text-3xl sm:text-5xl font-extrabold mb-4 ${robotoSlab.className}`}
-            style={{
-              letterSpacing: "0.07em",
-              textShadow: `0 0 4px #0b3d1a, 0 2px 0 #0b3d1a, 0 1px 0 #fff`,
-              color: "#fff",
-              textTransform: "uppercase",
-            }}
-          >
-            Next Game Details
-          </h1>
-          <p
-            className={`text-lg sm:text-xl text-white font-medium mb-8 drop-shadow-lg ${montserrat.className}`}
-            style={{ maxWidth: 600 }}
-          >
-            Update the next game details and attendance below. This information will be shown on the Fixtures page.
-          </p>
+
+      <main className="w-full flex-1 flex flex-col items-center pt-24 sm:pt-36 pb-16 px-4 sm:px-6">
+        <div className="max-w-3xl w-full mb-6 flex items-center justify-between">
           <button
             type="button"
             onClick={() => router.push("/cms")}
-            className="bg-gray-700 hover:bg-gray-800 text-white px-6 py-3 rounded-md font-bold text-lg shadow transition-all duration-150 border border-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 mt-4"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gray-900/90 hover:bg-gray-800 border border-gray-700 text-xs sm:text-sm font-semibold text-gray-200 hover:text-emerald-300 transition-all shadow-sm cursor-pointer"
           >
-            Back to CMS
+            <span>←</span>
+            <span>Back to CMS</span>
           </button>
+          <span className="text-xs text-gray-400 font-medium hidden sm:inline-block">Match Operations & Schedule</span>
         </div>
-      </section>
 
-      <section className="w-full flex flex-col items-center gap-12 py-12 px-4 bg-gray-800">
-        <div className="max-w-2xl w-full rounded-2xl p-6 sm:p-10 text-white text-center bg-gray-900 shadow-xl mx-auto">
-          <h2 className={`text-xl sm:text-2xl font-bold mb-4 ${robotoSlab.className}`}>Next Game Details</h2>
-          <div className="mb-4 flex flex-col items-center">
-            <div>
-              <button
-                type="button"
-                onClick={handleClear}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-semibold text-sm shadow transition-all duration-150 border border-red-700 focus:outline-none focus:ring-2 focus:ring-red-400"
-              >
-                Clear all fields
-              </button>
+        <div className="max-w-3xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-md mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-2xl mb-3 shadow-inner">
+              📅
             </div>
-            <p className="mt-2 text-sm text-gray-300 max-w-xl text-center">
-              Click "Clear all fields" to reset the form when you want to add a completely new next game. This will empty all inputs. After clearing, fill in the new match details and press "Save Next Game".
+            <h1 className={`text-2xl sm:text-3xl font-black tracking-tight text-white ${robotoSlab.className}`}>
+              Next Game Details
+            </h1>
+            <p className="mt-2 text-xs sm:text-sm text-gray-400 max-w-lg mx-auto">
+              Configure upcoming fixture details, opponent, kickoff time, and push broadcast alerts for supporters.
             </p>
           </div>
 
-          {/* Admin form: game meta only */}
-          <form onSubmit={handleSubmit} className="space-y-4 text-left">
+          {/* Action Tools Header */}
+          <div className="mb-6 p-4 rounded-xl bg-gray-900/80 border border-gray-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
-              <label className="block font-semibold mb-1">Date</label>
-              <input
-                type="date"
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                required
-              />
+              <p className="text-xs text-gray-300 font-medium text-center sm:text-left">
+                Starting a new fixture round? Clear existing fields before filling new match details.
+              </p>
             </div>
-            <div>
-              <label className="block font-semibold mb-1">Kick-off</label>
-              <select
-                name="kickoff"
-                value={form.kickoff}
-                onChange={handleChange}
-                className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                required
-              >
-                <option value="">Select a time</option>
-                <option value="18:30">18:30</option>
-                <option value="19:30">19:30</option>
-                <option value="20:30">20:30</option>
-                <option value="21:30">21:30</option>
-              </select>
+            <button
+              type="button"
+              onClick={handleClear}
+              className="px-3.5 py-1.5 rounded-lg bg-red-950/80 hover:bg-red-900 border border-red-800/80 text-red-300 hover:text-white font-semibold text-xs transition-all cursor-pointer whitespace-nowrap"
+            >
+              🧹 Clear All Fields
+            </button>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5 text-left">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  name="date"
+                  value={form.date}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-gray-700 bg-black/60 px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none transition-all"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                  Kick-off Time
+                </label>
+                <select
+                  name="kickoff"
+                  value={form.kickoff}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-gray-700 bg-black/60 px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none transition-all cursor-pointer"
+                  required
+                >
+                  <option value="">Select kickoff time</option>
+                  <option value="18:30">18:30</option>
+                  <option value="19:30">19:30</option>
+                  <option value="20:30">20:30</option>
+                  <option value="21:30">21:30</option>
+                </select>
+              </div>
             </div>
+
             <div>
-              <label className="block font-semibold mb-1">Opponent</label>
+              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                Opponent
+              </label>
               <select
                 name="opponent"
                 value={form.opponent}
                 onChange={handleChange}
-                className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-          required={!toBeAnnounced}
-          disabled={!latestCompetition || toBeAnnounced}
+                className="w-full rounded-xl border border-gray-700 bg-black/60 px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none transition-all cursor-pointer"
+                required={!toBeAnnounced}
+                disabled={!latestCompetition || toBeAnnounced}
               >
-          <option value="">{toBeAnnounced ? "To be announced soon" : latestCompetition ? "Select opponent" : "Competition unavailable"}</option>
+                <option value="">
+                  {toBeAnnounced
+                    ? "To be announced soon"
+                    : latestCompetition
+                    ? "Select opponent"
+                    : "Competition unavailable"}
+                </option>
                 {currentOpponentsUnique.map((name, idx) => (
-                  <option key={`${name}-${idx}`} value={name}>{name}</option>
+                  <option key={`${name}-${idx}`} value={name}>
+                    {name}
+                  </option>
                 ))}
               </select>
             </div>
-            <div className="flex flex-col p-3 bg-gray-800 border border-gray-600 rounded">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="toBeAnnounced"
-                  checked={toBeAnnounced}
-                  onChange={(e) => setToBeAnnounced(e.target.checked)}
-                  className="w-5 h-5 text-green-600 bg-gray-900 border-gray-600 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
-                />
-                <label htmlFor="toBeAnnounced" className="ml-3 text-white cursor-pointer select-none">
-                  Next game opponent is unknown
+
+            {/* Unknown opponent checkbox */}
+            <div className="p-3.5 bg-gray-900/60 border border-gray-800 rounded-xl flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="toBeAnnounced"
+                checked={toBeAnnounced}
+                onChange={(e) => setToBeAnnounced(e.target.checked)}
+                className="mt-0.5 w-4 h-4 text-emerald-600 bg-black border-gray-700 rounded focus:ring-emerald-500 cursor-pointer accent-emerald-500"
+              />
+              <div>
+                <label htmlFor="toBeAnnounced" className="text-xs sm:text-sm font-semibold text-gray-200 cursor-pointer select-none">
+                  Opponent is not yet scheduled / To Be Announced
                 </label>
+                <p className="text-[11px] sm:text-xs text-gray-400 mt-0.5">
+                  Check this box if the next matchup is pending official league schedule announcements.
+                </p>
               </div>
-              <p className="mt-1 ml-8 text-sm text-gray-400">
-                Check this box if the next opponent is unknown and needs to be announced by the organization.
-              </p>
             </div>
+
+            {/* Location */}
             <div>
-              <div className="flex justify-between items-center mb-1">
-                <label htmlFor="location" className="block font-semibold">
+              <div className="flex justify-between items-center mb-1.5">
+                <label htmlFor="location" className="block text-xs font-semibold text-gray-300 uppercase tracking-wider">
                   Location
                 </label>
                 {!isLocationEditable ? (
@@ -365,26 +381,26 @@ export default function NextGameDetailsPage() {
                       setLocationBeforeEdit(form.location);
                       setIsLocationEditable(true);
                     }}
-                    className="text-sm text-blue-400 hover:text-blue-300 font-semibold"
+                    className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer"
                   >
-                    Edit
+                    ✏️ Edit Location
                   </button>
                 ) : (
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => setForm(prev => ({ ...prev, location: "Alexandria 66 Rotterdam" }))}
-                      className="text-sm text-yellow-400 hover:text-yellow-300 font-semibold"
+                      onClick={() => setForm((prev) => ({ ...prev, location: "Alexandria 66 Rotterdam" }))}
+                      className="text-xs text-amber-400 hover:text-amber-300 font-semibold cursor-pointer"
                     >
-                      Set to default location
+                      Reset Default
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        setForm(prev => ({ ...prev, location: locationBeforeEdit }));
+                        setForm((prev) => ({ ...prev, location: locationBeforeEdit }));
                         setIsLocationEditable(false);
                       }}
-                      className="text-sm text-gray-400 hover:text-gray-200 font-semibold"
+                      className="text-xs text-gray-400 hover:text-gray-200 font-semibold cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -399,23 +415,22 @@ export default function NextGameDetailsPage() {
                 onChange={handleChange}
                 readOnly={!isLocationEditable}
                 disabled={!isLocationEditable}
-                className={`w-full p-2 rounded border border-gray-600 text-white transition-colors ${
-                  isLocationEditable ? "bg-gray-800" : "bg-gray-700"
+                className={`w-full rounded-xl border border-gray-700 px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none transition-all ${
+                  isLocationEditable ? "bg-black/80" : "bg-gray-900/70 text-gray-300"
                 }`}
               />
-              {isLocationEditable && (
-                <p className="mt-1 text-xs text-gray-400">
-                  Clicking "Default" will reset the location to "Alexandria 66 Rotterdam".
-                </p>
-              )}
             </div>
+
+            {/* Competition Selection */}
             <div>
-              <label className="block font-semibold mb-1">Competition</label>
+              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                Competition
+              </label>
               <select
                 name="competition"
                 value={form.competition}
                 onChange={handleChange}
-                className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
+                className="w-full rounded-xl border border-gray-700 bg-black/60 px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none transition-all cursor-pointer"
                 required
               >
                 <option value="">{competitions.length > 0 ? "Select competition" : "Loading..."}</option>
@@ -426,8 +441,8 @@ export default function NextGameDetailsPage() {
                 ))}
               </select>
               {latestCompetition?.league_link ? (
-                <div className="mt-1.5 flex items-center gap-1.5 text-xs text-emerald-400">
-                  <span className="font-semibold">🔗 League link:</span>
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 rounded-lg p-2.5">
+                  <span className="font-semibold">🔗 Official Portal Link:</span>
                   <a
                     href={latestCompetition.league_link}
                     target="_blank"
@@ -438,106 +453,127 @@ export default function NextGameDetailsPage() {
                   </a>
                 </div>
               ) : (
-                <p className="mt-1 text-xs text-gray-400">
-                  No organiser league link configured for this competition. You can add one in{" "}
+                <p className="mt-1 text-[11px] text-gray-400">
+                  No organiser portal link configured for this competition. You can configure one in{" "}
                   <a href="/cms/competition" className="text-emerald-400 underline hover:text-emerald-300">
                     Competitions CMS
                   </a>.
                 </p>
               )}
             </div>
+
+            {/* Match Note */}
             <div>
-              <label className="block font-semibold mb-1">Note</label>
+              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                Matchday Note & Motivation
+              </label>
               <textarea
                 name="note"
                 value={form.note}
                 onChange={handleChange}
-                className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                placeholder="e.g. Get ready for the next challenge! FC Mierda faces FC Rotterdam United in what promises to be an exciting match. Come support us and don't miss the action!"
+                className="w-full rounded-xl border border-gray-700 bg-black/60 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none transition-all"
+                placeholder="e.g. Big showdown! FC Mierda takes the pitch against our local rivals. Arrive early for warmup!"
                 rows={3}
               />
             </div>
 
-            <div className="flex items-center p-3 bg-gray-800 border border-gray-600 rounded">
+            {/* Reset Availability Checkbox */}
+            <div className="p-3.5 bg-gray-900/60 border border-gray-800 rounded-xl flex items-start gap-3">
               <input
                 type="checkbox"
                 id="resetAttendance"
                 checked={resetAttendance}
                 onChange={(e) => setResetAttendance(e.target.checked)}
-                className="w-5 h-5 text-green-600 bg-gray-900 border-gray-600 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
+                className="mt-0.5 w-4 h-4 text-emerald-600 bg-black border-gray-700 rounded focus:ring-emerald-500 cursor-pointer accent-emerald-500"
               />
-              <label htmlFor="resetAttendance" className="ml-3 text-white cursor-pointer select-none">
-                Reset all players availability to unknown
-              </label>
+              <div>
+                <label htmlFor="resetAttendance" className="text-xs sm:text-sm font-semibold text-gray-200 cursor-pointer select-none">
+                  Reset player availability statuses to "unknown"
+                </label>
+                <p className="text-[11px] sm:text-xs text-gray-400 mt-0.5">
+                  Select this for a new fixture so players can re-confirm their attendance.
+                </p>
+              </div>
             </div>
 
-            <div className="flex flex-col p-4 bg-gray-800 border border-green-700/60 rounded-xl shadow-md space-y-3">
-              <div className="flex items-center">
+            {/* Push Notification Broadcast Card */}
+            <div className="p-4 sm:p-5 bg-gradient-to-b from-gray-900/90 to-gray-950 border border-emerald-800/40 rounded-2xl shadow-lg space-y-3.5">
+              <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
                   id="notifyUsers"
                   checked={notifyUsers}
                   onChange={(e) => setNotifyUsers(e.target.checked)}
-                  className="w-5 h-5 text-green-600 bg-gray-900 border-gray-600 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
+                  className="mt-0.5 w-4 h-4 text-emerald-600 bg-black border-gray-700 rounded focus:ring-emerald-500 cursor-pointer accent-emerald-500"
                 />
-                <label htmlFor="notifyUsers" className="ml-3 text-white font-semibold cursor-pointer select-none flex items-center gap-2">
-                  <span>🔔</span> Notify subscribers about this match update
-                </label>
+                <div className="flex-1">
+                  <label htmlFor="notifyUsers" className="text-xs sm:text-sm font-bold text-emerald-300 cursor-pointer select-none flex items-center gap-1.5">
+                    <span>🔔</span> Broadcast Push Notification to Supporters & Squad
+                  </label>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    Automatically triggers real-time web push notifications across Android, iOS & Desktop devices.
+                  </p>
+                </div>
               </div>
 
-              {/* Subscriber Audience Count & Platform Breakdown */}
-              <div className="pt-0.5">
+              {/* Subscriber Audience Count */}
+              <div className="pt-1">
                 <SubscriberStatsBadge theme="green" />
               </div>
 
               {notifyUsers && (
-                <div className="mt-2 p-3.5 bg-gray-900/90 border border-gray-700 rounded-lg space-y-2.5 text-xs sm:text-sm">
-                  <div className="text-gray-400 font-medium">Push Notification Preview:</div>
-                  <div className="p-3 bg-gray-800/90 rounded border border-gray-700 space-y-1">
-                    <div className="font-bold text-green-400">
+                <div className="mt-3 p-4 bg-black/60 border border-gray-800 rounded-xl space-y-3 text-xs sm:text-sm">
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>📲</span> Live Push Notification Preview
+                  </div>
+                  <div className="p-3.5 bg-gray-900/90 rounded-xl border border-gray-800 space-y-1">
+                    <div className="font-bold text-emerald-400 text-xs sm:text-sm">
                       📢 Next match update - against {toBeAnnounced ? "To be announced soon" : (form.opponent || "our next opponent")}
                     </div>
-                    <div className="text-gray-200 text-xs sm:text-sm leading-relaxed">
-                      <span className="font-bold text-green-300">
+                    <div className="text-gray-300 text-xs leading-relaxed">
+                      <span className="font-semibold text-emerald-300">
                         {formatDayMonth(form.date) || "Match schedule"}{form.kickoff ? ` at ${form.kickoff}` : ""}.
                       </span>{" "}
                       {customNotificationText.trim() || "Check out the latest match details and player availability!"}
                     </div>
                   </div>
 
-                  <div className="pt-2">
-                    <label className="block text-gray-300 font-semibold mb-1 text-xs">
-                      Custom message note (optional):
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                      Custom Message Note (Optional)
                     </label>
                     <input
                       type="text"
                       value={customNotificationText}
                       onChange={(e) => setCustomNotificationText(e.target.value)}
-                      placeholder="e.g. Bring both green and black shirts! Arrive 30 mins before kickoff."
-                      className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white text-xs sm:text-sm placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                      placeholder="e.g. Bring both green & black kits! Be at the pitch 30 mins before kickoff."
+                      className="w-full rounded-xl border border-gray-700 bg-black/80 px-3.5 py-2 text-xs sm:text-sm text-white placeholder-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 outline-none"
                     />
                     <p className="mt-1 text-[11px] text-gray-400">
-                      The match date & time (<span className="text-green-300 font-semibold">{formatDayMonth(form.date) || "Date"}{form.kickoff ? ` at ${form.kickoff}` : ""}</span>) is always kept at the front.
+                      The match date & time (<span className="text-emerald-300 font-semibold">{formatDayMonth(form.date) || "Date"}{form.kickoff ? ` at ${form.kickoff}` : ""}</span>) is always pinned to the beginning.
                     </p>
                   </div>
                 </div>
               )}
-
-              <p className="mt-1 text-xs text-gray-300">
-                Check this box to automatically send a push notification to all subscribed visitors and players when saving.
-              </p>
             </div>
 
-            <button
-              type="submit"
-              className="bg-green-600 hover:bg-green-700 text-white px-10 py-2 rounded-md font-semibold text-base shadow transition-all duration-150 border border-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 min-w-[200px]"
-            >
-              Save Next Game
-            </button>
-            <div className="mt-2 text-green-400">{status}</div>
+            {/* Save Button and Status */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
+              <button
+                type="submit"
+                className="w-full sm:w-auto px-8 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 font-bold text-sm text-white shadow-lg shadow-emerald-600/25 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
+              >
+                💾 Save Next Game
+              </button>
+              {status && (
+                <div className="text-xs sm:text-sm font-semibold text-emerald-400 bg-emerald-950/50 border border-emerald-800/50 px-3.5 py-2 rounded-xl">
+                  {status}
+                </div>
+              )}
+            </div>
           </form>
         </div>
-      </section>
+      </main>
 
       <Footer />
     </div>
