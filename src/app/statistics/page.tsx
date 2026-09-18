@@ -5,8 +5,8 @@ import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
 import TeamForm from "@/components/TeamForm";
 
-const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
-const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
+const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "800", "900"] });
+const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 function CrownIcon({ className = "w-3.5 h-3.5 text-amber-400" }: { className?: string }) {
   return (
@@ -308,7 +308,19 @@ export default function StatisticsPage() {
     return groups.slice(0, take);
   };
 
-  const mains = useMemo(() => stats.filter((s) => s.main_player === true), [stats]);
+  // Strictly filter only legitimate main players
+  const mains = useMemo(
+    () =>
+      stats.filter(
+        (s) =>
+          s.main_player === true &&
+          s.player_name &&
+          s.player_name.trim().length > 0 &&
+          !s.player_name.toLowerCase().startsWith("invaller") &&
+          !s.player_name.toLowerCase().startsWith("own")
+      ),
+    [stats]
+  );
 
   // Determine minimum matches threshold for averages:
   // All-time: min 5 matches; Competition: min 2 matches (or min 1 if matches played is very small)
@@ -376,7 +388,7 @@ export default function StatisticsPage() {
                           )}
                         </>
                       ) : (
-                        <span className="text-gray-400">{idx + 1}.</span>
+                        <span className="text-gray-400 font-mono font-bold">{idx + 1}.</span>
                       )}
                     </span>
                     <span
@@ -393,7 +405,7 @@ export default function StatisticsPage() {
                   </div>
 
                   <span
-                    className={`ml-3 tabular-nums font-semibold ${
+                    className={`ml-3 tabular-nums font-mono font-bold ${
                       isFirst
                         ? isAllTimePlayerView
                           ? "text-amber-300"
@@ -434,7 +446,7 @@ export default function StatisticsPage() {
                           )}
                         </>
                       ) : (
-                        <span className="text-gray-400">{idx + 1}.</span>
+                        <span className="text-gray-400 font-mono font-bold">{idx + 1}.</span>
                       )}
                     </span>
 
@@ -465,7 +477,7 @@ export default function StatisticsPage() {
                   </div>
 
                   <span
-                    className={`ml-3 tabular-nums font-semibold shrink-0 ${
+                    className={`ml-3 tabular-nums font-mono font-bold shrink-0 ${
                       isFirst
                         ? isAllTimePlayerView
                           ? "text-amber-300"
@@ -491,12 +503,15 @@ export default function StatisticsPage() {
 
   const renderStatBlocks = (blocks: StatBlock[], scrollable: boolean = false, isLoading: boolean = false) =>
     blocks.map((block, i) => (
-      <div key={i}>
-        <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">{block.heading}</div>
+      <div key={i} className="bg-gray-900/80 rounded-xl p-3.5 sm:p-4 border border-gray-800 shadow-inner flex flex-col">
+        <div className="text-xs uppercase tracking-wider text-emerald-400 font-bold mb-2.5 flex items-center gap-1.5">
+          <span>📊</span>
+          <span>{block.heading}</span>
+        </div>
         <ul
-          className={`space-y-2 ${
+          className={`space-y-1.5 ${
             scrollable
-              ? "max-h-[432px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-black/10 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-600 hover:[&::-webkit-scrollbar-thumb]:bg-gray-500 [&::-webkit-scrollbar-thumb]:rounded-full"
+              ? "max-h-[420px] overflow-y-auto custom-scrollbar pr-1"
               : ""
           }`}
         >
@@ -507,14 +522,18 @@ export default function StatisticsPage() {
             return (
               <li
                 key={`${block.valueKey}-${ps.player_id}`}
-                className="flex items-center justify-between bg-black/20 hover:bg-black/40 cursor-pointer rounded-md px-3 py-2 text-sm transition-colors group"
+                className="flex items-center justify-between bg-black/40 hover:bg-black/70 cursor-pointer rounded-lg px-3 py-2 text-xs sm:text-sm transition-colors border border-gray-800/60 hover:border-emerald-500/40 group"
                 onClick={() => window.location.assign(`/team?playerId=${ps.player_id}#player-bio`)}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-gray-400 w-5">{idx + 1}.</span>
-                  <span className="font-medium truncate group-hover:text-green-300 transition-colors">{name}</span>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="text-gray-400 font-mono font-bold w-5 shrink-0">{idx + 1}.</span>
+                  <span className="font-semibold text-white truncate group-hover:text-emerald-300 transition-colors">
+                    {name}
+                  </span>
                 </div>
-                <span className="font-semibold tabular-nums text-green-300">{val}</span>
+                <span className="font-mono font-black tabular-nums text-emerald-300 shrink-0 ml-2">
+                  {val}
+                </span>
               </li>
             );
           })}
@@ -523,16 +542,19 @@ export default function StatisticsPage() {
             return (
               <li
                 key={`${block.valueKey}-group-${idx}`}
-                className="flex items-start justify-between bg-black/20 rounded-md px-3 py-2 text-sm"
+                className="flex items-start justify-between bg-black/40 rounded-lg px-3 py-2 text-xs sm:text-sm border border-gray-800/60"
               >
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <span className="text-gray-400 w-5">{idx + 1}.</span>
-                  <div className="flex flex-wrap gap-x-2 gap-y-1 flex-1">
+                <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                  <span className="text-gray-400 font-mono font-bold w-5 shrink-0 mt-0.5">{idx + 1}.</span>
+                  <div className="flex flex-wrap gap-x-2 gap-y-1 flex-1 min-w-0">
                     {group.players.map((ps, pIdx) => {
                       const name = (ps.player_name || `Player ${ps.player_id}`).trim();
                       return (
                         <React.Fragment key={ps.player_id}>
-                          <a href={`/team?playerId=${ps.player_id}#player-bio`} className="font-medium hover:text-green-300 transition-colors">
+                          <a
+                            href={`/team?playerId=${ps.player_id}#player-bio`}
+                            className="font-semibold text-white hover:text-emerald-300 transition-colors truncate"
+                          >
                             {name}
                           </a>
                           {pIdx < group.players.length - 1 && <span className="text-gray-500">,</span>}
@@ -541,37 +563,54 @@ export default function StatisticsPage() {
                     })}
                   </div>
                 </div>
-                <span className="font-semibold tabular-nums text-green-300 ml-4">{val}</span>
+                <span className="font-mono font-black tabular-nums text-emerald-300 ml-3 shrink-0">
+                  {val}
+                </span>
               </li>
             );
           })}
           {isLoading ? (
-            <li className="text-xs text-gray-500 animate-pulse">Loading data...</li>
+            <li className="text-xs text-gray-500 animate-pulse py-2 text-center">Loading data...</li>
           ) : !(block.list?.length) && !(block.groupedList?.length) ? (
-            <li className="text-xs text-gray-500">No data.</li>
+            <li className="text-xs text-gray-500 py-1 text-center">No data recorded.</li>
           ) : null}
         </ul>
       </div>
     ));
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="relative min-h-screen flex flex-col items-center w-full bg-gray-900 text-white overflow-x-hidden">
       <Menu />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
-        {/* Team statistics section */}
-        <section id="team-stats" className="mb-8 bg-gray-800 rounded-xl p-5 shadow">
+      <main className="w-full flex flex-col items-center pt-24 sm:pt-36 pb-14 sm:pb-20 px-3.5 sm:px-6">
+        {/* Intro Hero Header */}
+        <div className="max-w-3xl w-full text-center mb-6 sm:mb-10">
+          <h1 className={`text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white mb-2.5 sm:mb-3 drop-shadow-[0_4px_16px_rgba(0,0,0,0.85)] ${robotoSlab.className}`}>
+            Statistics &amp; Records
+          </h1>
+
+          <p className={`text-sm sm:text-base md:text-lg text-gray-200 font-medium max-w-xl mx-auto leading-relaxed ${montserrat.className}`}>
+            Explore FC Mierda&apos;s team records, match averages, competition leaderboards, and individual player performance rankings.
+          </p>
+        </div>
+
+        {/* Team Statistics Section */}
+        <section id="team-stats" className="max-w-5xl w-full rounded-2xl p-4 sm:p-7 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-sm mx-auto mb-8">
           <header className="mb-6 text-center">
-            <h1 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>Team statistics</h1>
-            <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
-              Mierda’s overall statistics for the recent period.
+            <h2 className={`text-2xl sm:text-3xl font-black text-white tracking-tight ${robotoSlab.className}`}>
+              Team Statistics
+            </h2>
+            <p className={`mt-1.5 text-xs sm:text-sm text-gray-300 font-medium ${montserrat.className}`}>
+              FC Mierda&apos;s overall match records, win rates, goal metrics, and defensive performance.
             </p>
-            <TeamForm teamId={1} className="mt-6" />
+            <div className="flex justify-center mt-5 mb-1">
+              <TeamForm teamId={1} />
+            </div>
           </header>
 
           {/* Competition Dropdown for Team Statistics */}
-          <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 bg-gray-900/60 p-3.5 rounded-xl border border-gray-700/60">
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+          <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 bg-gray-900/90 p-3.5 sm:p-4 rounded-xl border border-gray-800 shadow-inner">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-emerald-400">
               <TrophyIcon className="w-4 h-4 text-emerald-400" />
               <span>Filter Team Statistics:</span>
             </div>
@@ -580,7 +619,7 @@ export default function StatisticsPage() {
                 id="team-competition-select"
                 value={selectedTeamComp}
                 onChange={(e) => setSelectedTeamComp(e.target.value)}
-                className="w-full appearance-none bg-gray-800 hover:bg-gray-750 text-white text-sm font-medium rounded-lg px-4 py-2.5 pr-9 border border-gray-700 hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer shadow-sm"
+                className="w-full appearance-none bg-gray-950 hover:bg-gray-900 text-white text-xs sm:text-sm font-medium rounded-lg px-3.5 py-2.5 pr-9 border border-gray-700/80 hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all cursor-pointer shadow-sm"
               >
                 <option value="all">🏆 All-Time (All Competitions)</option>
                 {competitions.map((c) => (
@@ -595,7 +634,11 @@ export default function StatisticsPage() {
             </div>
           </div>
 
-          {teamStatsError && <div className="mt-3 text-sm text-red-400">Error: {teamStatsError}</div>}
+          {teamStatsError && (
+            <div className="mt-3 text-xs text-rose-400 bg-rose-950/40 border border-rose-800/50 rounded-lg p-2.5">
+              Error: {teamStatsError}
+            </div>
+          )}
 
           {(() => {
             const ts = teamStats;
@@ -610,11 +653,11 @@ export default function StatisticsPage() {
             };
 
             const Tile = ({ label, value }: { label: string; value: string | number }) => (
-              <div className="bg-black/20 rounded-lg p-3 w-full flex flex-col items-center text-center transition-transform hover:scale-[1.01]">
-                <div className="text-base sm:text-lg font-semibold text-green-300 leading-tight tabular-nums tracking-tight">
+              <div className="bg-black/50 border border-gray-800 rounded-xl p-3 w-full flex flex-col items-center justify-center text-center shadow-inner hover:border-gray-700 transition-colors">
+                <div className="text-lg sm:text-xl font-black font-mono text-emerald-300 leading-tight tabular-nums tracking-tight">
                   {value}
                 </div>
-                <div className="mt-2 text-sm sm:text-base text-gray-300 leading-5 whitespace-normal break-words">
+                <div className="mt-1.5 text-xs sm:text-sm text-gray-300 font-medium leading-tight text-center">
                   {label}
                 </div>
               </div>
@@ -624,16 +667,19 @@ export default function StatisticsPage() {
               return (
                 <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="bg-black/20 rounded-lg p-3 h-20 animate-pulse" />
+                    <div key={i} className="bg-black/40 rounded-xl p-3 h-20 animate-pulse border border-gray-800" />
                   ))}
                 </div>
               );
             }
 
             return (
-              <div className="mt-4 space-y-5">
+              <div className="mt-4 space-y-6">
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">Results</div>
+                  <div className="text-xs uppercase tracking-wider text-emerald-400 font-bold mb-2.5 flex items-center gap-1.5">
+                    <span>⚔️</span>
+                    <span>Match Outcomes</span>
+                  </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <Tile label="Matches played" value={fmtInt(ts?.match_played)} />
                     <Tile label="Wins" value={fmtInt(ts?.total_wins)} />
@@ -643,8 +689,11 @@ export default function StatisticsPage() {
                 </div>
 
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">Averages</div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="text-xs uppercase tracking-wider text-emerald-400 font-bold mb-2.5 flex items-center gap-1.5">
+                    <span>📈</span>
+                    <span>Averages &amp; Win Rate</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <Tile label="Avg goals p/m" value={fmtAvg(ts?.average_goals_per_match)} />
                     <Tile label="Avg conceded p/m" value={fmtAvg(ts?.average_goals_conceded_per_match)} />
                     <Tile label="Win percentage" value={`${fmtAvg(ts?.win_percentage)}%`} />
@@ -652,16 +701,13 @@ export default function StatisticsPage() {
                 </div>
 
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">Totals</div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <Tile label="Goals scored" value={fmtInt(ts?.goals_scored)} />
-                    <Tile label="Goals against" value={fmtInt(ts?.goals_conceded)} />
+                  <div className="text-xs uppercase tracking-wider text-emerald-400 font-bold mb-2.5 flex items-center gap-1.5">
+                    <span>🎯</span>
+                    <span>Goals &amp; Defence</span>
                   </div>
-                </div>
-
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">Defence</div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <Tile label="Goals scored" value={fmtInt(ts?.goals_scored)} />
+                    <Tile label="Goals conceded" value={fmtInt(ts?.goals_conceded)} />
                     <Tile label="Clean sheets" value={fmtInt(ts?.clean_sheets)} />
                   </div>
                 </div>
@@ -670,10 +716,10 @@ export default function StatisticsPage() {
           })()}
         </section>
 
-        {/* Top performers section (All-Time Hall of Fame or Specific Competition) */}
+        {/* Top Performers Section (All-Time Hall of Fame or Specific Competition) - Preserved Section */}
         <section
           id="top-performers"
-          className={`relative mb-10 rounded-2xl p-5 sm:p-8 border shadow-xl overflow-hidden transition-colors ${
+          className={`relative max-w-5xl w-full mx-auto mb-8 rounded-2xl p-5 sm:p-8 border shadow-xl overflow-hidden transition-colors ${
             isAllTimePlayerView
               ? "bg-gradient-to-b from-gray-850 via-gray-800 to-gray-850 border-amber-500/25"
               : "bg-gradient-to-b from-gray-850 via-gray-800 to-gray-850 border-emerald-500/30"
@@ -788,20 +834,20 @@ export default function StatisticsPage() {
           </div>
         </section>
 
-        {/* Overall statistics */}
-        <section id="overall-statistics" className="mb-8 bg-gray-800 rounded-xl p-5 shadow">
+        {/* Overall Statistics Section */}
+        <section id="overall-statistics" className="max-w-5xl w-full rounded-2xl p-4 sm:p-7 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-sm mx-auto mb-8">
           <header className="mb-6 text-center">
-            <h2 className={`text-3xl sm:text-4xl font-extrabold ${robotoSlab.className}`}>
-              {isAllTimePlayerView ? "Overall statistics" : `Overall statistics — ${selectedPlayerComp}`}
+            <h2 className={`text-2xl sm:text-3xl font-black text-white tracking-tight ${robotoSlab.className}`}>
+              {isAllTimePlayerView ? "Overall Player Statistics" : `Player Statistics — ${selectedPlayerComp}`}
             </h2>
-            <p className={`mt-2 text-sm sm:text-base text-gray-300 ${montserrat.className}`}>
+            <p className={`mt-1.5 text-xs sm:text-sm text-gray-300 font-medium ${montserrat.className}`}>
               {isAllTimePlayerView
-                ? "Comprehensive player statistics for all main players. Click on the player's name to view their full profile."
-                : `Comprehensive player statistics for ${selectedPlayerComp}. Click on the player's name to view their full profile.`}
+                ? "Complete statistical rankings across all squad members. Click on any player to view their profile."
+                : `Complete statistical rankings for ${selectedPlayerComp}. Click on any player to view their profile.`}
             </p>
           </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {renderStatBlocks(
               [
                 { heading: "Goals", list: rankTop(mains, "goals", mains.length), valueKey: "goals" },
@@ -834,4 +880,4 @@ export default function StatisticsPage() {
       <Footer />
     </div>
   );
-}
+}

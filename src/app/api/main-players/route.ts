@@ -37,7 +37,7 @@ export async function GET() {
       SELECT
         ps.player_id::text AS player_id,
         ps.player_number::text AS number,
-        COALESCE(ps.player_name, CONCAT('Player ', ps.player_id)) AS name,
+        ps.player_name AS name,
         ps.player_callsign AS nickname,
         ps.player_position AS role,
         CASE
@@ -60,8 +60,10 @@ export async function GET() {
         ps.main_player
       FROM player_statistics ps
       WHERE ps.main_player IS TRUE
+        AND ps.player_name IS NOT NULL
+        AND TRIM(ps.player_name) != ''
       ORDER BY
-        COALESCE(ps.player_name, CONCAT('Player ', ps.player_id)) NULLS LAST,
+        ps.player_name NULLS LAST,
         ps.player_id;
     `;
 

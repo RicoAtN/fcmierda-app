@@ -8,7 +8,13 @@ const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 type Props = { teamId: string | number; className?: string };
 
 const colorFor = (r: string) =>
-  r === "W" ? "text-green-500" : r === "D" ? "text-amber-400" : r === "L" ? "text-red-500" : "text-gray-400";
+  r === "W"
+    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-emerald-500/10"
+    : r === "D"
+    ? "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-amber-500/10"
+    : r === "L"
+    ? "bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-rose-500/10"
+    : "bg-gray-800/40 text-gray-500 border-gray-700/40";
 
 export default function TeamForm({ teamId, className = "" }: Props) {
   const [results, setResults] = useState<string[] | null>(null);
@@ -105,7 +111,7 @@ export default function TeamForm({ teamId, className = "" }: Props) {
       document.removeEventListener("visibilitychange", onVis);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamId]); // keep teamId so rerenders can refetch if you later add filtering
+  }, [teamId]);
 
   const items = (results ?? []).map(normalize);
   // Newest on the left, oldest on the right; pad missing older games on the right
@@ -113,22 +119,26 @@ export default function TeamForm({ teamId, className = "" }: Props) {
   const display = items.concat(Array(padRightCount).fill(""));
 
   return (
-    <Link href="/results" className={`w-fit mx-auto flex flex-col items-center gap-2 cursor-pointer hover:scale-105 transition-transform duration-200 ${className}`} aria-label="Team recent form">
-      <span className={`text-white font-extrabold text-lg sm:text-xl uppercase tracking-wide ${robotoSlab.className}`}>
-        FC Mierda Form
-      </span>
-      <span className="text-gray-300 text-xs sm:text-sm font-medium">Latest 5 game results</span>
-      {loading && (
-        <span className="text-[11px] text-gray-400">Refreshing…</span>
-      )}
+    <Link
+      href="/results"
+      className={`group w-full max-w-sm mx-auto flex flex-col items-center gap-2 cursor-pointer bg-black/50 hover:bg-black/60 backdrop-blur-md border border-white/15 hover:border-emerald-500/50 rounded-2xl p-4 sm:p-5 text-center shadow-2xl hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.25)] transition-all duration-300 hover:-translate-y-0.5 ${className}`}
+      aria-label="Team recent form"
+    >
+      <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-bold text-[11px] sm:text-xs uppercase tracking-widest">
+        <span>⚡ Team Recent Form</span>
+      </div>
 
-      <div className="flex items-center gap-3">
+      <span className="text-gray-300 text-xs sm:text-sm font-medium">
+        Last 5 match outcomes
+      </span>
+
+      <div className="flex items-center justify-center gap-2 sm:gap-2.5 my-1">
         {display.map((r, i) => {
           const isLatest = i === 0;
           return (
             <span
               key={i}
-              className={`inline-flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-md bg-gray-800/70 border border-gray-600 ${colorFor(r)} font-bold text-lg sm:text-xl ${isLatest ? "ring-1 ring-gray-500" : ""}`}
+              className={`inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border shadow-sm ${colorFor(r)} font-extrabold text-sm sm:text-base transition-transform group-hover:scale-105 ${isLatest ? "ring-2 ring-emerald-400/50" : ""}`}
               title={r === "W" ? "Win" : r === "D" ? "Draw" : r === "L" ? "Loss" : "No result"}
               aria-label={r || "No result"}
             >
@@ -138,9 +148,9 @@ export default function TeamForm({ teamId, className = "" }: Props) {
         })}
       </div>
 
-      <div className="flex justify-between w-full text-[11px] text-gray-300 font-semibold">
-        <span>Latest</span>
-        <span>Past</span>
+      <div className="flex justify-between w-full px-2 text-[10px] text-gray-400 font-semibold">
+        <span>← Most Recent</span>
+        <span>Older →</span>
       </div>
     </Link>
   );

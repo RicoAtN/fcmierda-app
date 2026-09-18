@@ -1,13 +1,32 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Roboto_Slab } from "next/font/google";
 import AvailabilityPushModal from "@/components/AvailabilityPushModal";
+
+const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "800"] });
 
 type UiPlayer = { key: string; name: string; number?: string };
 type Substitute = { name: string; status: string };
 
 interface PlayerAttendanceProps {
   onGameDataLoaded?: (game: { date: string; kickoff: string; opponent: string }) => void;
+}
+
+function getStatusSelectBorder(status?: string) {
+  switch (status) {
+    case "present":
+      return "border-emerald-500/60 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.15)]";
+    case "not sure":
+      return "border-amber-500/60 text-amber-300";
+    case "absent":
+      return "border-rose-500/60 text-rose-300";
+    case "supporter":
+    case "coach":
+      return "border-blue-500/60 text-blue-300";
+    default:
+      return "border-gray-700/80 text-gray-300 hover:border-gray-600";
+  }
 }
 
 export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceProps) {
@@ -287,7 +306,7 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
         throw new Error("Failed to save availability");
       }
 
-      setStatus("Saved! Availability has been recorded.");
+      setStatus("✓ Availability successfully saved!");
 
       // Update local session cache with newest attendance
       try {
@@ -298,14 +317,14 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
 
       const isSubscribed = await checkIsSubscribed();
       if (isSubscribed) {
-        setTimeout(() => router.push("/fixtures#next-game"), 350);
+        setTimeout(() => router.push("/fixtures#next-game"), 400);
       } else {
         // Show push notification call-to-action modal
         setShowPushModal(true);
         setIsSaving(false);
       }
     } catch {
-      setStatus("Failed to save. Try again.");
+      setStatus("Failed to save. Please try again.");
       setIsSaving(false);
     }
   }
@@ -314,56 +333,63 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
     <form onSubmit={handleSubmit} className="space-y-4 text-left">
       <div>
         <div className="flex items-center justify-between mb-1">
-          <h3 className="text-lg font-semibold">Players</h3>
+          <h3 className="text-base sm:text-lg font-bold text-white">Players</h3>
           <span
-            className="text-[10px] sm:text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20"
+            className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-semibold text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/40"
             title="Exempted from login for now"
           >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             No login required
           </span>
         </div>
-        <p className="text-xs text-gray-400 mb-3">
+        <p className="text-xs text-gray-400 mb-2.5">
           Please update your own status. Changes are saved for the entire team.
         </p>
 
         {isLoading && playersData.length === 0 ? (
           /* Sleek Skeleton Loading Grid */
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
             {Array.from({ length: 14 }).map((_, idx) => (
               <div
                 key={idx}
-                className="flex items-center justify-between gap-2 bg-gray-800/60 rounded px-2 py-2 animate-pulse"
+                className="flex items-center justify-between gap-2 bg-gray-900 border border-gray-800 rounded-lg p-2 animate-pulse"
               >
-                <div className="h-4 bg-gray-700 rounded w-28 sm:w-32"></div>
-                <div className="h-8 bg-gray-700/80 rounded w-[100px] sm:w-[120px]"></div>
+                <div className="h-4 bg-gray-700/60 rounded w-28 sm:w-32"></div>
+                <div className="h-7 bg-gray-700/80 rounded w-[100px] sm:w-[120px]"></div>
               </div>
             ))}
           </div>
         ) : (
           /* Players Grid */
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
             {playersData.map((p) => (
               <div
                 key={p.key}
-                className="flex items-center justify-between gap-2 bg-gray-800 rounded px-2 py-1.5 transition-colors hover:bg-gray-750"
+                className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-700 transition-colors"
               >
-                <span className="font-medium text-white w-28 sm:w-32 truncate text-sm sm:text-base">
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   {p.number ? (
-                    <span className="font-bold text-yellow-400">#{p.number}.</span>
-                  ) : null}{" "}
-                  {p.name}
-                </span>
+                    <span className="font-mono font-bold text-xs text-amber-400 shrink-0">
+                      #{p.number}.
+                    </span>
+                  ) : null}
+                  <span className="font-medium text-gray-100 text-xs sm:text-sm truncate">
+                    {p.name}
+                  </span>
+                </div>
                 <select
                   value={attendance[p.key] ?? "unknown"}
                   onChange={(e) => setAttendance({ ...attendance, [p.key]: e.target.value })}
-                  className="p-1.5 rounded bg-gray-900 border border-gray-600 text-white min-w-[100px] sm:min-w-[120px] text-xs sm:text-sm focus:border-green-500 focus:outline-none transition-colors"
+                  className={`py-1 px-2 rounded bg-black/80 border text-xs sm:text-sm font-medium outline-none transition-colors cursor-pointer min-w-[105px] sm:min-w-[120px] shrink-0 ${getStatusSelectBorder(
+                    attendance[p.key]
+                  )}`}
                 >
-                  <option value="unknown">⚪ Unknown</option>
-                  <option value="absent">🔴 Absent</option>
-                  <option value="present">🟢 Present</option>
-                  <option value="not sure">🟠 Not sure</option>
-                  <option value="supporter">🔵 Supporter</option>
-                  <option value="coach">🔵 Coach</option>
+                  <option value="unknown" className="bg-gray-950 text-gray-300">⚪ Unknown</option>
+                  <option value="present" className="bg-gray-950 text-emerald-300">🟢 Present</option>
+                  <option value="not sure" className="bg-gray-950 text-amber-300">🟠 Not sure</option>
+                  <option value="absent" className="bg-gray-950 text-rose-300">🔴 Absent</option>
+                  <option value="supporter" className="bg-gray-950 text-blue-300">🔵 Supporter</option>
+                  <option value="coach" className="bg-gray-950 text-cyan-300">🧢 Coach</option>
                 </select>
               </div>
             ))}
@@ -371,40 +397,48 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
         )}
       </div>
 
-      <div className="pt-6 border-t border-gray-700">
-        <h3 className="text-lg font-semibold mb-3">Substitutes</h3>
+      {/* Substitutes Section */}
+      <div className="pt-4 border-t border-gray-800">
+        <h3 className="text-sm sm:text-base font-bold text-white mb-1">Substitutes</h3>
+        <p className="text-xs text-gray-400 mb-2">
+          Add any guest players or substitutes joining for this match.
+        </p>
+
         <datalist id="known-subs-list">
           {knownSubs.map((name, idx) => (
             <option key={idx} value={name} />
           ))}
         </datalist>
-        <div className="space-y-2">
+
+        <div className="space-y-1.5 sm:space-y-2">
           {subs.map((s, i) => (
-            <div key={i} className="flex items-center gap-2 bg-gray-800 rounded px-2 py-2">
+            <div key={i} className="flex items-center gap-2 p-1.5 rounded-lg bg-gray-900 border border-gray-800">
               <input
                 type="text"
                 list="known-subs-list"
                 value={s.name}
                 onChange={(e) => updateSub(i, { name: e.target.value })}
                 placeholder="Substitute name"
-                className="flex-1 p-2 rounded bg-gray-900 border border-gray-600 text-white text-sm focus:border-green-500 focus:outline-none"
+                className="flex-1 py-1 px-2 rounded bg-black/80 border border-gray-700 focus:border-emerald-400 text-white text-xs sm:text-sm outline-none placeholder:text-gray-500"
               />
               <select
                 value={s.status ?? "unknown"}
                 onChange={(e) => updateSub(i, { status: e.target.value })}
-                className="p-2 rounded bg-gray-900 border border-gray-600 text-white min-w-[120px] sm:min-w-[140px] text-xs sm:text-sm focus:border-green-500 focus:outline-none"
+                className={`py-1 px-2 rounded bg-black/80 border text-xs sm:text-sm font-medium outline-none transition-colors cursor-pointer min-w-[105px] sm:min-w-[120px] shrink-0 ${getStatusSelectBorder(
+                  s.status
+                )}`}
               >
-                <option value="unknown">⚪ Unknown</option>
-                <option value="present">🟢 Present</option>
-                <option value="absent">🔴 Absent</option>
-                <option value="not sure">🟠 Not sure</option>
-                <option value="supporter">🔵 Supporter</option>
+                <option value="unknown" className="bg-gray-950 text-gray-300">⚪ Unknown</option>
+                <option value="present" className="bg-gray-950 text-emerald-300">🟢 Present</option>
+                <option value="not sure" className="bg-gray-950 text-amber-300">🟠 Not sure</option>
+                <option value="absent" className="bg-gray-950 text-rose-300">🔴 Absent</option>
+                <option value="supporter" className="bg-gray-950 text-blue-300">🔵 Supporter</option>
               </select>
               {subs.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeSub(i)}
-                  className="px-2.5 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
+                  className="px-2 py-1 rounded bg-rose-950/40 border border-rose-500/30 text-rose-300 hover:bg-rose-900/60 text-xs font-bold shrink-0 transition-colors"
                   aria-label="Remove substitute"
                   title="Remove"
                 >
@@ -416,26 +450,32 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
         </div>
       </div>
 
-      <div className="pt-4 border-t border-gray-700 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+      {/* Submit Action Button & Status Bar */}
+      <div className="pt-3 border-t border-gray-800 flex flex-col sm:flex-row items-center gap-3">
         <button
           type="submit"
           disabled={isSaving}
-          className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-md font-semibold text-base shadow transition-all duration-150 border border-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 flex items-center gap-2"
+          className="group inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 active:translate-y-0 text-white font-bold text-sm px-6 py-2.5 rounded-full shadow-md shadow-emerald-600/20 hover:-translate-y-0.5 transition-all duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
         >
           {isSaving ? (
             <>
-              <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <svg className="animate-spin h-4 w-4 text-white shrink-0" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
-              <span>Saving availability...</span>
+              <span>Saving...</span>
             </>
           ) : (
             <span>Save availability</span>
           )}
         </button>
+
         {status && (
-          <div className={`text-sm font-medium ${status.includes("Failed") ? "text-red-400" : "text-green-400"}`}>
+          <div
+            className={`text-xs sm:text-sm font-semibold ${
+              status.includes("Failed") ? "text-rose-400" : "text-emerald-400"
+            }`}
+          >
             {status}
           </div>
         )}

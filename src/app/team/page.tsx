@@ -1,23 +1,12 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import Image from "next/image";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
 
-const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
-const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
-
-type Player = {
-  player_id: string;
-  number?: string;
-  name: string;
-  nickname?: string;
-  role?: string;
-  highlights?: string[];
-  biography_detail?: string;
-};
+const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "800", "900"] });
+const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 const CATEGORIES = [
   { key: "All", label: "All", matcher: () => true },
@@ -28,9 +17,11 @@ const CATEGORIES = [
 ];
 
 const initials = (name?: string) => {
-  const n = (name || "").trim();
-  if (!n) return "?";
-  return n.split(/\s+/).slice(0, 2).map(s => s[0]).join("").toUpperCase();
+  const clean = (name || "").replace(/[^\p{L}\p{N}\s]/gu, "").trim();
+  if (!clean) return "FC";
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
 };
 
 const roleRank = (r?: string) => {
@@ -52,7 +43,7 @@ const toNum = (n?: string | null) => {
 
 const displayNumber = (n?: string | null) => {
   const s = (n ?? "").trim();
-  if (!s) return "-";
+  if (!s || s === "null" || s === "undefined" || s === "?") return "-";
   return s.startsWith("#") ? s : `#${s}`;
 };
 
@@ -91,6 +82,8 @@ const compareDbPlayers = (a: DBPlayerWithStats, b: DBPlayerWithStats) => {
   return (a.name || "").localeCompare(b.name || "");
 };
 
+const SQUAD_CACHE_KEY = "fcmierda_main_squad_v3";
+
 export default function TeamPage() {
   // Meet the Team (DB-backed)
   const [dbPlayers, setDbPlayers] = useState<DBPlayerWithStats[]>([]);
@@ -100,12 +93,15 @@ export default function TeamPage() {
   // 1. Instant hydration from session cache
   useEffect(() => {
     try {
-      const cached = sessionStorage.getItem("fcmierda_team_players_cache");
+      const cached = sessionStorage.getItem(SQUAD_CACHE_KEY);
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setDbPlayers(parsed);
-          setDbLoading(false);
+          const onlyMain = parsed.filter((p: DBPlayerWithStats) => p.main_player === true && p.name && p.name.trim().length > 0);
+          if (onlyMain.length > 0) {
+            setDbPlayers(onlyMain);
+            setDbLoading(false);
+          }
         }
       }
     } catch {
@@ -125,11 +121,13 @@ export default function TeamPage() {
         }
         const { data } = (await res.json()) as { data: DBPlayerWithStats[] };
         if (!cancelled) {
-          const filtered = (data || []).filter(p => p.main_player === true);
+          const filtered = (data || []).filter(
+            (p) => p.main_player === true && p.name && p.name.trim().length > 0 && !p.name.toLowerCase().startsWith("invaller") && !p.name.toLowerCase().startsWith("own")
+          );
           setDbPlayers(filtered);
           setDbError(null);
           try {
-            sessionStorage.setItem("fcmierda_team_players_cache", JSON.stringify(filtered));
+            sessionStorage.setItem(SQUAD_CACHE_KEY, JSON.stringify(filtered));
           } catch {
             // ignore
           }
@@ -150,7 +148,7 @@ export default function TeamPage() {
   const [selectedDbId, setSelectedDbId] = useState<string | null>(null);
   const dbBioRef = useRef<HTMLDivElement | null>(null);
 
-  // Read the playerId from the URL if navigating from the Statistics page
+  // Read the playerId from the URL if navigating from the Statistics or Results page
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -200,7 +198,7 @@ export default function TeamPage() {
 
   const selectedDb = useMemo(() => {
     const id = selectedDbId ?? dbFiltered[0]?.player_id ?? null;
-    return id ? dbPlayers.find((p) => p.player_id === id) ?? null : null;
+    return id ? dbPlayers.find((p) => String(p.player_id) === String(id)) ?? null : null;
   }, [selectedDbId, dbFiltered, dbPlayers]);
 
   function handleDbSelect(id: string) {
@@ -211,155 +209,245 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="relative min-h-screen flex flex-col items-center w-full bg-gray-900 text-white overflow-x-hidden">
       <Menu />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
-        {/* Meet the Team Header */}
-        <header id="meet-team-2" className="mb-10 bg-gray-800 rounded-xl p-6 shadow text-center">
-          <h1 className={`text-3xl sm:text-4xl font-extrabold mb-4 ${robotoSlab.className}`}>Meet the Team</h1>
-          <p className={`text-sm sm:text-base text-gray-300 leading-relaxed ${montserrat.className}`}>
-            Get to know the players of FC Mierda. Here you'll find detailed player profiles including their roles, bios, call signs, and current performance statistics.
+      {/* Main Team Content */}
+      <main className="w-full flex flex-col items-center pt-24 sm:pt-36 pb-14 sm:pb-20 px-3.5 sm:px-6">
+        {/* Intro Hero Header */}
+        <div className="max-w-3xl w-full text-center mb-6 sm:mb-10">
+          <h1 className={`text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white mb-2.5 sm:mb-3 drop-shadow-[0_4px_16px_rgba(0,0,0,0.85)] ${robotoSlab.className}`}>
+            Meet the Team
+          </h1>
+
+          <p className={`text-sm sm:text-base md:text-lg text-gray-200 font-medium max-w-xl mx-auto leading-relaxed ${montserrat.className}`}>
+            Get to know the players of FC Mierda. Detailed player profiles, squad numbers, call signs, match statistics, and biographies.
           </p>
-        </header>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Controls + list (DB) */}
-          <aside className="lg:col-span-1">
-            <div className="bg-gray-800 rounded-xl p-4 shadow">
-              <div className="flex gap-2 flex-wrap mb-3">
-                {CATEGORIES.map((cat) => {
-                  const active = cat.key === dbRoleFilter;
-                  const count = dbCountsByCategory.get(cat.key) ?? 0;
-                  return (
-                    <button
-                      key={cat.key}
-                      onClick={() => setDbRoleFilter(cat.key)}
-                      className={`text-xs px-3 py-1 rounded-full transition flex items-center gap-2 ${
-                        active ? "bg-green-600 text-white" : "bg-gray-700 text-gray-200 hover:bg-gray-600"
-                      }`}
-                      title={`${cat.label} (${count})`}
-                    >
-                      <span>{cat.label}</span>
-                      <span className="inline-block bg-black/30 px-2 py-0.5 rounded text-xs">{count}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="flex items-center gap-3 mb-4">
-                <input
-                  type="search"
-                  aria-label="Search players (DB)"
-                  placeholder={`Search by name, number, role or call sign${dbRoleFilter !== "All" ? ` — filtering ${dbRoleFilter}` : ""}`}
-                  value={dbQuery}
-                  onChange={(e) => setDbQuery(e.target.value)}
-                  className="flex-1 bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-                <div className="text-sm text-gray-400 hidden sm:block">{dbFiltered.length}/{dbPlayers.length}</div>
-              </div>
-
-              {dbError && <div className="text-sm text-red-400 mb-2">Error: {dbError}</div>}
-              {dbLoading && <div className="text-sm text-gray-400 mb-2">Loading players…</div>}
-
-              <ul className="divide-y divide-gray-700 max-h-[60vh] overflow-auto">
-                {dbFiltered.map((p) => {
-                  const active = p.player_id === selectedDbId;
-                  return (
-                    <li key={p.player_id}>
+        {/* Main Content Showcase Card */}
+        <div className="max-w-5xl w-full rounded-2xl p-4 sm:p-7 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-sm mx-auto mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Column: Player Directory / Filters (lg:col-span-5) */}
+            <aside className="lg:col-span-5 w-full">
+              <div className="bg-gray-900/90 rounded-xl p-3.5 sm:p-4 border border-gray-800 shadow-inner">
+                {/* Category Filter Chips */}
+                <div className="flex gap-1.5 sm:gap-2 flex-wrap mb-3.5">
+                  {CATEGORIES.map((cat) => {
+                    const active = cat.key === dbRoleFilter;
+                    const count = dbCountsByCategory.get(cat.key) ?? 0;
+                    return (
                       <button
-                        onClick={() => handleDbSelect(p.player_id)}
-                        className={`w-full text-left flex items-center gap-3 p-3 rounded-md transition ${
-                          active ? "bg-gradient-to-r from-green-700/20 to-transparent ring-1 ring-green-500" : "hover:bg-gray-700/40"
+                        key={cat.key}
+                        onClick={() => setDbRoleFilter(cat.key)}
+                        className={`text-xs px-3 py-1 rounded-full transition-all flex items-center gap-1.5 font-medium ${
+                          active
+                            ? "bg-emerald-600 text-white font-bold shadow-sm border border-emerald-400/50 scale-[1.02]"
+                            : "bg-gray-800/80 text-gray-300 hover:bg-gray-700/80 hover:text-white border border-gray-700/50"
                         }`}
+                        title={`${cat.label} (${count})`}
                       >
-                        <div className="w-14 flex-shrink-0 flex items-center justify-center">
-                          <div className="mt-1 text-lg sm:text-xl font-extrabold text-green-300 truncate">{displayNumber(p.number)}</div>
-                        </div>
-
-                        {hasPhoto(p) && p.photo ? (
-                          <div className="w-14 h-14 relative rounded-full overflow-hidden flex-shrink-0">
-                            <Image
-                              src={p.photo}
-                              alt={p.name}
-                              fill
-                              unoptimized
-                              className="object-cover scale-125"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-14 h-14 rounded-full bg-gray-700 flex items-center justify-center text-sm font-bold text-gray-200">
-                            {initials(p.name)}
-                          </div>
-                        )}
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium truncate">{p.name}</div>
-                              {p.nickname && <div className="text-xs text-gray-400 italic truncate">{p.nickname}</div>}
-                            </div>
-                          </div>
-                          <div className="text-xs text-gray-400 truncate">{p.role || "-"}</div>
-                        </div>
+                        <span>{cat.label}</span>
+                        <span className={`inline-block px-1.5 py-0.2 rounded-full text-[10px] font-mono ${active ? "bg-emerald-950 text-emerald-200" : "bg-black/40 text-gray-400"}`}>
+                          {count}
+                        </span>
                       </button>
-                    </li>
-                  );
-                })}
-                {dbFiltered.length === 0 && <li className="p-3 text-sm text-gray-400">No players found.</li>}
-              </ul>
-            </div>
-          </aside>
+                    );
+                  })}
+                </div>
 
-          {/* Right: Highlight / profile (DB) */}
-          <section className="lg:col-span-2">
-            <div id="player-bio" ref={dbBioRef} className="bg-gray-800 rounded-xl p-6 shadow min-h-[360px]">
-              {selectedDb ? (
-                <div className="flex flex-col sm:flex-row gap-6">
-                  <div className="flex-shrink-0 relative">
-                    {hasPhoto(selectedDb) && selectedDb.photo ? (
-                      <div className="relative">
-                        <Image
-                          src={selectedDb.photo}
-                          width={280}
-                          height={280}
-                          unoptimized
-                          className="rounded-xl object-cover"
-                          alt={selectedDb.name}
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-[280px] h-[280px] rounded-xl bg-gray-700 flex items-center justify-center text-5xl font-bold text-gray-200">
-                        {initials(selectedDb.name)}
-                      </div>
+                {/* Search Input Bar */}
+                <div className="flex items-center gap-2.5 mb-3.5">
+                  <div className="relative flex-1">
+                    <input
+                      type="search"
+                      aria-label="Search players"
+                      placeholder={`Search player or call sign...`}
+                      value={dbQuery}
+                      onChange={(e) => setDbQuery(e.target.value)}
+                      className="w-full bg-gray-950 border border-gray-800 rounded-lg pl-3 pr-8 py-2 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                    />
+                    {dbQuery && (
+                      <button
+                        onClick={() => setDbQuery("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs"
+                      >
+                        ✕
+                      </button>
                     )}
                   </div>
+                  <div className="text-xs font-mono font-bold text-gray-400 bg-gray-950 px-2.5 py-2 rounded-lg border border-gray-800 shrink-0">
+                    {dbFiltered.length}/{dbPlayers.length}
+                  </div>
+                </div>
 
-                  <div className="flex-1">
-                    <div className="flex items.start justify-between gap-4">
-                      <div>
-                        <h2 className="text-2xl font-bold">{selectedDb.name}</h2>
-                        {selectedDb.nickname && (
-                          <div className="text-sm text-gray-300 mt-1 italic">
-                            Call sign: <span className="text-green-300 font-semibold not-italic">{selectedDb.nickname}</span>
+                {dbError && (
+                  <div className="text-xs text-rose-400 bg-rose-950/40 border border-rose-800/50 rounded-lg p-2.5 mb-2">
+                    Error: {dbError}
+                  </div>
+                )}
+                {dbLoading && (
+                  <div className="text-xs text-emerald-400 bg-emerald-950/30 border border-emerald-800/40 rounded-lg p-2.5 mb-2 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Loading squad members…
+                  </div>
+                )}
+
+                {/* Player List */}
+                <ul className="divide-y divide-gray-800/80 max-h-[58vh] overflow-y-auto custom-scrollbar rounded-lg">
+                  {dbFiltered.map((p) => {
+                    const active = String(p.player_id) === String(selectedDbId);
+                    return (
+                      <li key={p.player_id}>
+                        <button
+                          onClick={() => handleDbSelect(p.player_id)}
+                          className={`w-full text-left flex items-center gap-3 p-2.5 sm:p-3 transition-colors ${
+                            active
+                              ? "bg-emerald-950/50 border-l-4 border-l-emerald-400 ring-1 ring-emerald-500/30"
+                              : "hover:bg-gray-800/50"
+                          }`}
+                        >
+                          {/* Number Badge */}
+                          <div className="w-10 sm:w-11 shrink-0 flex items-center justify-center">
+                            <span className="text-base sm:text-lg font-black font-mono text-emerald-300">
+                              {displayNumber(p.number)}
+                            </span>
+                          </div>
+
+                          {/* Circular Avatar with Head & Upper Body Framing */}
+                          {hasPhoto(p) && p.photo ? (
+                            <div className="w-14 h-14 sm:w-16 sm:h-16 relative rounded-full overflow-hidden shrink-0 border-2 border-emerald-500/40 ring-1 ring-black/70 bg-gray-950 shadow-md">
+                              <Image
+                                src={p.photo}
+                                alt={p.name}
+                                fill
+                                unoptimized
+                                className="object-cover"
+                                style={{ objectPosition: "center 42%" }}
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-emerald-500/30 flex items-center justify-center text-sm sm:text-base font-black font-mono text-emerald-300 shrink-0 shadow-md">
+                              {initials(p.name)}
+                            </div>
+                          )}
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-sm text-white truncate">
+                              {p.name}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {p.nickname && (
+                                <span className="text-[11px] text-amber-300 font-medium italic truncate">
+                                  &ldquo;{p.nickname}&rdquo;
+                                </span>
+                              )}
+                              <span className="text-[11px] text-gray-400 truncate">
+                                {p.role || "-"}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {dbFiltered.length === 0 && !dbLoading && (
+                    <li className="p-6 text-center text-xs sm:text-sm text-gray-400">
+                      No squad members found matching your search.
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </aside>
+
+            {/* Right Column: Player Bio & Stats Showcase (lg:col-span-7) */}
+            <section className="lg:col-span-7 w-full">
+              <div
+                id="player-bio"
+                ref={dbBioRef}
+                className="bg-gray-900/90 rounded-xl p-4 sm:p-6 border border-gray-800 shadow-xl min-h-[380px] scroll-mt-24 sm:scroll-mt-32"
+              >
+                {selectedDb ? (
+                  <div>
+                    {/* Header Card: Whole Photo + Identity & Summary */}
+                    <div className="flex flex-col sm:flex-row gap-5 sm:gap-6 items-center sm:items-start pb-6 mb-6 border-b border-gray-800/80">
+                      {/* Photo or Avatar (Exact natural wrap without cropping or black bars) */}
+                      <div className="shrink-0 relative flex items-center justify-center">
+                        {hasPhoto(selectedDb) && selectedDb.photo ? (
+                          <img
+                            src={selectedDb.photo}
+                            alt={selectedDb.name}
+                            className="w-auto h-auto max-h-[260px] sm:max-h-[300px] lg:max-h-[340px] max-w-[240px] sm:max-w-[280px] rounded-2xl border-2 border-emerald-500/50 shadow-[0_10px_30px_rgba(0,0,0,0.85)] ring-1 ring-emerald-500/20 block"
+                          />
+                        ) : (
+                          <div className="w-48 h-60 sm:w-56 sm:h-68 rounded-2xl bg-gradient-to-br from-gray-800 via-gray-900 to-gray-950 border-2 border-emerald-500/50 flex flex-col items-center justify-center text-5xl sm:text-6xl font-black font-mono text-emerald-300 shadow-[0_10px_30px_rgba(0,0,0,0.85)] ring-1 ring-emerald-500/20">
+                            <span>{initials(selectedDb.name)}</span>
+                            <span className="text-[11px] uppercase tracking-widest text-gray-400 mt-3 font-sans font-bold">FC Mierda</span>
                           </div>
                         )}
-                        <div className="text-sm text-gray-300 mt-1">Position: {selectedDb.role || "-"}</div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl sm:text-4xl font-extrabold text-green-300">{displayNumber(selectedDb.number)}</div>
+
+                      {/* Identity Details & Integrated Summary */}
+                      <div className="flex-1 text-center sm:text-left min-w-0 w-full flex flex-col justify-between self-stretch">
+                        <div>
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                            <div>
+                              <h2 className={`text-2xl sm:text-3xl font-black text-white tracking-tight ${robotoSlab.className}`}>
+                                {selectedDb.name}
+                              </h2>
+                              {selectedDb.nickname && (
+                                <div className="text-xs sm:text-sm text-amber-300 font-semibold mt-1 flex items-center justify-center sm:justify-start gap-1">
+                                  <span className="text-gray-400 font-normal">Call sign:</span>
+                                  <span>&ldquo;{selectedDb.nickname}&rdquo;</span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="shrink-0 self-center sm:self-start">
+                              <span className="text-3xl sm:text-4xl font-black font-mono text-emerald-400 drop-shadow-[0_2px_8px_rgba(16,185,129,0.4)]">
+                                {displayNumber(selectedDb.number)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Position Badge */}
+                          <div className="mt-2.5 flex flex-wrap gap-2 justify-center sm:justify-start">
+                            <span className="inline-flex items-center px-3 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 font-semibold text-xs shadow-sm">
+                              Position: {selectedDb.role || "-"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Player Summary Callout */}
+                        {selectedDb.biography_main && (
+                          <div className="mt-4 pt-3.5 border-t border-gray-800/80">
+                            <div className="text-[11px] uppercase tracking-wider text-emerald-400 font-bold mb-1.5 flex items-center justify-center sm:justify-start gap-1">
+                              <span>📝</span>
+                              <span>Summary</span>
+                            </div>
+                            <p className="text-gray-100 leading-relaxed text-xs sm:text-sm font-medium border-l-2 border-emerald-500/60 pl-3 bg-emerald-950/20 py-2 rounded-r-lg">
+                              {selectedDb.biography_main}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
 
+                    {/* Stats Matrix */}
                     {(() => {
                       const role = (selectedDb.role || "").toLowerCase();
                       const isCoach = role.includes("coach");
                       if (isCoach) return null;
 
                       const StatTile = ({ label, value }: { label: string; value: string | number }) => (
-                        <div className="bg-black/20 rounded-lg p-3 w-full flex flex-col items-center text-center">
-                          <div className="text-lg sm:text-xl font-semibold text-green-300 leading-tight tabular-nums tracking-tight">{value}</div>
-                          <div className="mt-2 text-sm sm:text-base text-gray-300 leading-5 whitespace-normal break-words">{label}</div>
+                        <div className="bg-black/50 border border-gray-800 rounded-xl p-2.5 sm:p-3 flex flex-col items-center justify-center text-center shadow-inner hover:border-gray-700 transition-colors">
+                          <div className="text-lg sm:text-xl font-black font-mono text-emerald-300 leading-tight tabular-nums tracking-tight">
+                            {value}
+                          </div>
+                          <div className="mt-1 text-[11px] sm:text-xs text-gray-300 font-medium leading-tight text-center">
+                            {label}
+                          </div>
                         </div>
                       );
 
@@ -377,17 +465,22 @@ export default function TeamPage() {
                         { label: "Matches", value: fmtInt(selectedDb.match_played) },
                         { label: "Goals", value: fmtInt(selectedDb.goals) },
                         { label: "Assists", value: fmtInt(selectedDb.assists) },
-                        { label: "Goals Involvement", value: fmtInt(selectedDb.goals_involvement) },
+                        { label: "Involvement", value: fmtInt(selectedDb.goals_involvement) },
                         { label: "Clean Sheets", value: fmtInt(selectedDb.clean_sheets) },
                         { label: "MOTM Awards", value: fmtInt(selectedDb.fcmierda_man_of_the_match_awards) },
                         { label: "Avg Goals p/m", value: fmtAvg(selectedDb.average_goals_per_match) },
-                        { label: "Avg Conceded p/m", value: fmtAvg(selectedDb.average_goals_conceded_per_match) },
+                        { label: "Avg Conceded", value: fmtAvg(selectedDb.average_goals_conceded_per_match) },
                       ];
 
                       return (
-                        <div className="mt-4">
-                          <h4 className="text-sm text-gray-300 font-semibold mb-2">Statistics</h4>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-stretch content-stretch">
+                        <div className="mb-6">
+                          <div className="flex items-center gap-2 mb-2.5">
+                            <span className="text-sm">📊</span>
+                            <h3 className={`text-xs uppercase tracking-wider text-emerald-400 font-bold ${robotoSlab.className}`}>
+                              Season Statistics
+                            </h3>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
                             {tiles.map((t, i) => (
                               <StatTile key={i} label={t.label} value={t.value} />
                             ))}
@@ -396,31 +489,29 @@ export default function TeamPage() {
                       );
                     })()}
 
-                    {(() => {
-                      const mainBio = (selectedDb.biography_main || "").trim();
-                      const detail = (selectedDb.biography_detail || "").trim();
-
-                      return (
-                        <div className="mt-6">
-                          <h4 className="text-xs uppercase tracking-wide text-gray-400 mb-1">Summary</h4>
-                          <p className="text-gray-200 leading-relaxed text-base sm:text-lg font-medium border-l border-gray-700 pl-3">
-                            {mainBio || "N/A"}
-                          </p>
-                          {detail ? (
-                            <p className="mt-2 text-gray-400 leading-relaxed text-sm sm:text-base">
-                              {detail}
-                            </p>
-                          ) : null}
+                    {/* Detailed Biography (if present) */}
+                    {selectedDb.biography_detail && (
+                      <div className="mt-6 pt-5 border-t border-gray-800/80">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm">📖</span>
+                          <h3 className={`text-xs uppercase tracking-wider text-emerald-400 font-bold ${robotoSlab.className}`}>
+                            Full Biography &amp; Background
+                          </h3>
                         </div>
-                      );
-                    })()}
+                        <p className="text-xs sm:text-sm text-gray-300 leading-relaxed pl-3.5 border-l-2 border-gray-800">
+                          {selectedDb.biography_detail}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ) : (
-                <div className="py-20 text-center text-gray-300">Select a player from the left to view their profile.</div>
-              )}
-            </div>
-          </section>
+                ) : (
+                  <div className="py-24 text-center text-gray-400 text-sm">
+                    Select a squad member from the directory to view their complete profile.
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
         </div>
       </main>
 
