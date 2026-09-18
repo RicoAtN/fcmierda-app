@@ -86,7 +86,12 @@ export async function GET() {
       ORDER BY display_order ASC, id ASC;
     `) as SponsorRecord[];
 
-    return NextResponse.json({ success: true, sponsors: rows });
+    return NextResponse.json(
+      { success: true, sponsors: rows },
+      {
+        headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
+      }
+    );
   } catch (err: any) {
     console.error("GET /api/sponsors error:", err);
     return NextResponse.json(

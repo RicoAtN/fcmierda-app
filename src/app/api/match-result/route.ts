@@ -15,11 +15,15 @@ export async function GET(req: NextRequest) {
     if (searchParams.get("all") === "true") {
       // Return all match results, newest first
       const res = await client.query("SELECT * FROM match_result ORDER BY id DESC");
-      return NextResponse.json(res.rows || []);
+      return NextResponse.json(res.rows || [], {
+        headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" },
+      });
     } else {
       // Return only the latest match result
       const res = await client.query("SELECT * FROM match_result ORDER BY id DESC LIMIT 1");
-      return NextResponse.json(res.rows[0] || {});
+      return NextResponse.json(res.rows[0] || {}, {
+        headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" },
+      });
     }
   } catch (e) {
     return NextResponse.json({});
@@ -76,6 +80,17 @@ export async function POST(req: NextRequest) {
       },
       req,
     });
+
+    try {
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/results");
+      revalidatePath("/fixtures");
+      revalidatePath("/");
+      revalidatePath("/statistics");
+      revalidatePath("/team");
+    } catch {
+      // ignore
+    }
 
     return NextResponse.json({ success: true, id: newId });
   } catch (e) {
@@ -146,6 +161,17 @@ export async function PUT(req: NextRequest) {
       },
       req,
     });
+
+    try {
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/results");
+      revalidatePath("/fixtures");
+      revalidatePath("/");
+      revalidatePath("/statistics");
+      revalidatePath("/team");
+    } catch {
+      // ignore
+    }
 
     return NextResponse.json({ success: true });
   } catch (e) {

@@ -183,7 +183,7 @@ export async function GET(_req: NextRequest) {
       { data },
       {
         status: 200,
-        headers: { "Cache-Control": "no-store, max-age=0" },
+        headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
       }
     );
   } catch (err: any) {
@@ -331,6 +331,15 @@ export async function POST(req: NextRequest) {
       },
       req,
     });
+
+    try {
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/results");
+      revalidatePath("/fixtures");
+      revalidatePath("/statistics");
+    } catch {
+      // ignore
+    }
 
     return NextResponse.json(
       { data },

@@ -36,7 +36,12 @@ export async function GET() {
         note: row?.note ?? "",
         attendance,
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "public, s-maxage=15, stale-while-revalidate=60",
+        },
+      }
     );
   } catch (err) {
     console.error("GET /api/next-game failed", err);
@@ -100,6 +105,15 @@ export async function POST(req: Request) {
       },
       req,
     });
+
+    try {
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath("/fixtures");
+      revalidatePath("/");
+      revalidatePath("/results");
+    } catch {
+      // ignore
+    }
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err) {

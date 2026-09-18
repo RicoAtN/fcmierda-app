@@ -49,6 +49,8 @@ const defaultSponsors: Sponsor[] = [
 ];
 
 function SponsorCard({ sponsor, isSecond }: { sponsor: Sponsor; isSecond?: boolean }) {
+  const [imgError, setImgError] = useState(false);
+
   return (
     <div
       className={`relative flex flex-col justify-between p-6 sm:p-7 rounded-2xl transition-all duration-300 text-left bg-gray-850/90 border border-gray-700/80 shadow-xl hover:border-emerald-500/60 hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.25)] ${
@@ -69,17 +71,22 @@ function SponsorCard({ sponsor, isSecond }: { sponsor: Sponsor; isSecond?: boole
 
         {/* Logo Container */}
         <div className="w-full h-36 sm:h-44 rounded-xl bg-gray-950/90 border border-gray-800 flex items-center justify-center p-4 mb-5 overflow-hidden group">
-          {sponsor.logo ? (
+          {sponsor.logo && !imgError ? (
             <Image
               src={sponsor.logo}
               alt={`${sponsor.name} logo`}
               width={320}
               height={180}
               unoptimized
+              onError={() => setImgError(true)}
               className="max-h-full max-w-full object-contain filter drop-shadow-md group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
-            <span className="text-sm text-gray-500 font-medium">Logo</span>
+            <div className="flex flex-col items-center justify-center p-3 text-center">
+              <span className="text-2xl mb-1">🤝</span>
+              <span className="text-sm font-bold text-emerald-400">{sponsor.name}</span>
+              <span className="text-[11px] text-gray-400">{sponsor.badge || "Official Partner"}</span>
+            </div>
           )}
         </div>
 

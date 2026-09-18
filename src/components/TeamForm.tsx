@@ -35,9 +35,8 @@ export default function TeamForm({ teamId, className = "" }: Props) {
   const fetchForm = async () => {
     try {
       setError(null);
-      const url = `/api/team-form?_t=${Date.now()}${teamId ? `&teamId=${encodeURIComponent(String(teamId))}` : ""}`;
+      const url = `/api/team-form${teamId ? `?teamId=${encodeURIComponent(String(teamId))}` : ""}`;
       const res = await fetch(url, {
-        cache: "no-store",
         headers: { "Accept": "application/json" }
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

@@ -28,7 +28,7 @@ export default function UpcomingMatch() {
   // 2. Fresh fetch in background
   useEffect(() => {
     let isMounted = true;
-    fetch(`/api/next-game?_t=${Date.now()}`, { cache: "no-store" })
+    fetch("/api/next-game")
       .then((res) => res.json())
       .then((data) => {
         if (!isMounted) return;

@@ -16,8 +16,6 @@ export const sql =
     prepare: false, // Prevents serverless connection issues
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.sqlInstance = sql;
-}
+globalForDb.sqlInstance = sql;
 
 export default sql;

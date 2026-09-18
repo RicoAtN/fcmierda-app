@@ -31,7 +31,15 @@ export async function GET() {
       LIMIT 5
     `) as { game_result: "" | "W" | "D" | "L" }[];
 
-    return NextResponse.json({ data: { results: rows.map(r => r.game_result) } }, { status: 200 });
+    return NextResponse.json(
+      { data: { results: rows.map((r) => r.game_result) } },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
+        },
+      }
+    );
   } catch (err) {
     console.error("Team form API error:", err);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

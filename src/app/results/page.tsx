@@ -171,9 +171,11 @@ async function getPlayerMap(): Promise<Record<string, PlayerMapData>> {
 }
 
 export default async function ResultsPage() {
-  const allResults = await getAllResults();
-  const competitions = await getCompetitionsOverview();
-  const playerMap = await getPlayerMap();
+  const [allResults, competitions, playerMap] = await Promise.all([
+    getAllResults(),
+    getCompetitionsOverview(),
+    getPlayerMap(),
+  ]);
 
   // Create dictionary mapping competition name -> league_link
   const competitionLinkMap: Record<string, string> = {};
@@ -336,4 +338,4 @@ export default async function ResultsPage() {
   );
 }
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;

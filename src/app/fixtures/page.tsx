@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "800"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 // Helper to format date with Day of the Week (e.g., "Friday, 18 Sep 2026")
 function formatDateWithWeekday(dateStr: string) {

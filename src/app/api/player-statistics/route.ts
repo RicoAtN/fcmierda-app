@@ -212,11 +212,27 @@ export async function GET(req: NextRequest) {
         };
       });
 
-      return NextResponse.json({ data: computedPlayers }, { status: 200 });
+      return NextResponse.json(
+        { data: computedPlayers },
+        {
+          status: 200,
+          headers: {
+            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          },
+        }
+      );
     }
 
     // Default: All-time player statistics from table
-    return NextResponse.json({ data: basePlayers }, { status: 200 });
+    return NextResponse.json(
+      { data: basePlayers },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (err) {
     console.error("Player statistics API error:", err);
     return NextResponse.json({ error: "Failed to load player statistics" }, { status: 500 });

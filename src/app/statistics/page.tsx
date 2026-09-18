@@ -136,7 +136,7 @@ export default function StatisticsPage() {
     let isMounted = true;
     (async () => {
       try {
-        const res = await fetch(`/api/competition?_t=${Date.now()}`, { cache: "no-store" });
+        const res = await fetch("/api/competition");
         if (res.ok) {
           const { data } = (await res.json()) as { data: CompetitionItem[] };
           if (isMounted && Array.isArray(data)) {
@@ -165,8 +165,8 @@ export default function StatisticsPage() {
     let isMounted = true;
     (async () => {
       try {
-        const compQuery = selectedPlayerComp !== "all" ? `&competition=${encodeURIComponent(selectedPlayerComp)}` : "";
-        const res = await fetch(`/api/player-statistics?_t=${Date.now()}${compQuery}`, { cache: "no-store" });
+        const compQuery = selectedPlayerComp !== "all" ? `?competition=${encodeURIComponent(selectedPlayerComp)}` : "";
+        const res = await fetch(`/api/player-statistics${compQuery}`);
         const { data } = (await res.json()) as { data: PlayerStats[] };
         if (isMounted) {
           setStats(data ?? []);
@@ -198,8 +198,8 @@ export default function StatisticsPage() {
     let isMounted = true;
     (async () => {
       try {
-        const compQuery = selectedTeamComp !== "all" ? `&competition=${encodeURIComponent(selectedTeamComp)}` : "";
-        const res = await fetch(`/api/team-statistics?_t=${Date.now()}${compQuery}`, { cache: "no-store" });
+        const compQuery = selectedTeamComp !== "all" ? `?competition=${encodeURIComponent(selectedTeamComp)}` : "";
+        const res = await fetch(`/api/team-statistics${compQuery}`);
         if (!res.ok) {
           const errJson = await res.json().catch(() => ({}));
           throw new Error((errJson as { error?: string })?.error || `HTTP ${res.status}`);

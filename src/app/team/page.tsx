@@ -114,7 +114,7 @@ export default function TeamPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/main-players?_t=${Date.now()}`, { cache: "no-store" });
+        const res = await fetch("/api/main-players");
         if (!res.ok) {
           const errJson = await res.json().catch(() => ({}));
           throw new Error((errJson as { error?: string })?.error || `HTTP ${res.status}`);

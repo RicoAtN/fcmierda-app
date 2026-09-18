@@ -68,7 +68,15 @@ export async function GET() {
     `;
 
     const data = rows as MainPlayerRow[];
-    return NextResponse.json({ data });
+    return NextResponse.json(
+      { data },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     console.error("Failed to load main players:", msg);
