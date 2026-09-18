@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon, neonConfig } from "@neondatabase/serverless";
+import { logCmsActivity } from "@/lib/cms-logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -446,6 +447,21 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
       opponents: parseOpponents(row.opponents ?? []),
     };
 
+    // Log Activity
+    await logCmsActivity({
+      action_type: "UPDATE",
+      module: "competition",
+      entity_id: data.id,
+      entity_title: data.competition_name,
+      details: {
+        organisation: data.organisation,
+        division: data.division,
+        opponents_count: data.opponents.length,
+        league_link: data.league_link,
+      },
+      req,
+    });
+
     return NextResponse.json(
       { data },
       {
@@ -484,14 +500,14 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     let idRows: any[] = [];
     if (byId) {
       idRows = (await sql`
-        SELECT competition_id
+        SELECT competition_id, competition_name
         FROM competition
         WHERE competition_id = ${Number(key)}
         LIMIT 1;
       `) as any[];
     } else {
       idRows = (await sql`
-        SELECT competition_id
+        SELECT competition_id, competition_name
         FROM competition
         WHERE TRIM(competition_name) = TRIM(${key})
         LIMIT 1;
@@ -500,8 +516,21 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
 
     if (!idRows.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const compId = Number(idRows[0].competition_id);
+    const compName = idRows[0].competition_name || `Competition #${compId}`;
 
     await sql`DELETE FROM competition WHERE competition_id = ${compId};`;
+
+    // Log Activity
+    await logCmsActivity({
+      action_type: "DELETE",
+      module: "competition",
+      entity_id: compId,
+      entity_title: compName,
+      details: {
+        competition_name: compName,
+      },
+      req,
+    });
 
     return NextResponse.json({ ok: true, id: String(compId) }, { status: 200 });
   } catch (err: any) {

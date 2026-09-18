@@ -54,6 +54,13 @@ export default function AdminMenuDropdown() {
           >
             Admin Overview
           </Link>
+          <Link 
+            href="/cms/analytics" 
+            className="block px-3.5 sm:px-4 py-2 text-xs sm:text-sm text-gray-200 hover:bg-gray-800 hover:text-emerald-400 transition-colors"
+            onClick={() => setIsOpen(false)}
+          >
+            Analytics &amp; Admins
+          </Link>
           <form action={logout} className="w-full">
             <button 
               type="submit" 

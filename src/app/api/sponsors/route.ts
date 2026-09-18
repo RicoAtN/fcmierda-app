@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { del } from "@vercel/blob";
+import { logCmsActivity } from "@/lib/cms-logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -126,7 +127,23 @@ export async function POST(req: NextRequest) {
       RETURNING *;
     `) as SponsorRecord[];
 
-    return NextResponse.json({ success: true, sponsor: inserted[0] });
+    const newSponsor = inserted[0];
+
+    // Log Activity
+    await logCmsActivity({
+      action_type: "CREATE",
+      module: "sponsor",
+      entity_id: newSponsor.id,
+      entity_title: newSponsor.name,
+      details: {
+        name: newSponsor.name,
+        badge: newSponsor.badge,
+        url: newSponsor.url,
+      },
+      req,
+    });
+
+    return NextResponse.json({ success: true, sponsor: newSponsor });
   } catch (err: any) {
     console.error("POST /api/sponsors error:", err);
     return NextResponse.json(
@@ -185,7 +202,23 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, sponsor: updated[0] });
+    const savedSponsor = updated[0];
+
+    // Log Activity
+    await logCmsActivity({
+      action_type: "UPDATE",
+      module: "sponsor",
+      entity_id: savedSponsor.id,
+      entity_title: savedSponsor.name,
+      details: {
+        name: savedSponsor.name,
+        badge: savedSponsor.badge,
+        url: savedSponsor.url,
+      },
+      req,
+    });
+
+    return NextResponse.json({ success: true, sponsor: savedSponsor });
   } catch (err: any) {
     console.error("PUT /api/sponsors error:", err);
     return NextResponse.json(
@@ -210,10 +243,12 @@ export async function DELETE(req: NextRequest) {
     const sql = await getSql();
     await ensureTableAndSeed(sql);
 
-    // Get logo url first for blob cleanup
+    // Get logo url first for blob cleanup and sponsor name for logging
     const existing = (await sql`
-      SELECT logo FROM sponsors WHERE id = ${Number(id)};
-    `) as { logo: string }[];
+      SELECT id, name, logo FROM sponsors WHERE id = ${Number(id)};
+    `) as { id: number; name: string; logo: string }[];
+
+    const sponsorName = existing[0]?.name || `Sponsor #${id}`;
 
     if (existing[0]?.logo) {
       const logoUrl = existing[0].logo;
@@ -236,6 +271,18 @@ export async function DELETE(req: NextRequest) {
     }
 
     await sql`DELETE FROM sponsors WHERE id = ${Number(id)};`;
+
+    // Log Activity
+    await logCmsActivity({
+      action_type: "DELETE",
+      module: "sponsor",
+      entity_id: id,
+      entity_title: sponsorName,
+      details: {
+        name: sponsorName,
+      },
+      req,
+    });
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

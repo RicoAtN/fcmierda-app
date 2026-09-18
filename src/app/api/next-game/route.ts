@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { logCmsActivity } from "@/lib/cms-logger";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,22 @@ export async function POST(req: Request) {
         NOW(), NOW()
       WHERE NOT EXISTS (SELECT 1 FROM updated);
     `;
+
+    // Log CMS Activity
+    await logCmsActivity({
+      action_type: "UPDATE",
+      module: opponent ? "next_game" : "attendance",
+      entity_title: opponent ? `Next Match vs ${opponent}` : "Squad Availability Tracker",
+      details: {
+        date,
+        kickoff,
+        opponent,
+        location,
+        competition,
+        attendance_count: attendance ? Object.keys(attendance).length : 0,
+      },
+      req,
+    });
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err) {

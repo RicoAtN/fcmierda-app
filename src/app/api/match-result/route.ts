@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
+import { logCmsActivity } from "@/lib/cms-logger";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -56,6 +57,26 @@ export async function POST(req: NextRequest) {
       ]
     );
     const newId = result.rows[0]?.id;
+
+    // Log Activity
+    const goalsFc = body.goalsFCMierda ?? body.goals_fcmierda ?? 0;
+    const goalsOpp = body.goalsOpponent ?? body.goals_opponent ?? 0;
+    const opponentName = body.opponent || "Opponent";
+    await logCmsActivity({
+      action_type: "CREATE",
+      module: "match_result",
+      entity_id: newId,
+      entity_title: `Match Result vs ${opponentName} (${goalsFc}-${goalsOpp})`,
+      details: {
+        date: body.date,
+        opponent: opponentName,
+        score: `${goalsFc} - ${goalsOpp}`,
+        motm: body.fcmierda_man_of_the_match || body.fcmierdaManOfTheMatch,
+        competition: body.competition,
+      },
+      req,
+    });
+
     return NextResponse.json({ success: true, id: newId });
   } catch (e) {
     console.error("POST /api/match-result error:", e);
@@ -106,6 +127,26 @@ export async function PUT(req: NextRequest) {
         body.id,
       ]
     );
+
+    // Log Activity
+    const goalsFc = body.goals_fcmierda ?? body.goalsFCMierda ?? 0;
+    const goalsOpp = body.goals_opponent ?? body.goalsOpponent ?? 0;
+    const opponentName = body.opponent || "Opponent";
+    await logCmsActivity({
+      action_type: "UPDATE",
+      module: "match_result",
+      entity_id: body.id,
+      entity_title: `Edited Match Result vs ${opponentName} (${goalsFc}-${goalsOpp})`,
+      details: {
+        date: body.date,
+        opponent: opponentName,
+        score: `${goalsFc} - ${goalsOpp}`,
+        motm: body.fcmierda_man_of_the_match || body.fcmierdaManOfTheMatch,
+        competition: body.competition,
+      },
+      req,
+    });
+
     return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json({ success: false, error: String(e) });

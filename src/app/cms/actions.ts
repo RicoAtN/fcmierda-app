@@ -18,11 +18,12 @@ export async function login(prevState: any, formData: FormData) {
 
   try {
     const users = await sql`
-      SELECT * FROM admin_overview 
-      WHERE user_name = ${username} AND password = ${password}
+      SELECT id, user_name, password FROM admin_overview 
+      WHERE LOWER(user_name) = LOWER(${username}) AND password = ${password}
     `;
 
     if (users.length > 0) {
+      const canonicalName = users[0].user_name; // e.g. "Rico", "Victor", "Jordy", "Alon"
       // Setup 1-day cookie session
       const cookieStore = await cookies();
       cookieStore.set("admin_session", "authenticated", {
@@ -31,8 +32,8 @@ export async function login(prevState: any, formData: FormData) {
         maxAge: 60 * 60 * 24,
         path: "/",
       });
-      cookieStore.set("admin_username", username, {
-        httpOnly: false, // Allows the client-side Menu component to read it
+      cookieStore.set("admin_username", canonicalName, {
+        httpOnly: false, // Allows both server and client to read
         secure: process.env.NODE_ENV === "production",
         maxAge: 60 * 60 * 24,
         path: "/",

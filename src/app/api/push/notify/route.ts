@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
 import webpush from "web-push";
 import { PushNotificationRequest } from "@/types/notifications";
+import { logCmsActivity } from "@/lib/cms-logger";
 
 export const runtime = "nodejs";
 
@@ -207,6 +208,21 @@ export async function POST(req: NextRequest) {
         console.error("Failed to clean up expired subscriptions:", deleteError);
       }
     }
+
+    // Log Broadcast Activity
+    await logCmsActivity({
+      action_type: "BROADCAST",
+      module: "push_broadcast",
+      entity_title: payloadTitle || "Matchday Push Alert Broadcast",
+      details: {
+        title: payloadTitle,
+        body: payloadBody,
+        url: payloadUrl,
+        recipients_sent: sentCount,
+        total_subscribers: subscriptions.length,
+      },
+      req,
+    });
 
     return NextResponse.json({
       success: true,

@@ -50,6 +50,14 @@ const CMS_MODULES = [
     badge: "Partnerships",
     buttonText: "Manage Sponsors →",
   },
+  {
+    title: "Logging & Analytics",
+    description: "Track all creations & edits across matches, players, competitions, and sponsors with admin account audit trails.",
+    href: "/cms/analytics",
+    icon: "📜",
+    badge: "Audit Logs & Admins",
+    buttonText: "View Activity & Logs →",
+  },
 ];
 
 export default function CMSPage() {

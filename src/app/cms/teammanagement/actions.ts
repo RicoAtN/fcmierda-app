@@ -3,6 +3,7 @@
 import { Pool } from "pg";
 import { revalidatePath } from "next/cache";
 import { del } from "@vercel/blob";
+import { logCmsActivity } from "@/lib/cms-logger";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -68,6 +69,21 @@ export async function updatePlayerAction(playerId: number | string, data: any) {
 
   await pool.query(query, values);
 
+  // Log activity
+  await logCmsActivity({
+    action_type: "UPDATE",
+    module: "player",
+    entity_id: playerId,
+    entity_title: data.player_name || `Player #${playerId}`,
+    details: {
+      player_name: data.player_name,
+      player_number: data.player_number,
+      player_position: data.player_position,
+      player_callsign: data.player_callsign,
+      main_player: data.main_player,
+    },
+  });
+
   // Purge cached pages so changes reflect immediately
   revalidatePath("/cms/teammanagement");
   revalidatePath("/team");
@@ -110,6 +126,21 @@ export async function addPlayerAction(data: any) {
 
   try {
     await pool.query(query, values);
+
+    // Log activity
+    await logCmsActivity({
+      action_type: "CREATE",
+      module: "player",
+      entity_id: data.player_id,
+      entity_title: data.player_name || `Player #${data.player_id}`,
+      details: {
+        player_name: data.player_name,
+        player_number: data.player_number,
+        player_position: data.player_position,
+        player_callsign: data.player_callsign,
+        main_player: data.main_player,
+      },
+    });
 
     // Purge the cached data so the page displays the latest values immediately
     revalidatePath("/cms/teammanagement");

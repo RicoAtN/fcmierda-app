@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import ClientAnalytics from "./analytics/ClientAnalytics";
 import { Analytics } from "@vercel/analytics/react";
 import MusicProvider from "@/components/MusicProvider";
 import PushNotificationModal from "@/components/PushNotificationModal";
@@ -63,7 +62,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <MusicProvider>
           {children}
           <PushNotificationModal />
-          <ClientAnalytics />
           <Analytics />
         </MusicProvider>
       </body>

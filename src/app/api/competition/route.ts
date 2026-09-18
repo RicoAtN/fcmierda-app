@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon, neonConfig } from "@neondatabase/serverless";
+import { logCmsActivity } from "@/lib/cms-logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -315,6 +316,21 @@ export async function POST(req: NextRequest) {
       league_link: r.league_link ?? null,
       opponents: parseOpponents(r.opponents ?? []),
     };
+
+    // Log Activity
+    await logCmsActivity({
+      action_type: "CREATE",
+      module: "competition",
+      entity_id: data.id,
+      entity_title: data.competition_name,
+      details: {
+        organisation: data.organisation,
+        division: data.division,
+        opponents_count: data.opponents.length,
+        league_link: data.league_link,
+      },
+      req,
+    });
 
     return NextResponse.json(
       { data },
