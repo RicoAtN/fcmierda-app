@@ -33,10 +33,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     client = await pool.connect();
-    await client.query(
+    const result = await client.query(
       `INSERT INTO match_result 
         (date, opponent, location, competition, attendance, support_coach, goals_fcmierda, goals_opponent, game_result, goal_scorers, timestamp, youtube, fcmierda_man_of_the_match, match_summary)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        RETURNING id`,
       [
         body.date || "",
         body.opponent || "",
@@ -54,7 +55,8 @@ export async function POST(req: NextRequest) {
         body.match_summary || body.matchSummary || "",
       ]
     );
-    return NextResponse.json({ success: true });
+    const newId = result.rows[0]?.id;
+    return NextResponse.json({ success: true, id: newId });
   } catch (e) {
     console.error("POST /api/match-result error:", e);
     return NextResponse.json({ success: false, error: String(e) });

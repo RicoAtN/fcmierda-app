@@ -1,26 +1,35 @@
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
-import { Pool } from "pg";
+import { neon } from "@neondatabase/serverless";
 import Footer from "@/components/Footer";
 import React from "react";
 import ClientMatchResults from "./ClientMatchResults";
 import TeamForm from "@/components/TeamForm";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Match Results & Recaps | FC Mierda",
+  description: "View past FC Mierda match results, goal scorers, man of the match highlights, and competition standings.",
+};
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
 // Fetch all match results from Neon DB
-async function getAllResults() {
-  const { rows } = await pool.query(
-    `SELECT *
-     FROM match_result
-     ORDER BY date DESC`
-  );
-  return rows;
+async function getAllResults(): Promise<MatchResult[]> {
+  try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) return [];
+    const sql = neon(dbUrl);
+    const rows = await sql`
+      SELECT *
+      FROM match_result
+      ORDER BY date DESC
+    `;
+    return rows as MatchResult[];
+  } catch {
+    return [];
+  }
 }
 
 type GoalScorer = {
@@ -52,15 +61,23 @@ type CompetitionOverviewRow = {
   end_period: string | null;
   fcmierda_final_rank: number | null;
   competition_champion: string | null;
+  league_link?: string | null;
 };
 
 async function getCompetitionsOverview(): Promise<CompetitionOverviewRow[]> {
-  const { rows } = await pool.query<CompetitionOverviewRow>(
-    `SELECT competition_name, end_period, fcmierda_final_rank, competition_champion
-     FROM competition
-     ORDER BY competition_id DESC`
-  );
-  return rows;
+  try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) return [];
+    const sql = neon(dbUrl);
+    const rows = await sql`
+      SELECT competition_name, end_period, fcmierda_final_rank, competition_champion, league_link
+      FROM competition
+      ORDER BY end_period DESC NULLS LAST, competition_id DESC
+    `;
+    return rows as CompetitionOverviewRow[];
+  } catch {
+    return [];
+  }
 }
 
 // Remove the first N words from a string (default: 2)
@@ -112,6 +129,19 @@ export default async function ResultsPage() {
   const allResults = await getAllResults();
   const competitions = await getCompetitionsOverview();
 
+  // Create dictionary mapping competition name -> league_link
+  const competitionLinkMap: Record<string, string> = {};
+  competitions.forEach((c) => {
+    if (c.competition_name && c.league_link) {
+      competitionLinkMap[c.competition_name.trim()] = c.league_link.trim();
+    }
+  });
+
+  const latestCompWithLink = competitions.find((c) => c.league_link && c.league_link.trim().length);
+  const activeLeagueLink =
+    latestCompWithLink?.league_link ||
+    "https://www.powerleague.com/nl/5-a-side-leagues-near-me-nl?search_location=Rotterdam%2C+NL&single_location=&default_lat=&default_lng=&search_lat=51.9244424&search_lng=4.47775&territory_id=322&search_range=35&search_league_type_category=&search_league_type=&search_league_day=&action=searchLeagueSites";
+
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-gray-900">
       <Menu />
@@ -129,7 +159,7 @@ export default async function ResultsPage() {
         <div id="all-results" className="max-w-6xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-900 shadow-xl mx-auto">
           <TeamForm teamId={1} className="mt-1" />
 
-          <ClientMatchResults allResults={allResults} rowsToShow={5} />
+          <ClientMatchResults allResults={allResults} competitionLinkMap={competitionLinkMap} rowsToShow={5} />
         </div>
 
         {/* League Table & Opponents Link Section (Compact) */}
@@ -144,12 +174,14 @@ export default async function ResultsPage() {
             For live division standings, upcoming results, and opponent information:
           </p>
           <a
-            href="https://www.powerleague.com/nl/5-a-side-leagues-near-me-nl?search_location=Rotterdam%2C+NL&single_location=&default_lat=&default_lng=&search_lat=51.9244424&search_lng=4.47775&territory_id=322&search_range=35&search_league_type_category=&search_league_type=&search_league_day=&action=searchLeagueSites"
+            href={activeLeagueLink}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-emerald-400 hover:text-emerald-300 underline transition-colors"
           >
-            <span>Visit official Powerleague Rotterdam standings &amp; schedule ↗</span>
+            <span>
+              Visit {latestCompWithLink ? removeFirstWords(latestCompWithLink.competition_name) : "official Powerleague Rotterdam"} standings &amp; schedule ↗
+            </span>
           </a>
         </div>
 
@@ -181,7 +213,22 @@ export default async function ResultsPage() {
                         key={idx}
                         className={`transition ${highlight ? "bg-yellow-900/20 font-bold" : "hover:bg-gray-800/60"}`}
                       >
-                        <td className="px-4 py-2 border-b border-gray-800">{removeFirstWords(r.competition_name)}</td>
+                        <td className="px-4 py-2 border-b border-gray-800">
+                          {r.league_link ? (
+                            <a
+                              href={r.league_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-emerald-400 hover:text-emerald-300 underline inline-flex items-center gap-1 font-medium"
+                              title="View official league table & standings"
+                            >
+                              <span>{removeFirstWords(r.competition_name)}</span>
+                              <span className="text-xs">↗</span>
+                            </a>
+                          ) : (
+                            removeFirstWords(r.competition_name)
+                          )}
+                        </td>
                         <td className="px-4 py-2 border-b border-gray-800">{formatMonthYear(r.end_period)}</td>
                         <td className="px-4 py-2 border-b border-gray-800">
                           <FinalRankCell rank={r.fcmierda_final_rank} />

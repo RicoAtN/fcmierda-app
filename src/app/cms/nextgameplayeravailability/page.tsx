@@ -3,16 +3,14 @@ import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
 import PlayerAttendance from "@/components/PlayerAttendance";
 import { Roboto_Slab, Montserrat } from "next/font/google";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
 
 export default function NextGameDetailsPage() {
-  const router = useRouter();
-
-  // ADD: next game info for the info row
+  // next game info for the info row (hydrated from cache or PlayerAttendance fetch)
   const [nextGame, setNextGame] = useState<{
     date: string;
     kickoff: string;
@@ -24,19 +22,21 @@ export default function NextGameDetailsPage() {
   });
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/next-game", { cache: "no-store" });
-        const data = await res.json();
-        setNextGame({
-          date: data?.date || "",
-          kickoff: data?.kickoff || "",
-          opponent: data?.opponent || "",
-        });
-      } catch {
-        // ignore
+    try {
+      const cached = sessionStorage.getItem("fcmierda_nextgame_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed) {
+          setNextGame({
+            date: parsed.date || "",
+            kickoff: parsed.kickoff || "",
+            opponent: parsed.opponent || "",
+          });
+        }
       }
-    })();
+    } catch {
+      // ignore
+    }
   }, []);
 
   return (
@@ -65,13 +65,12 @@ export default function NextGameDetailsPage() {
           >
             Please mark your availability for the upcoming match.
           </p>
-          <button
-            type="button"
-            onClick={() => router.push("/fixtures#next-game")}
-            className="bg-gray-700 hover:bg-gray-800 text-white px-6 py-3 rounded-md font-bold text-lg shadow transition-all duration-150 border border-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 mt-4"
+          <Link
+            href="/fixtures#next-game"
+            className="bg-gray-700 hover:bg-gray-800 text-white px-6 py-3 rounded-md font-bold text-lg shadow transition-all duration-150 border border-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 mt-4 inline-block"
           >
             Back to fixtures page
-          </button>
+          </Link>
         </div>
       </section>
 
@@ -104,7 +103,7 @@ export default function NextGameDetailsPage() {
             </div>
           </div>
 
-          <PlayerAttendance />
+          <PlayerAttendance onGameDataLoaded={setNextGame} />
         </div>
       </section>
 

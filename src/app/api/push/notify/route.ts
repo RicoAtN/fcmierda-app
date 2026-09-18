@@ -129,7 +129,14 @@ export async function POST(req: NextRequest) {
         payloadBody = `${resultPrefix} Check out the goal scorers and match recap!`;
       }
 
-      payloadUrl = customUrl || "/results";
+      const matchId = matchResultData?.id;
+      const defaultMatchUrl = matchId ? `/results#match-${matchId}` : "/results#match-details";
+
+      if (!customUrl || customUrl === "/results" || customUrl === "/results/") {
+        payloadUrl = defaultMatchUrl;
+      } else {
+        payloadUrl = customUrl;
+      }
     } else if (type === "drone_video") {
       const opp = droneVideoData?.opponent ? ` vs ${droneVideoData.opponent}` : "";
       payloadTitle = customTitle || `New Match Video Summary 🎥`;

@@ -1,13 +1,79 @@
-// FC Mierda Service Worker for Web Push Notifications
+// FC Mierda Service Worker for Web Push Notifications & Fast Asset Caching
+
+const CACHE_NAME = 'fcmierda-static-v1';
+const PRECACHE_ASSETS = [
+  '/FCMierda-team-logo.png',
+  '/manifest.json',
+  '/favicon.ico',
+];
 
 self.addEventListener('install', function (event) {
-  // Activate worker immediately
   self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(function (cache) {
+      return cache.addAll(PRECACHE_ASSETS).catch(function () {
+        // ignore non-critical precache fails
+      });
+    })
+  );
 });
 
 self.addEventListener('activate', function (event) {
-  // Claim active clients immediately
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then(function (cacheNames) {
+      return Promise.all(
+        cacheNames
+          .filter(function (name) {
+            return name !== CACHE_NAME;
+          })
+          .map(function (name) {
+            return caches.delete(name);
+          })
+      );
+    }).then(function () {
+      return self.clients.claim();
+    })
+  );
+});
+
+// Cache-first for static image/font assets, network-only for APIs & pages
+self.addEventListener('fetch', function (event) {
+  const url = new URL(event.request.url);
+  
+  // Never intercept API, CMS, or non-GET requests
+  if (
+    event.request.method !== 'GET' ||
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/cms')
+  ) {
+    return;
+  }
+
+  // Cache static image and font extensions
+  if (
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.webp') ||
+    url.pathname.endsWith('.jpg') ||
+    url.pathname.endsWith('.svg') ||
+    url.pathname.endsWith('.ico')
+  ) {
+    event.respondWith(
+      caches.match(event.request).then(function (cachedResponse) {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return fetch(event.request).then(function (networkResponse) {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then(function (cache) {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return networkResponse;
+        });
+      })
+    );
+  }
 });
 
 self.addEventListener('push', function (event) {

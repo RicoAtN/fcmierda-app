@@ -64,7 +64,7 @@ function formatDayMonth(dateStr?: string): string {
   return dateStr;
 }
 
-type CompetitionRow = { competition_id: string; competition_name: string; opponents: string[] };
+type CompetitionRow = { competition_id: string; competition_name: string; opponents: string[]; league_link?: string | null };
 
 export default function NextGameDetailsPage() {
   const [latestCompetition, setLatestCompetition] = useState<CompetitionRow | null>(null);
@@ -425,6 +425,26 @@ export default function NextGameDetailsPage() {
                   </option>
                 ))}
               </select>
+              {latestCompetition?.league_link ? (
+                <div className="mt-1.5 flex items-center gap-1.5 text-xs text-emerald-400">
+                  <span className="font-semibold">🔗 League link:</span>
+                  <a
+                    href={latestCompetition.league_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-emerald-300 truncate max-w-sm"
+                  >
+                    {latestCompetition.league_link}
+                  </a>
+                </div>
+              ) : (
+                <p className="mt-1 text-xs text-gray-400">
+                  No organiser league link configured for this competition. You can add one in{" "}
+                  <a href="/cms/competition" className="text-emerald-400 underline hover:text-emerald-300">
+                    Competitions CMS
+                  </a>.
+                </p>
+              )}
             </div>
             <div>
               <label className="block font-semibold mb-1">Note</label>

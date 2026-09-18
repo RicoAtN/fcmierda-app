@@ -14,6 +14,7 @@ type CompetitionOverviewRow = {
   football_type: string | null;
   fcmierda_final_rank: number | null;
   competition_champion: string | null;
+  league_link: string | null;
   opponents: string[] | null;
 };
 
@@ -27,6 +28,7 @@ type NewCompetition = {
   football_type: string | null;
   fcmierda_final_rank: number | null;
   competition_champion: string | null;
+  league_link: string | null;
   opponents: string[];
 };
 // Helper to compute default competition name
@@ -111,11 +113,13 @@ export default function CompetitionCMSPage() {
   const [form, setForm] = useState<CompetitionOverviewRow | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   // NEW: create competition state
   const [newOpen, setNewOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [newNameTouched, setNewNameTouched] = useState(false);
   const [newForm, setNewForm] = useState<NewCompetition>({
     organisation: "Powerleague Rotterdam",
@@ -127,6 +131,7 @@ export default function CompetitionCMSPage() {
     football_type: "7vs7",
     fcmierda_final_rank: null,
     competition_champion: null,
+    league_link: null,
     opponents: [],
   });
 
@@ -155,9 +160,11 @@ export default function CompetitionCMSPage() {
     })();
   }, []);
 
-  // NEW: load details from selected row (no API call)
+  // NEW: load details from selected row
   async function handleSelect(row: CompetitionOverviewRow) {
     setLoadingDetails(true);
+    setSaveError(null);
+    setSaveSuccess(null);
     try {
       const key = row.id ?? encodeURIComponent(row.competition_name);
       const res = await fetch(`/api/competition/${key}`, { cache: "no-store" });
@@ -174,6 +181,7 @@ export default function CompetitionCMSPage() {
         football_type: src.football_type,
         fcmierda_final_rank: src.fcmierda_final_rank,
         competition_champion: src.competition_champion,
+        league_link: src.league_link ?? null,
         opponents: Array.isArray(src.opponents) ? src.opponents.filter(Boolean) : [],
       };
       setForm(formData);
@@ -187,6 +195,7 @@ export default function CompetitionCMSPage() {
     if (!form) return;
     setSaving(true);
     setSaveError(null);
+    setSaveSuccess(null);
     try {
       const key = form.id ?? encodeURIComponent(form.competition_name);
       const res = await fetch(`/api/competition/${key}`, {
@@ -198,20 +207,19 @@ export default function CompetitionCMSPage() {
           fcmierda_final_rank: form.fcmierda_final_rank ?? null,
           competition_champion:
             form.competition_champion && form.competition_champion.trim().length
-              ? form.competition_champion
+              ? form.competition_champion.trim()
               : null, // send null when empty
+          league_link:
+            form.league_link && form.league_link.trim().length
+              ? form.league_link.trim()
+              : null,
           opponents: form.opponents ?? [],
         }),
       });
       const json = await res.json();
       if (!res.ok || !json.data) throw new Error(json?.error || "Save failed");
 
-      // Refetch canonical record to ensure organisation matches Neon
-      const ref = await fetch(`/api/competition/${json.data.id ?? encodeURIComponent(json.data.competition_name)}`, {
-        cache: "no-store",
-      });
-      const refJson = await ref.json();
-      const canonical: CompetitionOverviewRow = ref.ok && refJson?.data ? refJson.data : json.data;
+      const canonical: CompetitionOverviewRow = json.data;
 
       setForm({
         ...canonical,
@@ -220,18 +228,29 @@ export default function CompetitionCMSPage() {
 
       setRows((prev) =>
         prev.map((r) =>
-          (r.id && canonical.id ? r.id === canonical.id : r.competition_name === canonical.competition_name)
+          (r.id && canonical.id ? String(r.id) === String(canonical.id) : r.competition_name === canonical.competition_name)
             ? {
                 ...r,
                 organisation: canonical.organisation, // keep in sync
+                division: canonical.division,
                 competition_name: canonical.competition_name,
+                total_teams: canonical.total_teams,
+                start_period: canonical.start_period,
                 end_period: canonical.end_period,
+                football_type: canonical.football_type,
                 fcmierda_final_rank: canonical.fcmierda_final_rank,
                 competition_champion: canonical.competition_champion,
+                league_link: canonical.league_link ?? null,
+                opponents: canonical.opponents ?? [],
               }
             : r
         )
       );
+
+      setSaveSuccess("Competition details & league link saved successfully!");
+      setTimeout(() => {
+        setSaveSuccess(null);
+      }, 5000);
     } catch (e: any) {
       setSaveError(e.message || String(e));
     } finally {
@@ -243,6 +262,7 @@ export default function CompetitionCMSPage() {
   async function handleCreate() {
     setCreating(true);
     setCreateError(null);
+    setCreateSuccess(null);
     try {
       const res = await fetch("/api/competition", {
         method: "POST",
@@ -257,6 +277,10 @@ export default function CompetitionCMSPage() {
           football_type: newForm.football_type ?? null,
           fcmierda_final_rank: null, // explicitly blank
           competition_champion: null, // explicitly blank
+          league_link:
+            newForm.league_link && newForm.league_link.trim().length
+              ? newForm.league_link.trim()
+              : null,
           opponents: newForm.opponents ?? [],
         }),
       });
@@ -278,6 +302,7 @@ export default function CompetitionCMSPage() {
         football_type: created.football_type,
         fcmierda_final_rank: created.fcmierda_final_rank,
         competition_champion: created.competition_champion,
+        league_link: created.league_link ?? null,
         opponents: Array.isArray(created.opponents) ? created.opponents : [],
       });
 
@@ -292,9 +317,14 @@ export default function CompetitionCMSPage() {
         football_type: "7vs7",
         fcmierda_final_rank: null,
         competition_champion: null,
+        league_link: null,
         opponents: [],
       });
       setNewOpen(false);
+      setSaveSuccess("New competition created successfully and loaded for editing!");
+      setTimeout(() => {
+        setSaveSuccess(null);
+      }, 5000);
     } catch (e: any) {
       setCreateError(e.message || String(e));
     } finally {
@@ -438,9 +468,23 @@ export default function CompetitionCMSPage() {
                         title="Click to edit"
                       >
                         <td data-label="Competition" className="px-4 py-2 border-b border-gray-800">
-                          <span className="min-w-0 flex-1 truncate text-right sm:text-left max-w-[18ch] sm:max-w-[40ch]" title={compLabel}>
-                            {compLabel}
-                          </span>
+                          <div className="flex items-center justify-end sm:justify-start gap-2">
+                            <span className="min-w-0 truncate max-w-[16ch] sm:max-w-[34ch]" title={compLabel}>
+                              {compLabel}
+                            </span>
+                            {r.league_link && (
+                              <a
+                                href={r.league_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="px-1.5 py-0.5 rounded bg-emerald-900/50 hover:bg-emerald-800 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold inline-flex items-center gap-1 shadow-sm"
+                                title={`Open league link: ${r.league_link}`}
+                              >
+                                🔗 Link
+                              </a>
+                            )}
+                          </div>
                         </td>
                         <td data-label="End period" className="px-4 py-2 border-b border-gray-800">
                           {formatMonthYear(r.end_period)}
@@ -518,6 +562,29 @@ export default function CompetitionCMSPage() {
 
           {form && (
             <div className="space-y-6">
+              {/* Visual Success Confirmation Banner */}
+              {saveSuccess && (
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-950/80 border-2 border-emerald-500 text-emerald-200 text-sm font-semibold shadow-lg shadow-emerald-950/50">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center flex-shrink-0 text-emerald-400">
+                    <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-emerald-100 font-bold">{saveSuccess}</p>
+                    {form.league_link && (
+                      <p className="text-xs text-emerald-300/80 mt-0.5 font-normal">
+                        Active League Link: <span className="font-mono underline">{form.league_link}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-white/70 mb-1">Organisation</label>
@@ -604,6 +671,44 @@ export default function CompetitionCMSPage() {
                     }
                   />
                 </div>
+                <div className="sm:col-span-2 p-4 rounded-xl bg-gray-800/80 border border-gray-700/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-semibold text-white">
+                      League / Organiser Link (Powerleague schedule &amp; standings URL)
+                    </label>
+                    {form.league_link ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-semibold">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Link Configured
+                      </span>
+                    ) : (
+                      <span className="text-xs text-white/40">No link set</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="url"
+                      className="flex-1 rounded-md bg-gray-900 border border-gray-700 px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-teal-500"
+                      placeholder="https://www.powerleague.com/..."
+                      value={form.league_link ?? ""}
+                      onChange={(e) => setForm({ ...form, league_link: e.target.value || null })}
+                    />
+                    {form.league_link && (
+                      <a
+                        href={form.league_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-xs font-bold whitespace-nowrap text-white transition-colors shadow flex items-center gap-1.5"
+                      >
+                        <span>Test Link</span>
+                        <span>↗</span>
+                      </a>
+                    )}
+                  </div>
+                  <p className="text-xs text-white/60">
+                    This link displays the organiser&apos;s division standings and match schedules for this competition on the Fixtures and Match Results pages.
+                  </p>
+                </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm text-white/70 mb-1">Opponents</label>
                   <div className="space-y-2">
@@ -635,16 +740,22 @@ export default function CompetitionCMSPage() {
 
               {saveError && <p className="text-red-400 text-sm">{saveError}</p>}
 
-              <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex flex-wrap gap-3 items-center pt-2">
                 <button
-                  className="px-4 py-2 rounded-md bg-teal-600 hover:bg-teal-500 disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-md bg-teal-600 hover:bg-teal-500 font-semibold text-white shadow-md disabled:opacity-50 transition-colors flex items-center gap-2"
                   onClick={handleSave}
                   disabled={saving}
                 >
-                  {saving ? "Saving..." : "Save changes"}
+                  {saving && (
+                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                  )}
+                  <span>{saving ? "Saving changes..." : "Save changes"}</span>
                 </button>
                 <button
-                  className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600"
+                  className="px-4 py-2.5 rounded-md bg-gray-700 hover:bg-gray-600 font-medium text-white transition-colors"
                   onClick={() => setForm(null)}
                 >
                   Close
@@ -652,7 +763,7 @@ export default function CompetitionCMSPage() {
 
                 {/* Delete toggle */}
                 <button
-                  className="ml-auto px-4 py-2 rounded-md bg-red-600 hover:bg-red-500"
+                  className="ml-auto px-4 py-2.5 rounded-md bg-red-600/90 hover:bg-red-600 font-medium text-white transition-colors"
                   onClick={() => setDeleteOpen((v) => !v)}
                   title="Delete competition"
                   aria-label="Delete competition"
@@ -799,6 +910,49 @@ export default function CompetitionCMSPage() {
                     }
                   />
                 </div>
+                <div className="sm:col-span-2 p-4 rounded-xl bg-gray-800/80 border border-gray-700/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-semibold text-white">
+                      League / Organiser Link (Powerleague schedule &amp; standings URL)
+                    </label>
+                    {newForm.league_link ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-semibold">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Link Configured
+                      </span>
+                    ) : (
+                      <span className="text-xs text-white/40">Optional</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="url"
+                      className="flex-1 rounded-md bg-gray-900 border border-gray-700 px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
+                      placeholder="https://www.powerleague.com/..."
+                      value={newForm.league_link ?? ""}
+                      onChange={(e) =>
+                        setNewForm({
+                          ...newForm,
+                          league_link: e.target.value || null,
+                        })
+                      }
+                    />
+                    {newForm.league_link && (
+                      <a
+                        href={newForm.league_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-xs font-bold whitespace-nowrap text-white transition-colors shadow flex items-center gap-1.5"
+                      >
+                        <span>Test Link</span>
+                        <span>↗</span>
+                      </a>
+                    )}
+                  </div>
+                  <p className="text-xs text-white/60">
+                    Add the organiser&apos;s league schedule or standings page link for this competition.
+                  </p>
+                </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm text-white/70 mb-1">Opponents</label>
                   <div className="space-y-2">
@@ -832,16 +986,22 @@ export default function CompetitionCMSPage() {
 
               {createError && <p className="text-red-400 text-sm">{createError}</p>}
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <button
-                  className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-md bg-blue-600 hover:bg-blue-500 font-semibold text-white shadow-md disabled:opacity-50 transition-colors flex items-center gap-2"
                   onClick={handleCreate}
                   disabled={creating}
                 >
-                  {creating ? "Creating..." : "Create new competition"}
+                  {creating && (
+                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                  )}
+                  <span>{creating ? "Creating..." : "Create new competition"}</span>
                 </button>
                 <button
-                  className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600"
+                  className="px-4 py-2.5 rounded-md bg-gray-700 hover:bg-gray-600 font-medium text-white transition-colors"
                   onClick={() => setNewOpen(false)}
                 >
                   Cancel

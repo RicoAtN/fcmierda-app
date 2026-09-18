@@ -15,8 +15,8 @@ export default function TeamForm({ teamId, className = "" }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // configurable refresh (ms). Keep modest to reduce load.
-  const REFRESH_INTERVAL = 30000; // 30s
+  // configurable refresh (ms). Modest 60s interval to prevent serverless load.
+  const REFRESH_INTERVAL = 60000; // 60s
 
   const normalize = (r: string) => {
     const v = (r || "").trim().toUpperCase();
@@ -29,7 +29,6 @@ export default function TeamForm({ teamId, className = "" }: Props) {
   const fetchForm = async () => {
     try {
       setError(null);
-      if (!results) setLoading(true);
       const url = `/api/team-form?_t=${Date.now()}${teamId ? `&teamId=${encodeURIComponent(String(teamId))}` : ""}`;
       const res = await fetch(url, {
         cache: "no-store",
@@ -42,7 +41,14 @@ export default function TeamForm({ teamId, className = "" }: Props) {
       const norm = next.map((r: string) => normalize(r));
       const current = (results ?? []).map(r => normalize(r));
       const changed = norm.length !== current.length || norm.some((v, i) => v !== current[i]);
-      if (changed) setResults(norm);
+      if (changed) {
+        setResults(norm);
+        try {
+          sessionStorage.setItem("fcmierda_team_form_cache", JSON.stringify(norm));
+        } catch {
+          // ignore
+        }
+      }
     } catch (e: any) {
       // Keep prior results on background refresh failures
       if (!results) setResults([]);
@@ -53,9 +59,18 @@ export default function TeamForm({ teamId, className = "" }: Props) {
   };
 
   useEffect(() => {
-    setError(null);
-    setResults(null);
-    // initial load
+    // 1. Hydrate from cache immediately
+    try {
+      const cached = sessionStorage.getItem("fcmierda_team_form_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) setResults(parsed);
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2. Fetch fresh
     fetchForm();
 
     // polling with visibility awareness

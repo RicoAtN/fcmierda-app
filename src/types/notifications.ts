@@ -10,6 +10,7 @@ export interface NextGameNotificationData {
 }
 
 export interface MatchResultNotificationData {
+  id?: number | string;
   opponent?: string;
   date?: string;
   gameResult?: string;

@@ -55,6 +55,7 @@ type CompetitionDetailsRow = {
   football_type: string | null;
   fcmierda_final_rank: number | null;
   competition_champion: string | null;
+  league_link: string | null;
   opponents: string[] | string | null;
 };
 
@@ -71,6 +72,7 @@ async function getCompetitionSchema(sql: any) {
 
   const hasOrganisation = cols.some((c) => c.column_name === "organisation");
   const hasOrganization = cols.some((c) => c.column_name === "organization");
+  const hasLeagueLink = cols.some((c) => c.column_name === "league_link");
   const opponentsCol = cols.find((c) => c.column_name === "opponents");
   let opponentsType: "jsonb" | "text[]" | "text" | null = null;
   if (opponentsCol) {
@@ -78,7 +80,7 @@ async function getCompetitionSchema(sql: any) {
     else if (opponentsCol.data_type.includes("ARRAY")) opponentsType = "text[]";
     else opponentsType = "text";
   }
-  return { hasOrganisation, hasOrganization, opponentsType };
+  return { hasOrganisation, hasOrganization, hasLeagueLink, opponentsType };
 }
 
 function validatePayload(payload: any, requireName: boolean) {
@@ -120,7 +122,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
                    organisation AS organisation,
                    division, competition_name, total_teams,
                    start_period, end_period, football_type, fcmierda_final_rank,
-                   competition_champion, opponents
+                   competition_champion, opponents, league_link
             FROM competition
             WHERE competition_id = ${Number(key)}
             LIMIT 1;
@@ -130,7 +132,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
                    organisation AS organisation,
                    division, competition_name, total_teams,
                    start_period, end_period, football_type, fcmierda_final_rank,
-                   competition_champion, opponents
+                   competition_champion, opponents, league_link
             FROM competition
             WHERE TRIM(competition_name) = TRIM(${key})
             LIMIT 1;
@@ -142,7 +144,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
                    organization AS organisation,
                    division, competition_name, total_teams,
                    start_period, end_period, football_type, fcmierda_final_rank,
-                   competition_champion, opponents
+                   competition_champion, opponents, league_link
             FROM competition
             WHERE competition_id = ${Number(key)}
             LIMIT 1;
@@ -152,7 +154,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
                    organization AS organisation,
                    division, competition_name, total_teams,
                    start_period, end_period, football_type, fcmierda_final_rank,
-                   competition_champion, opponents
+                   competition_champion, opponents, league_link
             FROM competition
             WHERE TRIM(competition_name) = TRIM(${key})
             LIMIT 1;
@@ -164,7 +166,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
                    NULL::text AS organisation,
                    division, competition_name, total_teams,
                    start_period, end_period, football_type, fcmierda_final_rank,
-                   competition_champion, opponents
+                   competition_champion, opponents, league_link
             FROM competition
             WHERE competition_id = ${Number(key)}
             LIMIT 1;
@@ -174,7 +176,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
                    NULL::text AS organisation,
                    division, competition_name, total_teams,
                    start_period, end_period, football_type, fcmierda_final_rank,
-                   competition_champion, opponents
+                   competition_champion, opponents, league_link
             FROM competition
             WHERE TRIM(competition_name) = TRIM(${key})
             LIMIT 1;
@@ -201,10 +203,17 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       football_type: row.football_type,
       fcmierda_final_rank: row.fcmierda_final_rank,
       competition_champion: champion, // blank -> null
+      league_link: row.league_link ?? null,
       opponents: parseOpponents(row.opponents ?? []),
     };
 
-    return NextResponse.json({ data }, { status: 200 });
+    return NextResponse.json(
+      { data },
+      {
+        status: 200,
+        headers: { "Cache-Control": "no-store, max-age=0" },
+      }
+    );
   } catch (err: any) {
     console.error("[/api/competition/[id] GET] Error:", {
       message: err?.message,
@@ -258,20 +267,35 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     const compId = Number(idRow[0].competition_id);
 
     // Load current values
-    const currentRows = (await sql`
-      SELECT competition_id,
-             ${schema.hasOrganisation
-               ? sql`organisation AS organisation`
-               : schema.hasOrganization
-               ? sql`organization AS organisation`
-               : sql`NULL::text AS organisation`},
-             division, competition_name, total_teams,
-             start_period, end_period, football_type, fcmierda_final_rank,
-             competition_champion, opponents
-      FROM competition
-      WHERE competition_id = ${compId}
-      LIMIT 1;
-    `) as any[];
+    let currentRows: any[] = [];
+    if (schema.hasOrganisation) {
+      currentRows = (await sql`
+        SELECT competition_id, organisation, division, competition_name, total_teams,
+               start_period, end_period, football_type, fcmierda_final_rank,
+               competition_champion, opponents, league_link
+        FROM competition
+        WHERE competition_id = ${compId}
+        LIMIT 1;
+      `) as any[];
+    } else if (schema.hasOrganization) {
+      currentRows = (await sql`
+        SELECT competition_id, organization AS organisation, division, competition_name, total_teams,
+               start_period, end_period, football_type, fcmierda_final_rank,
+               competition_champion, opponents, league_link
+        FROM competition
+        WHERE competition_id = ${compId}
+        LIMIT 1;
+      `) as any[];
+    } else {
+      currentRows = (await sql`
+        SELECT competition_id, NULL::text AS organisation, division, competition_name, total_teams,
+               start_period, end_period, football_type, fcmierda_final_rank,
+               competition_champion, opponents, league_link
+        FROM competition
+        WHERE competition_id = ${compId}
+        LIMIT 1;
+      `) as any[];
+    }
     const current = currentRows[0];
 
     const keepStr = (incoming: any, existing: string | null) => {
@@ -302,6 +326,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     const newType = keepStr(payload.football_type, current.football_type);
     const newRank = keepNum(payload.fcmierda_final_rank, current.fcmierda_final_rank);
     const newChampion = normalizeBlankToNull(payload.competition_champion, current.competition_champion);
+    const newLeagueLink = normalizeBlankToNull(payload.league_link, current.league_link);
 
     if (schema.hasOrganisation) {
       await sql`
@@ -314,7 +339,8 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
             end_period = ${newEnd},
             football_type = ${newType},
             fcmierda_final_rank = ${newRank},
-            competition_champion = ${newChampion}
+            competition_champion = ${newChampion},
+            league_link = ${newLeagueLink}
         WHERE competition_id = ${compId};
       `;
     } else if (schema.hasOrganization) {
@@ -328,7 +354,8 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
             end_period = ${newEnd},
             football_type = ${newType},
             fcmierda_final_rank = ${newRank},
-            competition_champion = ${newChampion}
+            competition_champion = ${newChampion},
+            league_link = ${newLeagueLink}
         WHERE competition_id = ${compId};
       `;
     } else {
@@ -341,7 +368,8 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
             end_period = ${newEnd},
             football_type = ${newType},
             fcmierda_final_rank = ${newRank},
-            competition_champion = ${newChampion}
+            competition_champion = ${newChampion},
+            league_link = ${newLeagueLink}
         WHERE competition_id = ${compId};
       `;
     }
@@ -372,20 +400,35 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     }
 
     // Return updated
-    const rows = (await sql`
-      SELECT competition_id,
-             ${schema.hasOrganisation
-               ? sql`organisation AS organisation`
-               : schema.hasOrganization
-               ? sql`organization AS organisation`
-               : sql`NULL::text AS organisation`},
-             division, competition_name, total_teams,
-             start_period, end_period, football_type, fcmierda_final_rank,
-             competition_champion, opponents
-      FROM competition
-      WHERE competition_id = ${compId}
-      LIMIT 1;
-    `) as any[];
+    let rows: any[] = [];
+    if (schema.hasOrganisation) {
+      rows = (await sql`
+        SELECT competition_id, organisation, division, competition_name, total_teams,
+               start_period, end_period, football_type, fcmierda_final_rank,
+               competition_champion, opponents, league_link
+        FROM competition
+        WHERE competition_id = ${compId}
+        LIMIT 1;
+      `) as any[];
+    } else if (schema.hasOrganization) {
+      rows = (await sql`
+        SELECT competition_id, organization AS organisation, division, competition_name, total_teams,
+               start_period, end_period, football_type, fcmierda_final_rank,
+               competition_champion, opponents, league_link
+        FROM competition
+        WHERE competition_id = ${compId}
+        LIMIT 1;
+      `) as any[];
+    } else {
+      rows = (await sql`
+        SELECT competition_id, NULL::text AS organisation, division, competition_name, total_teams,
+               start_period, end_period, football_type, fcmierda_final_rank,
+               competition_champion, opponents, league_link
+        FROM competition
+        WHERE competition_id = ${compId}
+        LIMIT 1;
+      `) as any[];
+    }
 
     const row = rows[0] as CompetitionDetailsRow;
     const data = {
@@ -399,10 +442,17 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
       football_type: row.football_type ?? null,
       fcmierda_final_rank: row.fcmierda_final_rank ?? null,
       competition_champion: row.competition_champion ?? null,
+      league_link: row.league_link ?? null,
       opponents: parseOpponents(row.opponents ?? []),
     };
 
-    return NextResponse.json({ data }, { status: 200 });
+    return NextResponse.json(
+      { data },
+      {
+        status: 200,
+        headers: { "Cache-Control": "no-store, max-age=0" },
+      }
+    );
   } catch (err: any) {
     console.error("[/api/competition/[id] PUT] Error:", {
       message: err?.message,

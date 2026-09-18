@@ -1,16 +1,19 @@
 import { Roboto_Slab, Montserrat } from "next/font/google";
+import Link from "next/link";
 import Menu from "@/components/Menu";
-import Footer from "@/components/Footer"; // Add this import at the top
-import { Pool } from "pg";
-import TeamForm from "@/components/TeamForm"; // NEW: import
+import Footer from "@/components/Footer";
+import { neon } from "@neondatabase/serverless";
+import TeamForm from "@/components/TeamForm";
 import Sponsors from "@/components/Sponsors";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Fixtures & Next Match | FC Mierda",
+  description: "Check FC Mierda's upcoming match details, kickoff times, location, and player availability.",
+};
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
 
 export const dynamic = "force-dynamic";
 
@@ -27,43 +30,64 @@ function getGatheringTime(kickoff: string) {
   return `${String(gh).padStart(2, "0")}:${String(gm).padStart(2, "0")}`;
 }
 
-// Fetch the latest game from Neon
+// Fetch the latest game from Neon Serverless
 async function getNextGameDirect() {
-  let client;
   try {
-    client = await pool.connect();
-    const res = await client.query(
-      "SELECT * FROM next_game ORDER BY id DESC LIMIT 1"
-    );
-    return res.rows[0] || null;
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) return null;
+    const sql = neon(dbUrl);
+    const rows = await sql`
+      SELECT * FROM next_game ORDER BY id DESC LIMIT 1
+    `;
+    return rows[0] || null;
   } catch {
     return null;
-  } finally {
-    if (client) client.release();
   }
 }
 
-// Fetch the latest match result from Neon
+// Fetch the latest match result from Neon Serverless
 async function getLatestMatchResult() {
-  let client;
   try {
-    client = await pool.connect();
-    const res = await client.query(
-      "SELECT * FROM match_result ORDER BY id DESC LIMIT 1"
-    );
-    return res.rows[0] || null;
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) return null;
+    const sql = neon(dbUrl);
+    const rows = await sql`
+      SELECT * FROM match_result ORDER BY id DESC LIMIT 1
+    `;
+    return rows[0] || null;
   } catch {
     return null;
-  } finally {
-    if (client) client.release();
   }
 }
 
-type GoalScorer = {
-  goalNumber?: string;
-  scorer: string;
-  assist?: string;
-};
+// Fetch competition details for current next game
+async function getCompetitionDetails(competitionName?: string) {
+  try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) return null;
+    const sql = neon(dbUrl);
+    if (competitionName && competitionName.trim().length) {
+      const rows = await sql`
+        SELECT competition_name, league_link, organisation
+        FROM competition
+        WHERE TRIM(competition_name) = TRIM(${competitionName})
+        LIMIT 1
+      `;
+      if (rows.length && rows[0].league_link) return rows[0];
+    }
+    // Fallback to latest competition with league_link
+    const latest = await sql`
+      SELECT competition_name, league_link, organisation
+      FROM competition
+      WHERE league_link IS NOT NULL AND TRIM(league_link) != ''
+      ORDER BY competition_id DESC
+      LIMIT 1
+    `;
+    return latest[0] || null;
+  } catch {
+    return null;
+  }
+}
 
 export default async function FixturesPage() {
   const nextGame = await getNextGameDirect();
@@ -82,6 +106,9 @@ export default async function FixturesPage() {
     competition: nextGame.competition || "-",
     note: nextGame.note || "-",
   };
+
+  const competitionInfo = await getCompetitionDetails(safeGame.competition);
+  const leagueLink = competitionInfo?.league_link;
 
   // Defensive: fallback for missing fields in match result
   const safeResult = latestResult
@@ -157,7 +184,7 @@ export default async function FixturesPage() {
               {safeGame.note}
           </p>
           <br />
-          <div className="mb-4 text-left text-sm sm:text-base">
+          <div className="mb-4 text-left text-sm sm:text-base space-y-1.5">
             <div>
               <span className="font-semibold text-green-300">Date:</span>{" "}
               {safeGame.date}
@@ -182,9 +209,23 @@ export default async function FixturesPage() {
             </div>
             <div>
               <span className="font-semibold text-green-300">Competition:</span>{" "}
-              {safeGame.competition}
+              <span>{safeGame.competition}</span>
             </div>
           </div>
+
+          {leagueLink && (
+            <div className="flex justify-center my-3">
+              <a
+                href={leagueLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gray-800/70 hover:bg-gray-800 text-gray-300 hover:text-green-300 border border-gray-700/80 hover:border-gray-600 text-xs sm:text-sm transition-colors"
+              >
+                <span>View league table &amp; schedule</span>
+                <span className="text-gray-400 text-xs">↗</span>
+              </a>
+            </div>
+          )}
 
           {/* Player Attendance Section */}
           <div className="mt-8">
@@ -217,13 +258,14 @@ export default async function FixturesPage() {
             </div>
             {/* Action Button */}
             <div className="mt-8 flex justify-center">
-              <a
+              <Link
                 href="/cms/nextgameplayeravailability#player-availability"
                 className="px-6 py-3 rounded-lg bg-green-700 text-white font-semibold shadow border border-green-800 hover:bg-green-800 transition"
                 style={{ letterSpacing: "0.03em" }}
+                prefetch={true}
               >
                 Submit your availability
-              </a>
+              </Link>
             </div>
           </div>
         </div>

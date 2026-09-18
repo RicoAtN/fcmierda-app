@@ -95,14 +95,30 @@ export default function TeamPage() {
   // Meet the Team (DB-backed)
   const [dbPlayers, setDbPlayers] = useState<DBPlayerWithStats[]>([]);
   const [dbError, setDbError] = useState<string | null>(null);
-  const [dbLoading, setDbLoading] = useState<boolean>(false);
+  const [dbLoading, setDbLoading] = useState<boolean>(true);
 
+  // 1. Instant hydration from session cache
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem("fcmierda_team_players_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setDbPlayers(parsed);
+          setDbLoading(false);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // 2. Background fresh fetch
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setDbLoading(true);
       try {
-        const res = await fetch("/api/main-players", { cache: "no-store" });
+        const res = await fetch(`/api/main-players?_t=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) {
           const errJson = await res.json().catch(() => ({}));
           throw new Error((errJson as { error?: string })?.error || `HTTP ${res.status}`);
@@ -112,11 +128,16 @@ export default function TeamPage() {
           const filtered = (data || []).filter(p => p.main_player === true);
           setDbPlayers(filtered);
           setDbError(null);
+          try {
+            sessionStorage.setItem("fcmierda_team_players_cache", JSON.stringify(filtered));
+          } catch {
+            // ignore
+          }
         }
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : "Failed to load";
         console.error("Failed to load main players", e);
-        if (!cancelled) setDbError(msg);
+        if (!cancelled && dbPlayers.length === 0) setDbError(msg);
       } finally {
         if (!cancelled) setDbLoading(false);
       }

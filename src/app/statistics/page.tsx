@@ -101,6 +101,36 @@ export default function StatisticsPage() {
   const [selectedTeamComp, setSelectedTeamComp] = useState<string>("all");
   const [selectedPlayerComp, setSelectedPlayerComp] = useState<string>("all");
 
+  // Hydrate initial stats from session cache for instant render
+  useEffect(() => {
+    try {
+      const cachedComps = sessionStorage.getItem("fcmierda_stats_comps_cache");
+      const cachedStats = sessionStorage.getItem("fcmierda_stats_players_all_cache");
+      const cachedTeam = sessionStorage.getItem("fcmierda_stats_team_all_cache");
+
+      if (cachedComps) {
+        const parsed = JSON.parse(cachedComps);
+        if (Array.isArray(parsed) && parsed.length > 0) setCompetitions(parsed);
+      }
+      if (cachedStats) {
+        const parsed = JSON.parse(cachedStats);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setStats(parsed);
+          setIsLoadingStats(false);
+        }
+      }
+      if (cachedTeam) {
+        const parsed = JSON.parse(cachedTeam);
+        if (parsed) {
+          setTeamStats(parsed);
+          setIsLoadingTeamStats(false);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // Fetch available competitions
   useEffect(() => {
     let isMounted = true;
@@ -111,6 +141,11 @@ export default function StatisticsPage() {
           const { data } = (await res.json()) as { data: CompetitionItem[] };
           if (isMounted && Array.isArray(data)) {
             setCompetitions(data);
+            try {
+              sessionStorage.setItem("fcmierda_stats_comps_cache", JSON.stringify(data));
+            } catch {
+              // ignore
+            }
           }
         }
       } catch (err) {
@@ -128,13 +163,21 @@ export default function StatisticsPage() {
 
   useEffect(() => {
     let isMounted = true;
-    setIsLoadingStats(true);
     (async () => {
       try {
         const compQuery = selectedPlayerComp !== "all" ? `&competition=${encodeURIComponent(selectedPlayerComp)}` : "";
         const res = await fetch(`/api/player-statistics?_t=${Date.now()}${compQuery}`, { cache: "no-store" });
         const { data } = (await res.json()) as { data: PlayerStats[] };
-        if (isMounted) setStats(data ?? []);
+        if (isMounted) {
+          setStats(data ?? []);
+          if (selectedPlayerComp === "all") {
+            try {
+              sessionStorage.setItem("fcmierda_stats_players_all_cache", JSON.stringify(data ?? []));
+            } catch {
+              // ignore
+            }
+          }
+        }
       } catch (e: any) {
         console.error("Failed to load player statistics", e);
       } finally {
@@ -153,7 +196,6 @@ export default function StatisticsPage() {
 
   useEffect(() => {
     let isMounted = true;
-    setIsLoadingTeamStats(true);
     (async () => {
       try {
         const compQuery = selectedTeamComp !== "all" ? `&competition=${encodeURIComponent(selectedTeamComp)}` : "";
@@ -166,6 +208,13 @@ export default function StatisticsPage() {
         if (isMounted) {
           setTeamStats(data);
           setTeamStatsError(null);
+          if (selectedTeamComp === "all") {
+            try {
+              sessionStorage.setItem("fcmierda_stats_team_all_cache", JSON.stringify(data));
+            } catch {
+              // ignore
+            }
+          }
         }
       } catch (e: any) {
         if (isMounted) {

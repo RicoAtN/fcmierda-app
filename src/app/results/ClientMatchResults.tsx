@@ -103,9 +103,11 @@ function safeArray(val: unknown): string[] {
 
 export default function ClientMatchResults({
   allResults,
+  competitionLinkMap,
   rowsToShow = 5,
 }: {
   allResults: MatchResult[];
+  competitionLinkMap?: Record<string, string>;
   rowsToShow?: number;
 }) {
   const [selectedId, setSelectedId] = React.useState<number | null>(
@@ -120,24 +122,62 @@ export default function ClientMatchResults({
   const detailsRef = React.useRef<HTMLElement | null>(null);
   const router = useRouter();
 
-  // If page loaded with a hash like #match-123, select that match and scroll
-  React.useEffect(() => {
+  const scrollToDetails = React.useCallback(() => {
+    const attemptScroll = (count = 0) => {
+      const el = document.getElementById("match-details");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (count < 8) {
+        setTimeout(() => attemptScroll(count + 1), 60);
+      }
+    };
+    // Give browser a short tick to layout DOM elements
+    setTimeout(() => attemptScroll(0), 80);
+  }, []);
+
+  const syncMatchFromUrl = React.useCallback(() => {
     if (typeof window === "undefined") return;
     const hash = window.location.hash || "";
-    const match = hash.match(/#match-(\d+)/);
-    if (match) {
-      const id = Number(match[1]);
-      if (!Number.isNaN(id)) {
-        setSelectedId(id);
-        // slight delay to allow DOM render
-        setTimeout(() => {
-          const el = document.getElementById("match-details");
-          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 50);
-      }
+    const params = new URLSearchParams(window.location.search);
+    const queryId = params.get("matchId") || params.get("id");
+
+    const matchHash = hash.match(/#match-?(\d+)/i);
+    let targetId: number | null = null;
+
+    if (matchHash) {
+      targetId = Number(matchHash[1]);
+    } else if (queryId) {
+      targetId = Number(queryId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    if (targetId && !Number.isNaN(targetId)) {
+      const matchExists = allResults && allResults.some((r) => r.id === targetId);
+      if (matchExists) {
+        setSelectedId(targetId);
+      }
+      scrollToDetails();
+    } else if (
+      hash === "#match-details" ||
+      hash === "#match-detail" ||
+      hash === "#details" ||
+      hash.startsWith("#match")
+    ) {
+      scrollToDetails();
+    }
+  }, [allResults, scrollToDetails]);
+
+  // If page loaded or hash updated, sync match and scroll to details
+  React.useEffect(() => {
+    syncMatchFromUrl();
+
+    window.addEventListener("hashchange", syncMatchFromUrl);
+    window.addEventListener("popstate", syncMatchFromUrl);
+
+    return () => {
+      window.removeEventListener("hashchange", syncMatchFromUrl);
+      window.removeEventListener("popstate", syncMatchFromUrl);
+    };
+  }, [syncMatchFromUrl]);
 
   function handleSelectAndScroll(id: number) {
     setSelectedId(id);
@@ -153,10 +193,7 @@ export default function ClientMatchResults({
       /* ignore in non-browser env */
     }
     // smooth scroll to details section
-    setTimeout(() => {
-      const el = document.getElementById("match-details");
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
+    scrollToDetails();
   }
 
   if (!allResults || allResults.length === 0) {
@@ -288,7 +325,7 @@ export default function ClientMatchResults({
 
       {/* Details Section */}
       {selectedResult && (
-        <section id="match-details" ref={detailsRef} className="w-full flex flex-col items-center py-8 px-4 bg-gray-900">
+        <section id="match-details" ref={detailsRef} className="w-full flex flex-col items-center py-8 px-4 bg-gray-900 scroll-mt-6 sm:scroll-mt-8">
           <div className="max-w-2xl w-full rounded-2xl p-6 sm:p-10 text-white bg-gray-800 shadow-xl mx-auto mb-8">
             {/* Date */}
             <h2 className={`text-xl sm:text-2xl font-bold mb-6 text-center ${robotoSlab.className}`}>
@@ -437,7 +474,20 @@ export default function ClientMatchResults({
 
               <div className="flex flex-row items-center gap-2">
                 <span className="font-semibold text-green-300 min-w-[110px]">Competition:</span>
-                <span className="text-white">{selectedResult.competition ?? "-"}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-white">{selectedResult.competition ?? "-"}</span>
+                  {selectedResult.competition && competitionLinkMap?.[selectedResult.competition.trim()] && (
+                    <a
+                      href={competitionLinkMap[selectedResult.competition.trim()]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 text-xs font-semibold hover:bg-emerald-600/30 hover:text-emerald-200 transition-colors"
+                      title="View league table, standings & fixtures"
+                    >
+                      <span>📊 League Table &amp; Matches ↗</span>
+                    </a>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-row items-center gap-2">

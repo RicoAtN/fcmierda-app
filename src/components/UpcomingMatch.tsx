@@ -9,6 +9,23 @@ export default function UpcomingMatch() {
   const [nextGame, setNextGame] = useState<{ opponent: string; date: string; time: string; location: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // 1. Hydrate from session cache
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem("fcmierda_upcoming_match_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed) {
+          setNextGame(parsed);
+          setLoading(false);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // 2. Fresh fetch in background
   useEffect(() => {
     let isMounted = true;
     fetch(`/api/next-game?_t=${Date.now()}`, { cache: "no-store" })
@@ -31,12 +48,19 @@ export default function UpcomingMatch() {
           } catch (e) {}
         }
 
-        setNextGame({
+        const matchData = {
           opponent: data.opponent || "TBD",
           date: formattedDate,
           time: data.kickoff || "TBD",
           location: data.location || "Alexandria 66 Rotterdam",
-        });
+        };
+
+        setNextGame(matchData);
+        try {
+          sessionStorage.setItem("fcmierda_upcoming_match_cache", JSON.stringify(matchData));
+        } catch {
+          // ignore
+        }
       })
       .catch((e) => {
         console.error("Failed to load upcoming match", e);

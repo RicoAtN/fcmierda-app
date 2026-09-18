@@ -272,6 +272,9 @@ export default function PostMatchResultPage() {
         return;
       }
 
+      const newMatchId = data.id;
+      const targetUrl = newMatchId ? `/results#match-${newMatchId}` : "/results#match-details";
+
       if (notifyUsers) {
         setStatus("Saved match result! Sending notifications to subscribers...");
         const formattedDayMonth = formatDayMonth(lastMatch.date);
@@ -294,7 +297,9 @@ export default function PostMatchResultPage() {
               type: "match_result",
               title: autoTitle,
               body: fullBody,
+              url: targetUrl,
               matchResultData: {
+                id: newMatchId,
                 opponent: lastMatch.opponent,
                 date: lastMatch.date,
                 gameResult,
@@ -314,7 +319,7 @@ export default function PostMatchResultPage() {
       }
 
       setStatus("Saved! Redirecting...");
-      setTimeout(() => router.push("/results"), 1200);
+      setTimeout(() => router.push(targetUrl), 1200);
     } catch (err) {
       setStatus("Network error while saving.");
       console.error(err);
@@ -434,6 +439,7 @@ export default function PostMatchResultPage() {
       const fullBody = editCustomNotificationText.trim()
         ? `${resultPrefix} ${editCustomNotificationText.trim()}`
         : `${resultPrefix} ${defaultSuffix}`;
+      const editTargetUrl = editForm.id ? `/results#match-${editForm.id}` : "/results#match-details";
 
       try {
         const notifyRes = await fetch("/api/push/notify", {
@@ -443,7 +449,9 @@ export default function PostMatchResultPage() {
             type: "match_result",
             title: autoTitle,
             body: fullBody,
+            url: editTargetUrl,
             matchResultData: {
+              id: editForm.id,
               opponent: editForm.opponent,
               date: editForm.date,
               gameResult: currentResult,
