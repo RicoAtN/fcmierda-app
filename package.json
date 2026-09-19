@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "set-limits": "node scripts/set-neon-limits.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
