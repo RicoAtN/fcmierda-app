@@ -149,14 +149,43 @@ export default function ClientMatchResults({
   rowsToShow?: number;
 }) {
   const [clientPlayerMap, setClientPlayerMap] = React.useState<Record<string, PlayerMapData>>(playerMap || {});
+  const [resultsList, setResultsList] = React.useState<MatchResult[]>(allResults || []);
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
   const hasFetchedPlayersRef = React.useRef(false);
+  const hasFetchedMatchesRef = React.useRef(false);
 
   React.useEffect(() => {
+    // 1. Initial hydration from server prop
     if (playerMap && Object.keys(playerMap).length > 0) {
-      setClientPlayerMap(playerMap);
-      return;
+      setClientPlayerMap((prev) => ({ ...playerMap, ...prev }));
     }
+
+    // 2. Hydrate from session storage
+    try {
+      const cached = sessionStorage.getItem("fcmierda_main_squad_v3");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const map: Record<string, PlayerMapData> = {};
+          for (const p of parsed) {
+            if (p.name) {
+              map[p.name.trim().toLowerCase()] = {
+                id: String(p.player_id),
+                name: p.name,
+                photo: p.photo || null,
+                number: p.number || null,
+              };
+            }
+          }
+          setClientPlayerMap((prev) => ({ ...prev, ...map }));
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // 3. Always fetch fresh main players on the client to ensure full photo data is loaded
     if (hasFetchedPlayersRef.current) return;
     hasFetchedPlayersRef.current = true;
 
@@ -171,12 +200,17 @@ export default function ClientMatchResults({
               map[p.name.trim().toLowerCase()] = {
                 id: String(p.player_id),
                 name: p.name,
-                photo: p.photo,
-                number: p.number,
+                photo: p.photo || null,
+                number: p.number || null,
               };
             }
           }
-          setClientPlayerMap(map);
+          setClientPlayerMap((prev) => ({ ...prev, ...map }));
+          try {
+            sessionStorage.setItem("fcmierda_main_squad_v3", JSON.stringify(data));
+          } catch {
+            // ignore
+          }
         }
       } catch {
         // ignore
@@ -184,13 +218,47 @@ export default function ClientMatchResults({
     })();
   }, [playerMap]);
 
+  // Sync resultsList with server prop, or fetch client-side if server rendered empty
+  React.useEffect(() => {
+    if (allResults && allResults.length > 0) {
+      setResultsList(allResults);
+      return;
+    }
+
+    if (hasFetchedMatchesRef.current) return;
+    hasFetchedMatchesRef.current = true;
+    setIsLoading(true);
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/match-result?all=true&_t=${Date.now()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setResultsList(data);
+          }
+        }
+      } catch (err) {
+        console.warn("Client fallback match results fetch failed:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [allResults]);
+
   const [selectedId, setSelectedId] = React.useState<number | null>(
-    allResults && allResults.length > 0 ? allResults[0].id : null
+    resultsList && resultsList.length > 0 ? resultsList[0].id : null
   );
+
+  React.useEffect(() => {
+    if (!selectedId && resultsList && resultsList.length > 0) {
+      setSelectedId(resultsList[0].id);
+    }
+  }, [resultsList, selectedId]);
 
   // ensure selectedResult is defined based on selectedId (fallback to first result)
   const selectedResult: MatchResult | undefined =
-    (allResults || []).find((r) => r.id === selectedId) || (allResults && allResults[0]);
+    (resultsList || []).find((r) => r.id === selectedId) || (resultsList && resultsList[0]);
 
   const detailsRef = React.useRef<HTMLElement | null>(null);
   const router = useRouter();
@@ -223,7 +291,7 @@ export default function ClientMatchResults({
     }
 
     if (targetId && !Number.isNaN(targetId)) {
-      const matchExists = allResults && allResults.some((r) => r.id === targetId);
+      const matchExists = resultsList && resultsList.some((r) => r.id === targetId);
       if (matchExists) {
         setSelectedId(targetId);
       }
@@ -236,7 +304,7 @@ export default function ClientMatchResults({
     ) {
       scrollToDetails();
     }
-  }, [allResults, scrollToDetails]);
+  }, [resultsList, scrollToDetails]);
 
   React.useEffect(() => {
     syncMatchFromUrl();
@@ -265,7 +333,15 @@ export default function ClientMatchResults({
     scrollToDetails();
   }
 
-  if (!allResults || allResults.length === 0) {
+  if (!resultsList || resultsList.length === 0) {
+    if (isLoading) {
+      return (
+        <div className="text-center text-emerald-400 py-10 flex flex-col items-center gap-2">
+          <span className="w-5 h-5 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+          <span className="text-xs text-gray-400">Loading match results from database...</span>
+        </div>
+      );
+    }
     return (
       <div className="text-center text-gray-400 py-10">
         No match results available.
@@ -287,7 +363,7 @@ export default function ClientMatchResults({
             </h2>
           </div>
           <span className="text-xs font-semibold text-gray-400">
-            {allResults.length} matches
+            {resultsList.length} matches
           </span>
         </div>
 
@@ -318,7 +394,7 @@ export default function ClientMatchResults({
                 </thead>
 
                 <tbody className="divide-y divide-gray-800/80">
-                  {allResults.map((result) => {
+                  {resultsList.map((result) => {
                     const isSelected = selectedId === result.id;
                     const lower = (result.game_result || "").toLowerCase();
                     return (
@@ -385,7 +461,7 @@ export default function ClientMatchResults({
               className="overflow-y-auto custom-scrollbar divide-y divide-gray-800"
               style={{ maxHeight: `${(rowsToShow || 5) * (ROW_HEIGHT_PX + 20)}px` }}
             >
-              {allResults.map((result) => {
+              {resultsList.map((result) => {
                 const isSelected = selectedId === result.id;
                 const lower = (result.game_result || "").toLowerCase();
                 return (
@@ -563,10 +639,26 @@ export default function ClientMatchResults({
 
             {/* Subtle Centered Clickable Man of the Match Card */}
             {selectedResult.fcmierda_man_of_the_match && (() => {
-              const motmName = selectedResult.fcmierda_man_of_the_match.trim();
+              const rawMotm = selectedResult.fcmierda_man_of_the_match.trim();
+              const motmName = rawMotm;
+              const motmKey = motmName.toLowerCase();
+              const cleanMotmKey = motmKey.replace(/[^\p{L}\p{N}]/gu, "");
+
               const playerData =
-                clientPlayerMap[motmName.toLowerCase()] ||
-                Object.values(clientPlayerMap).find((p) => p.name.toLowerCase() === motmName.toLowerCase());
+                clientPlayerMap[motmKey] ||
+                clientPlayerMap[cleanMotmKey] ||
+                Object.values(clientPlayerMap).find((p) => {
+                  const pKey = p.name.toLowerCase();
+                  const pClean = pKey.replace(/[^\p{L}\p{N}]/gu, "");
+                  return (
+                    pKey === motmKey ||
+                    pClean === cleanMotmKey ||
+                    pKey.startsWith(motmKey) ||
+                    motmKey.startsWith(pKey) ||
+                    (cleanMotmKey.length >= 3 && (pClean.startsWith(cleanMotmKey) || cleanMotmKey.startsWith(pClean)))
+                  );
+                });
+
               const motmId = playerData?.id ?? getPlayerId(motmName);
               const motmPhoto = playerData?.photo;
 

@@ -1,5 +1,6 @@
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Link from "next/link";
+import Image from "next/image";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
 import { sql } from "@/lib/db";
@@ -19,43 +20,79 @@ const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600"
 
 export const revalidate = 30;
 
-// Helper to format date with Day of the Week (e.g., "Friday, 18 Sep 2026")
-function formatDateWithWeekday(dateStr: string) {
-  if (!dateStr || dateStr === "-") return "-";
-  
-  let d = new Date(dateStr);
-  if (isNaN(d.getTime())) {
-    const parts = dateStr.trim().split(/[-/.]/);
-    if (parts.length === 3) {
-      if (parts[0].length === 4) {
-        d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-      } else {
-        d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-      }
+// Helper to format date with Weekday and structured components (timezone-safe)
+function formatMatchDate(dateStr: string) {
+  if (!dateStr || dateStr === "-") {
+    return {
+      weekday: "Matchday",
+      dateFormatted: "Date to be announced",
+      fullDate: "Date to be announced",
+      raw: dateStr,
+    };
+  }
+
+  const clean = dateStr.trim();
+  const parts = clean.split(/[-/.]/);
+  let year: number, month: number, day: number;
+
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      // YYYY-MM-DD
+      year = Number(parts[0]);
+      month = Number(parts[1]) - 1;
+      day = Number(parts[2]);
+    } else if (parts[2].length === 4) {
+      // DD-MM-YYYY
+      day = Number(parts[0]);
+      month = Number(parts[1]) - 1;
+      year = Number(parts[2]);
+    } else {
+      day = Number(parts[0]);
+      month = Number(parts[1]) - 1;
+      year = Number(parts[2]);
+      if (year < 100) year += 2000;
+    }
+  } else {
+    const d = new Date(clean);
+    if (!isNaN(d.getTime())) {
+      year = d.getFullYear();
+      month = d.getMonth();
+      day = d.getDate();
+    } else {
+      return {
+        weekday: "Matchday",
+        dateFormatted: dateStr,
+        fullDate: dateStr,
+        raw: dateStr,
+      };
     }
   }
 
-  if (!isNaN(d.getTime())) {
-    const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = d.toLocaleDateString("en-US", { month: "short" });
-    const year = d.getFullYear();
-    return `${weekday}, ${day} ${month} ${year}`;
-  }
+  // Create local date with year, month, day at noon to avoid UTC midnight timezone shifts
+  const localDate = new Date(year, month, day, 12, 0, 0);
+  const weekday = localDate.toLocaleDateString("en-US", { weekday: "long" });
+  const monthName = localDate.toLocaleDateString("en-US", { month: "long" });
+  const dateFormatted = `${day} ${monthName} ${year}`;
 
-  return dateStr;
+  return {
+    weekday,
+    dateFormatted,
+    fullDate: `${weekday}, ${dateFormatted}`,
+    raw: dateStr,
+  };
 }
 
-// Helper to calculate gathering time
+// Helper to calculate gathering time (30 min before kickoff)
 function getGatheringTime(kickoff: string) {
-  if (!kickoff || !/^\d{2}:\d{2}$/.test(kickoff)) return "-";
-  const [h, m] = kickoff.split(":").map(Number);
+  if (!kickoff || !/^\d{1,2}:\d{2}$/.test(kickoff.trim())) return "-";
+  const [h, m] = kickoff.trim().split(":").map(Number);
   let gh = h,
     gm = m - 30;
   if (gm < 0) {
     gh = h - 1;
     gm = 60 + gm;
   }
+  if (gh < 0) gh = 23;
   return `${String(gh).padStart(2, "0")}:${String(gm).padStart(2, "0")}`;
 }
 
@@ -286,6 +323,9 @@ export default async function FixturesPage() {
     else if (p?.positionCode === "a") attackersCount++;
   });
 
+  const matchDate = formatMatchDate(safeGame.date);
+  const gatheringTime = getGatheringTime(safeGame.kickoff);
+
   return (
     <div className="relative min-h-screen flex flex-col items-center w-full bg-gray-900 text-white overflow-x-hidden">
       {/* Navigation Bar */}
@@ -300,144 +340,149 @@ export default async function FixturesPage() {
           </h1>
 
           <p className={`text-sm sm:text-base md:text-lg text-gray-200 font-medium max-w-xl mx-auto leading-relaxed px-2 ${montserrat.className}`}>
-            Kickoff times, venue details, notes, and live squad attendance for FC Mierda&apos;s next match.
+            Kickoff times, venue details, and live squad attendance for FC Mierda&apos;s next match.
           </p>
         </div>
 
-        {/* Next Game Glass Card */}
-        <div className="max-w-4xl w-full rounded-2xl p-4 sm:p-8 md:p-10 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-sm mx-auto mb-10">
-          {/* Team Form Badge */}
-          <div className="flex justify-center mb-5 sm:mb-6">
+        {/* Next Game Match Center Card */}
+        <div className="max-w-4xl w-full rounded-2xl sm:rounded-3xl p-2.5 sm:p-8 md:p-10 text-white bg-gradient-to-b from-gray-950 via-gray-950/95 to-gray-900/90 border border-gray-800 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-md mx-auto mb-10">
+
+          {/* Centered Recent Form Badge */}
+          <div className="flex justify-center mb-5 pb-3 border-b border-gray-800/80">
             <TeamForm teamId={1} />
           </div>
 
-          {/* Versus Header */}
-          <div className="text-center mb-6 sm:mb-8 pb-5 sm:pb-6 border-b border-gray-800/80">
-            <div className="inline-block px-3 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-[11px] sm:text-xs font-bold uppercase tracking-wider mb-2">
-              Next Match
-            </div>
-            <h2 className={`text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight break-words ${robotoSlab.className}`}>
-              FC Mierda <span className="text-gray-500 font-normal">vs</span>{" "}
-              <span className="text-emerald-300 drop-shadow-[0_2px_14px_rgba(16,185,129,0.35)] font-mono">
-                {safeGame.opponent}
+          {/* Unified Kick-Off Tile Container */}
+          <div className="p-3.5 sm:p-6 md:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-gray-950 via-black/90 to-gray-950 border border-emerald-500/35 shadow-[0_0_35px_rgba(16,185,129,0.18)] w-full max-w-2xl mx-auto space-y-3 sm:space-y-4">
+            
+            {/* 1. Top Header: Stacked Match Date */}
+            <div className="flex flex-col items-center justify-center pb-2 border-b border-gray-800/80 w-full text-center">
+              <span className="text-emerald-400 font-extrabold text-xs sm:text-sm tracking-wide uppercase">
+                {matchDate.weekday}
               </span>
-            </h2>
-
-            {safeGame.note && safeGame.note !== "-" && (
-              <div className="mt-3.5 sm:mt-4 p-3 sm:p-3.5 rounded-xl bg-gray-900/80 border border-gray-800 max-w-lg mx-auto">
-                <p className={`text-xs sm:text-sm text-gray-300 italic ${montserrat.className}`}>
-                  &ldquo;{safeGame.note}&rdquo;
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Unified Match Schedule, Times & Venue Tile - Compact & Balanced */}
-          <div className="p-3.5 sm:p-4 rounded-xl bg-gray-950/70 border border-gray-800 shadow-md mb-5">
-            {/* Date & Location Header Strip */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-gray-800/80 text-xs sm:text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-base shrink-0">🗓️</span>
-                <span className="text-gray-400 font-medium">Date:</span>
-                <span className="font-bold text-gray-100">{formatDateWithWeekday(safeGame.date)}</span>
-              </div>
-
-              <div className="flex items-center gap-1.5 text-xs text-gray-300 min-w-0">
-                <span className="shrink-0">📍</span>
-                <span className="text-gray-400 font-medium shrink-0">Location:</span>
-                <span className="font-semibold text-gray-200 truncate">{safeGame.location}</span>
-              </div>
+              <span className="text-white font-bold text-sm sm:text-base md:text-lg tracking-tight">
+                {matchDate.dateFormatted}
+              </span>
             </div>
 
-            {/* Compact Kick-off & Gathering Timers */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-3 my-2.5">
-              <div className="p-2 sm:p-2.5 rounded-lg bg-black/40 border border-gray-800 flex items-center justify-between px-3">
-                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-400">
-                  Kick-off
-                </span>
-                <span className="text-base sm:text-lg font-bold font-mono text-emerald-300">
+            {/* 2. Central Row: FC Mierda (Left) | Kick-Off Time (Center) | Opponent (Right) */}
+            <div className="flex items-center justify-between gap-2 sm:gap-4 md:gap-6 py-1 sm:py-2 w-full">
+              
+              {/* Left Side: FC Mierda */}
+              <div className="flex flex-col items-center text-center flex-1 max-w-[100px] sm:max-w-[140px] shrink-0">
+                <div className="relative w-14 h-14 sm:w-20 sm:h-20 md:w-22 md:h-22 mb-1.5 drop-shadow-[0_4px_16px_rgba(16,185,129,0.35)] shrink-0">
+                  <Image
+                    src="/FCMierda-team-logo.png"
+                    alt="FC Mierda"
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 640px) 56px, (max-width: 768px) 80px, 88px"
+                    priority
+                  />
+                </div>
+                <h3 className={`text-xs sm:text-base md:text-lg font-black text-white tracking-tight break-words ${robotoSlab.className}`}>
+                  FC Mierda
+                </h3>
+              </div>
+
+              {/* Center: Kick-Off Digital Clock & Gathering */}
+              <div className="flex flex-col items-center justify-center text-center px-1 sm:px-3 flex-1 min-w-[125px] sm:min-w-[180px]">
+                <div className="text-[11px] sm:text-xs md:text-sm font-extrabold uppercase tracking-widest text-gray-300">
+                  Kick-Off
+                </div>
+                <div className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-black font-mono text-white tracking-tight drop-shadow-[0_2px_16px_rgba(16,185,129,0.6)] my-1 sm:my-1.5">
                   {safeGame.kickoff}
-                </span>
-              </div>
-              <div className="p-2 sm:p-2.5 rounded-lg bg-black/40 border border-gray-800 flex items-center justify-between px-3">
-                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-400">
-                  Gathering
-                </span>
-                <span className="text-base sm:text-lg font-bold font-mono text-emerald-200">
-                  {getGatheringTime(safeGame.kickoff)}
-                </span>
-              </div>
-            </div>
-
-            {/* Subtle Competition Footnote */}
-            {safeGame.competition && safeGame.competition !== "-" && (
-              <div className="pt-2 border-t border-gray-800/80 flex items-center justify-center gap-1.5 text-[11px] sm:text-xs text-amber-300/80 font-medium">
-                <span>🏆</span>
-                <span className="truncate">{safeGame.competition}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Compact, Tasteful Availability Strip */}
-          <div className="my-5 sm:my-6 p-3.5 sm:p-4 rounded-xl bg-gray-900/90 border border-emerald-500/30 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-center sm:text-left shadow-md">
-            <div className="flex items-center gap-3 text-left">
-              <span className="text-xl shrink-0">📝</span>
-              <div>
-                <div className="text-xs sm:text-sm font-bold text-gray-100">
-                  Playing in this match?
                 </div>
-                <div className="text-[11px] sm:text-xs text-gray-400">
-                  Update your matchday attendance for the squad.
+                <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-xl bg-gray-900/90 border border-gray-700/80 text-[10px] sm:text-xs md:text-sm font-semibold text-gray-200 shadow-sm mt-0.5">
+                  <span className="text-emerald-400">⏰</span>
+                  <span>Gathering at:</span>
+                  <strong className="font-mono text-emerald-300 font-bold text-xs sm:text-sm md:text-base">
+                    {gatheringTime}
+                  </strong>
                 </div>
               </div>
+
+              {/* Right Side: Opponent */}
+              <div className="flex flex-col items-center text-center flex-1 max-w-[100px] sm:max-w-[140px] shrink-0">
+                <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-22 md:h-22 mb-1.5 rounded-full bg-gradient-to-br from-gray-800 to-gray-950 border-2 border-gray-700 shadow-xl flex items-center justify-center text-xl sm:text-3xl md:text-4xl drop-shadow-md shrink-0">
+                  ⚽
+                </div>
+                <h3 className={`text-xs sm:text-base md:text-lg font-black text-white tracking-tight break-words font-mono ${robotoSlab.className}`}>
+                  {safeGame.opponent}
+                </h3>
+              </div>
+
             </div>
 
-            <Link
-              href="/cms/nextgameplayeravailability#player-availability"
-              className="group inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-full shadow-md shadow-emerald-600/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shrink-0 w-full sm:w-auto"
-              prefetch={true}
-            >
-              <span>Submit Availability</span>
-              <svg
-                className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-            </Link>
+            {/* 3. Bottom Footer: Location, Competition & Note */}
+            <div className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 pt-2 border-t border-gray-800/80 w-full">
+              {safeGame.location && safeGame.location !== "-" && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(safeGame.location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group/loc inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-xl bg-gray-900/90 hover:bg-gray-800 border border-gray-800 hover:border-emerald-500/50 text-gray-300 hover:text-white text-[10px] sm:text-xs transition-all max-w-full shadow-sm"
+                  title={`Open ${safeGame.location} in Google Maps`}
+                >
+                  <span className="text-emerald-400 shrink-0 text-xs">📍</span>
+                  <span className="font-medium truncate">{safeGame.location}</span>
+                  <span className="text-[9px] text-gray-400 group-hover/loc:text-emerald-300 group-hover/loc:translate-x-0.5 transition-transform shrink-0">↗</span>
+                </a>
+              )}
+
+              {safeGame.competition && safeGame.competition !== "-" && (
+                <div className="text-[10px] sm:text-xs text-gray-300 px-1">
+                  <span className="font-semibold text-amber-300 text-center">
+                    {safeGame.competition}
+                  </span>
+                </div>
+              )}
+
+              {/* Match Note */}
+              {safeGame.note && safeGame.note !== "-" && (
+                <div className="pt-1 border-t border-gray-800/60 w-full flex items-center justify-center text-center px-2">
+                  <p className={`text-[11px] sm:text-xs text-gray-300 italic max-w-md mx-auto ${montserrat.className}`}>
+                    &ldquo;{safeGame.note}&rdquo;
+                  </p>
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* Player Attendance Section */}
-          <div className="pt-6 border-t border-gray-800">
-            <div className="text-center mb-6">
-              <h3 className={`text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center justify-center gap-2.5 ${robotoSlab.className}`}>
+          <div className="mt-8 pt-6 border-t border-gray-800">
+            <div className="text-center mb-4 sm:mb-6">
+              <h3 className={`text-xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center justify-center gap-2 ${robotoSlab.className}`}>
                 <span className="text-emerald-400">👥</span>
                 <span>Live Squad Availability Tracker</span>
               </h3>
             </div>
 
-            {/* Attendance Status Columns with HIGHLIGHTED Present Counter */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4 mb-6">
+            {/* Attendance Status Columns: 3-column side-by-side on mobile & desktop */}
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-4 mb-6">
               {/* Present Column - HERO HIGHLIGHT */}
-              <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-emerald-950/80 via-emerald-950/40 to-black/70 border-2 border-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.22)] ring-1 ring-emerald-400/30 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between gap-3 mb-3 pb-2.5 border-b border-emerald-500/30">
-                    <div className="flex items-center gap-2.5">
-                      <span className="relative flex h-3 w-3">
+              <div className="relative overflow-hidden p-2 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bg-gradient-to-b from-emerald-950/80 via-emerald-950/40 to-black/70 border sm:border-2 border-emerald-400/90 shadow-[0_0_25px_rgba(16,185,129,0.2)] ring-1 ring-emerald-400/30 flex flex-col justify-between min-w-0">
+                <div className="min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 mb-2 sm:mb-3 pb-1.5 sm:pb-2.5 border-b border-emerald-500/30">
+                    <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                      <span className="relative flex h-2 w-2 sm:h-3 sm:w-3 shrink-0">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-emerald-500"></span>
                       </span>
-                      <div>
-                        <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-emerald-300 block">Present</span>
-                        <span className="text-[10px] text-emerald-400/80 font-medium">Ready to play</span>
+                      <div className="min-w-0">
+                        <span className="text-[11px] sm:text-sm md:text-base font-black uppercase tracking-wider text-emerald-300 block truncate">
+                          Present
+                        </span>
+                        <span className="text-[9px] sm:text-[10px] text-emerald-400/80 font-medium hidden sm:block">
+                          Ready to play
+                        </span>
                       </div>
                     </div>
 
                     {/* Prominent Glow Counter Badge */}
-                    <div className="px-3.5 py-1 rounded-xl bg-emerald-500/20 border-2 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)] flex items-center justify-center min-w-[52px]">
-                      <span className="text-3xl sm:text-4xl font-black font-mono text-emerald-200 drop-shadow-[0_2px_8px_rgba(16,185,129,0.6)]">
+                    <div className="px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-md sm:rounded-xl bg-emerald-500/20 border border-emerald-400/80 sm:border-2 shadow-[0_0_12px_rgba(16,185,129,0.35)] flex items-center justify-center self-start sm:self-auto min-w-[28px] sm:min-w-[48px]">
+                      <span className="text-base sm:text-3xl md:text-4xl font-black font-mono text-emerald-200 drop-shadow-[0_2px_8px_rgba(16,185,129,0.6)]">
                         {present.length}
                       </span>
                     </div>
@@ -445,77 +490,81 @@ export default async function FixturesPage() {
 
                   {/* Position Breakdown Subtle Counter */}
                   {present.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1 pb-2 mb-3 border-b border-emerald-500/20 text-[11px] sm:text-xs">
+                    <div className="flex flex-wrap items-center gap-1 pt-0.5 pb-1.5 sm:pb-2 mb-2 sm:mb-3 border-b border-emerald-500/20 text-[9px] sm:text-xs">
                       <span
-                        className="px-2 py-0.5 rounded-md bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-bold flex items-center gap-1 shadow-sm"
+                        className="px-1 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-bold flex items-center gap-0.5 shadow-sm"
                         title="Verdedigers (v)"
                       >
                         <span>🛡️</span>
-                        <span>{defendersCount} (v)</span>
+                        <span>{defendersCount}</span>
+                        <span className="text-emerald-400/70 hidden sm:inline">(v)</span>
                       </span>
                       <span
-                        className="px-2 py-0.5 rounded-md bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-bold flex items-center gap-1 shadow-sm"
+                        className="px-1 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-bold flex items-center gap-0.5 shadow-sm"
                         title="Middenvelders (m)"
                       >
                         <span>⚙️</span>
-                        <span>{midfieldersCount} (m)</span>
+                        <span>{midfieldersCount}</span>
+                        <span className="text-emerald-400/70 hidden sm:inline">(m)</span>
                       </span>
                       <span
-                        className="px-2 py-0.5 rounded-md bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-bold flex items-center gap-1 shadow-sm"
+                        className="px-1 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-bold flex items-center gap-0.5 shadow-sm"
                         title="Aanvallers (a)"
                       >
                         <span>⚡</span>
-                        <span>{attackersCount} (a)</span>
+                        <span>{attackersCount}</span>
+                        <span className="text-emerald-400/70 hidden sm:inline">(a)</span>
                       </span>
                     </div>
                   )}
 
+                  {/* Present Players List */}
                   {present.length > 0 ? (
-                    <div className="space-y-1.5">
+                    <div className="space-y-1 sm:space-y-1.5 min-w-0">
                       {present.map((name) => {
                         const playerInfo = findPlayerData(name, playersMap);
                         return (
                           <div
                             key={name}
-                            className="px-3 py-2 rounded-lg bg-black/50 border border-emerald-500/30 text-xs sm:text-sm font-bold text-emerald-100 flex items-center justify-between shadow-sm"
+                            className="px-1.5 py-1 sm:px-2.5 sm:py-2 rounded-md sm:rounded-lg bg-black/50 border border-emerald-500/30 text-[10px] sm:text-xs md:text-sm font-semibold text-emerald-100 flex items-center justify-between shadow-sm min-w-0"
                           >
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                            <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 flex-1">
+                              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 shrink-0" />
                               {playerInfo?.id !== undefined ? (
                                 <Link
                                   href={`/team?playerId=${playerInfo.id}#player-bio`}
-                                  className="truncate hover:underline hover:text-emerald-300 transition-colors inline-flex items-center gap-1.5"
+                                  className="truncate hover:underline hover:text-emerald-300 transition-colors inline-flex items-center gap-1 min-w-0 flex-1"
                                   title={`View ${name}'s bio`}
                                 >
                                   {playerInfo.number && (
-                                    <span className="font-mono text-emerald-400 font-bold text-xs shrink-0">
+                                    <span className="font-mono text-emerald-400 font-bold text-[9px] sm:text-xs shrink-0">
                                       #{playerInfo.number}
                                     </span>
                                   )}
                                   <span className="truncate">{name}</span>
                                   {playerInfo.positionCode && (
-                                    <span className="text-emerald-400/90 font-bold text-[11px] sm:text-xs shrink-0">
+                                    <span className="text-emerald-400/90 font-bold text-[9px] sm:text-xs shrink-0">
                                       ({playerInfo.positionCode})
                                     </span>
                                   )}
                                 </Link>
                               ) : (
-                                <div className="truncate inline-flex items-center gap-1.5">
+                                <div className="truncate inline-flex items-center gap-1 min-w-0 flex-1">
                                   {playerInfo?.number && (
-                                    <span className="font-mono text-emerald-400 font-bold text-xs shrink-0">
+                                    <span className="font-mono text-emerald-400 font-bold text-[9px] sm:text-xs shrink-0">
                                       #{playerInfo.number}
                                     </span>
                                   )}
                                   <span className="truncate">{name}</span>
                                   {playerInfo?.positionCode && (
-                                    <span className="text-emerald-400/90 font-bold text-[11px] sm:text-xs shrink-0">
+                                    <span className="text-emerald-400/90 font-bold text-[9px] sm:text-xs shrink-0">
                                       ({playerInfo.positionCode})
                                     </span>
                                   )}
                                 </div>
                               )}
                             </div>
-                            <span className="text-[10px] uppercase font-black text-emerald-400/90 tracking-wider shrink-0 ml-1.5 px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30">
+                            <span className="hidden md:inline-flex text-[9px] uppercase font-black text-emerald-400/90 tracking-wider shrink-0 ml-1 px-1 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30">
                               IN
                             </span>
                           </div>
@@ -523,67 +572,71 @@ export default async function FixturesPage() {
                       })}
                     </div>
                   ) : (
-                    <div className="text-xs text-gray-400 italic py-2 text-center">No players registered yet</div>
+                    <div className="text-[10px] sm:text-xs text-gray-400 italic py-2 text-center">None</div>
                   )}
                 </div>
               </div>
 
               {/* Not Sure Column */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-amber-950/30 border border-amber-500/30 shadow-md flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-3.5 pb-2.5 border-b border-amber-500/20">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                      <div>
-                        <span className="text-xs font-bold uppercase tracking-wider text-amber-300 block">Not Sure</span>
-                        <span className="text-[10px] text-amber-400/70 font-medium">Pending</span>
+              <div className="p-2 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bg-amber-950/30 border border-amber-500/30 shadow-md flex flex-col justify-between min-w-0">
+                <div className="min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 mb-2 sm:mb-3 pb-1.5 sm:pb-2.5 border-b border-amber-500/20">
+                    <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                      <span className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400 shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-[11px] sm:text-xs md:text-sm font-bold uppercase tracking-wider text-amber-300 block truncate">
+                          Not Sure
+                        </span>
+                        <span className="text-[9px] sm:text-[10px] text-amber-400/70 font-medium hidden sm:block">
+                          Pending
+                        </span>
                       </div>
                     </div>
-                    <div className="px-2.5 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                      <span className="text-xl sm:text-2xl font-black font-mono text-amber-300">
+                    <div className="px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-md sm:rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center self-start sm:self-auto min-w-[24px] sm:min-w-[36px]">
+                      <span className="text-base sm:text-xl md:text-2xl font-black font-mono text-amber-300">
                         {notSure.length}
                       </span>
                     </div>
                   </div>
 
                   {notSure.length > 0 ? (
-                    <div className="space-y-1.5">
+                    <div className="space-y-1 sm:space-y-1.5 min-w-0">
                       {notSure.map((name) => {
                         const playerInfo = findPlayerData(name, playersMap);
                         return (
                           <div
                             key={name}
-                            className="px-2.5 py-1.5 rounded-lg bg-black/40 border border-amber-500/20 text-xs sm:text-sm font-semibold text-amber-100 flex items-center gap-2 shadow-sm"
+                            className="px-1.5 py-1 sm:px-2.5 sm:py-1.5 rounded-md sm:rounded-lg bg-black/40 border border-amber-500/20 text-[10px] sm:text-xs md:text-sm font-semibold text-amber-100 flex items-center gap-1 sm:gap-1.5 shadow-sm min-w-0"
                           >
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-amber-400 shrink-0" />
                             {playerInfo?.id !== undefined ? (
                               <Link
                                 href={`/team?playerId=${playerInfo.id}#player-bio`}
-                                className="truncate hover:underline hover:text-amber-200 transition-colors inline-flex items-center gap-1.5"
+                                className="truncate hover:underline hover:text-amber-200 transition-colors inline-flex items-center gap-1 min-w-0 flex-1"
                                 title={`View ${name}'s bio`}
                               >
                                 {playerInfo.number && (
-                                  <span className="font-mono text-amber-400 font-bold text-xs shrink-0">
+                                  <span className="font-mono text-amber-400 font-bold text-[9px] sm:text-xs shrink-0">
                                     #{playerInfo.number}
                                   </span>
                                 )}
                                 <span className="truncate">{name}</span>
                                 {playerInfo.positionCode && (
-                                  <span className="text-amber-400/80 font-semibold text-[11px] shrink-0">
+                                  <span className="text-amber-400/80 font-semibold text-[9px] sm:text-[11px] shrink-0">
                                     ({playerInfo.positionCode})
                                   </span>
                                 )}
                               </Link>
                             ) : (
-                              <div className="truncate inline-flex items-center gap-1.5">
+                              <div className="truncate inline-flex items-center gap-1 min-w-0 flex-1">
                                 {playerInfo?.number && (
-                                  <span className="font-mono text-amber-400 font-bold text-xs shrink-0">
+                                  <span className="font-mono text-amber-400 font-bold text-[9px] sm:text-xs shrink-0">
                                     #{playerInfo.number}
                                   </span>
                                 )}
                                 <span className="truncate">{name}</span>
                                 {playerInfo?.positionCode && (
-                                  <span className="text-amber-400/80 font-semibold text-[11px] shrink-0">
+                                  <span className="text-amber-400/80 font-semibold text-[9px] sm:text-[11px] shrink-0">
                                     ({playerInfo.positionCode})
                                   </span>
                                 )}
@@ -594,67 +647,71 @@ export default async function FixturesPage() {
                       })}
                     </div>
                   ) : (
-                    <div className="text-xs text-gray-400 italic py-2 text-center">None</div>
+                    <div className="text-[10px] sm:text-xs text-gray-400 italic py-2 text-center">None</div>
                   )}
                 </div>
               </div>
 
               {/* Absent Column */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-rose-950/25 border border-rose-500/25 shadow-md flex flex-col justify-between opacity-90">
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-3.5 pb-2.5 border-b border-rose-500/20">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-                      <div>
-                        <span className="text-xs font-bold uppercase tracking-wider text-rose-300 block">Absent</span>
-                        <span className="text-[10px] text-rose-400/70 font-medium">Unavailable</span>
+              <div className="p-2 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bg-rose-950/25 border border-rose-500/25 shadow-md flex flex-col justify-between opacity-90 min-w-0">
+                <div className="min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 mb-2 sm:mb-3 pb-1.5 sm:pb-2.5 border-b border-rose-500/20">
+                    <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                      <span className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-400 shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-[11px] sm:text-xs md:text-sm font-bold uppercase tracking-wider text-rose-300 block truncate">
+                          Absent
+                        </span>
+                        <span className="text-[9px] sm:text-[10px] text-rose-400/70 font-medium hidden sm:block">
+                          Unavailable
+                        </span>
                       </div>
                     </div>
-                    <div className="px-2.5 py-0.5 rounded-lg bg-rose-500/10 border border-rose-500/30">
-                      <span className="text-xl sm:text-2xl font-black font-mono text-rose-300">
+                    <div className="px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-md sm:rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center self-start sm:self-auto min-w-[24px] sm:min-w-[36px]">
+                      <span className="text-base sm:text-xl md:text-2xl font-black font-mono text-rose-300">
                         {absent.length}
                       </span>
                     </div>
                   </div>
 
                   {absent.length > 0 ? (
-                    <div className="space-y-1.5">
+                    <div className="space-y-1 sm:space-y-1.5 min-w-0">
                       {absent.map((name) => {
                         const playerInfo = findPlayerData(name, playersMap);
                         return (
                           <div
                             key={name}
-                            className="px-2.5 py-1.5 rounded-lg bg-black/40 border border-rose-500/20 text-xs sm:text-sm font-semibold text-rose-200/80 flex items-center gap-2 shadow-sm"
+                            className="px-1.5 py-1 sm:px-2.5 sm:py-1.5 rounded-md sm:rounded-lg bg-black/40 border border-rose-500/20 text-[10px] sm:text-xs md:text-sm font-semibold text-rose-200/80 flex items-center gap-1 sm:gap-1.5 shadow-sm min-w-0"
                           >
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
+                            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-rose-400 shrink-0" />
                             {playerInfo?.id !== undefined ? (
                               <Link
                                 href={`/team?playerId=${playerInfo.id}#player-bio`}
-                                className="truncate hover:underline hover:text-rose-100 transition-colors inline-flex items-center gap-1.5"
+                                className="truncate hover:underline hover:text-rose-100 transition-colors inline-flex items-center gap-1 min-w-0 flex-1"
                                 title={`View ${name}'s bio`}
                               >
                                 {playerInfo.number && (
-                                  <span className="font-mono text-rose-400 font-bold text-xs shrink-0">
+                                  <span className="font-mono text-rose-400 font-bold text-[9px] sm:text-xs shrink-0">
                                     #{playerInfo.number}
                                   </span>
                                 )}
                                 <span className="truncate">{name}</span>
                                 {playerInfo.positionCode && (
-                                  <span className="text-rose-400/80 font-semibold text-[11px] shrink-0">
+                                  <span className="text-rose-400/80 font-semibold text-[9px] sm:text-[11px] shrink-0">
                                     ({playerInfo.positionCode})
                                   </span>
                                 )}
                               </Link>
                             ) : (
-                              <div className="truncate inline-flex items-center gap-1.5">
+                              <div className="truncate inline-flex items-center gap-1 min-w-0 flex-1">
                                 {playerInfo?.number && (
-                                  <span className="font-mono text-rose-400 font-bold text-xs shrink-0">
+                                  <span className="font-mono text-rose-400 font-bold text-[9px] sm:text-xs shrink-0">
                                     #{playerInfo.number}
                                   </span>
                                 )}
                                 <span className="truncate">{name}</span>
                                 {playerInfo?.positionCode && (
-                                  <span className="text-rose-400/80 font-semibold text-[11px] shrink-0">
+                                  <span className="text-rose-400/80 font-semibold text-[9px] sm:text-[11px] shrink-0">
                                     ({playerInfo.positionCode})
                                   </span>
                                 )}
@@ -665,24 +722,24 @@ export default async function FixturesPage() {
                       })}
                     </div>
                   ) : (
-                    <div className="text-xs text-gray-400 italic py-2 text-center">None</div>
+                    <div className="text-[10px] sm:text-xs text-gray-400 italic py-2 text-center">None</div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Coach & Supporters Section */}
+            {/* Coach & Supporters Section - Compact & Subtle */}
             {supporters.length > 0 && (
-              <div className="p-3.5 sm:p-4 rounded-xl bg-blue-950/30 border border-blue-500/30 mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
-                <div className="flex items-center gap-2 text-xs sm:text-sm font-bold uppercase tracking-wider text-blue-300 shrink-0">
-                  <span>📣</span>
-                  <span>Supporters &amp; Coach ({supporters.length}):</span>
+              <div className="my-3 sm:my-4 p-2 sm:p-2.5 rounded-xl bg-gray-900/50 border border-blue-500/20 flex flex-col items-center justify-center text-center gap-1.5 max-w-xs sm:max-w-sm mx-auto shadow-sm backdrop-blur-sm">
+                <div className="flex items-center justify-center gap-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-blue-300">
+                  <span className="text-xs">📣</span>
+                  <span>Coach &amp; Supporters ({supporters.length})</span>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap items-center justify-center gap-1">
                   {supporters.map((name) => (
                     <span
                       key={name}
-                      className="px-2.5 py-1 rounded-full bg-blue-900/60 border border-blue-400/40 text-blue-200 text-xs font-semibold"
+                      className="px-2 py-0.5 rounded-full bg-blue-950/70 border border-blue-500/25 text-blue-200 text-[10px] sm:text-xs font-medium shadow-sm"
                     >
                       {name}
                     </span>
@@ -691,37 +748,42 @@ export default async function FixturesPage() {
               </div>
             )}
 
-            {/* Action Links & Notification Button */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-5 sm:pt-6 border-t border-gray-800/80">
+            {/* Action Call-to-Action & Notification Button */}
+            <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-gray-800/80">
+              {/* Prominent Hero CTA Button */}
               <Link
                 href="/cms/nextgameplayeravailability#player-availability"
-                className="group inline-flex items-center justify-center gap-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm sm:text-base px-7 py-3.5 rounded-full shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 w-full sm:w-auto text-center"
+                className="group relative inline-flex items-center justify-center gap-3 bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-500 hover:via-emerald-400 hover:to-emerald-500 text-white font-extrabold text-base sm:text-lg px-8 sm:px-10 py-3.5 sm:py-4 rounded-full shadow-[0_0_30px_rgba(16,185,129,0.35)] hover:shadow-[0_0_45px_rgba(16,185,129,0.55)] ring-2 ring-emerald-400/40 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 w-full sm:w-auto text-center"
                 prefetch={true}
               >
+                <span className="text-xl">✍️</span>
                 <span>Submit Your Availability</span>
                 <svg
-                  className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1"
+                  className="w-5 h-5 transition-transform duration-200 group-hover:translate-x-1.5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
               </Link>
 
-              {leagueLink && (
-                <a
-                  href={leagueLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-gray-900 hover:bg-gray-800 text-gray-200 hover:text-emerald-300 border border-gray-700/80 hover:border-gray-600 text-xs sm:text-sm font-semibold transition-all hover:-translate-y-0.5 shadow-md w-full sm:w-auto text-center"
-                >
-                  <span>League Table &amp; Schedule</span>
-                  <span className="text-gray-400 text-xs">↗</span>
-                </a>
-              )}
+              {/* Secondary Actions Row */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 w-full sm:w-auto">
+                {leagueLink && (
+                  <a
+                    href={leagueLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-gray-900/90 hover:bg-gray-800 text-gray-300 hover:text-emerald-300 border border-gray-700/80 hover:border-gray-600 text-xs sm:text-sm font-semibold transition-all hover:-translate-y-0.5 shadow-md w-full sm:w-auto text-center"
+                  >
+                    <span>League Table &amp; Schedule</span>
+                    <span className="text-gray-400 text-xs">↗</span>
+                  </a>
+                )}
 
-              <SubscribeNotificationsButton variant="subtle" className="w-full sm:w-auto text-xs sm:text-sm py-3" />
+                <SubscribeNotificationsButton variant="subtle" className="w-full sm:w-auto text-xs sm:text-sm py-2.5" />
+              </div>
             </div>
           </div>
         </div>

@@ -34,10 +34,9 @@ async function getAllResults(): Promise<{ results: MatchResult[]; isDbError: boo
         support_coach,
         goal_scorers,
         fcmierda_man_of_the_match,
-        fcmierda_man_of_the_match_id,
         match_summary
       FROM match_result
-      ORDER BY date DESC
+      ORDER BY date DESC NULLS LAST, id DESC
     `;
     return { results: rows as MatchResult[], isDbError: false };
   } catch (err) {
