@@ -227,7 +227,7 @@ export default async function ResultsPage() {
         )}
 
         {/* All match results & Interactive Detail Card */}
-        <div id="all-results" className="max-w-5xl w-full rounded-2xl p-4 sm:p-8 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-sm mx-auto mb-8">
+        <div id="all-results" className="max-w-4xl w-full rounded-2xl p-4 sm:p-7 md:p-8 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-sm mx-auto mb-8">
           <div className="flex justify-center mb-6">
             <TeamForm teamId={1} />
           </div>

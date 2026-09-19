@@ -523,11 +523,11 @@ export default function ClientMatchResults({
           className="w-full pt-6 border-t border-gray-800 scroll-mt-6 sm:scroll-mt-8"
         >
           {/* Match Recap Card */}
-          <div className="rounded-2xl p-4 sm:p-7 text-white bg-gray-900/90 border border-gray-800 shadow-xl">
-            {/* Header: Date & Tag */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 mb-5 border-b border-gray-800/80 text-xs sm:text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-base shrink-0">🗓️</span>
+          <div className="rounded-2xl p-4 sm:p-7 md:p-8 text-white bg-gray-900/90 border border-gray-800 shadow-xl max-w-3xl mx-auto">
+            {/* Header: Date & Competition Badges */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-5 border-b border-gray-800/80 text-xs sm:text-sm">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-black/40 border border-gray-800 text-xs sm:text-sm">
+                <span className="text-sm shrink-0">🗓️</span>
                 <span className="text-gray-400 font-medium">Match Date:</span>
                 <span className="font-bold text-gray-100">
                   {formatDateWithWeekday(selectedResult.date)}
@@ -535,9 +535,9 @@ export default function ClientMatchResults({
               </div>
 
               {selectedResult.competition && (
-                <div className="flex items-center gap-1.5 text-xs text-amber-300 font-semibold self-start sm:self-auto">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300 font-semibold self-start sm:self-auto">
                   <span>🏆</span>
-                  <span>{selectedResult.competition}</span>
+                  <span className="truncate max-w-[260px] sm:max-w-xs">{selectedResult.competition}</span>
                 </div>
               )}
             </div>
@@ -582,9 +582,9 @@ export default function ClientMatchResults({
               </div>
             </div>
 
-            {/* Goals & Assists Table */}
-            <div className="mb-5">
-              <div className="flex items-center gap-2 mb-2.5">
+            {/* Goals & Assists Table - Compact & Centered */}
+            <div className="mb-6 max-w-lg mx-auto w-full">
+              <div className="flex items-center justify-center gap-2 mb-2.5">
                 <span className="text-base">⚽</span>
                 <h4 className={`text-sm sm:text-base font-bold text-emerald-400 ${robotoSlab.className}`}>
                   Goals &amp; Assists
@@ -592,22 +592,27 @@ export default function ClientMatchResults({
               </div>
 
               {parseGoalScorers(selectedResult.goal_scorers).length > 0 ? (
-                <div className="rounded-xl overflow-hidden border border-gray-800 bg-black/40">
-                  <table className="min-w-full text-xs sm:text-sm text-left">
+                <div className="rounded-xl overflow-hidden border border-gray-800 bg-black/40 shadow-inner">
+                  <table className="w-full text-xs sm:text-sm text-left table-fixed">
+                    <colgroup>
+                      <col style={{ width: "20%" }} />
+                      <col style={{ width: "40%" }} />
+                      <col style={{ width: "40%" }} />
+                    </colgroup>
                     <thead className="bg-gray-950/80 text-gray-400 text-xs font-bold uppercase tracking-wider border-b border-gray-800">
                       <tr>
-                        <th className="px-3.5 py-2">Goal</th>
+                        <th className="px-3 py-2 text-center">Goal</th>
                         <th className="px-3.5 py-2">Scorer</th>
                         <th className="px-3.5 py-2">Assist</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800/80">
                       {parseGoalScorers(selectedResult.goal_scorers).map((g: GoalScorer, idx: number) => (
-                        <tr key={idx} className="hover:bg-gray-900/40">
-                          <td className="px-3.5 py-2 font-mono font-bold text-emerald-400">
+                        <tr key={idx} className="hover:bg-gray-900/40 transition-colors">
+                          <td className="px-3 py-2 font-mono font-bold text-emerald-400 text-center">
                             {g.goalNumber ? String(g.goalNumber).replace(/^#\s*/, "") : (idx + 1)}
                           </td>
-                          <td className="px-3.5 py-2 font-semibold text-white">
+                          <td className="px-3.5 py-2 font-semibold text-white truncate">
                             {g.scorer && getPlayerId(g.scorer) !== undefined ? (
                               <Link href={`/team?playerId=${getPlayerId(g.scorer)}#player-bio`} className="hover:underline text-emerald-300">
                                 {g.scorer}
@@ -616,7 +621,7 @@ export default function ClientMatchResults({
                               g.scorer ?? "-"
                             )}
                           </td>
-                          <td className="px-3.5 py-2 text-blue-300">
+                          <td className="px-3.5 py-2 text-blue-300 truncate">
                             {g.assist && getPlayerId(g.assist) !== undefined ? (
                               <Link href={`/team?playerId=${getPlayerId(g.assist)}#player-bio`} className="hover:underline">
                                 {g.assist}
@@ -731,7 +736,7 @@ export default function ClientMatchResults({
 
             {/* YouTube Video Highlight */}
             {selectedResult.youtube && (
-              <div className="mb-6">
+              <div className="mb-6 max-w-2xl mx-auto w-full">
                 <div className="flex items-center gap-2 mb-2.5">
                   <span className="text-base">🎥</span>
                   <h4 className={`text-sm sm:text-base font-bold text-emerald-400 ${robotoSlab.className}`}>
@@ -753,21 +758,21 @@ export default function ClientMatchResults({
 
             {/* Match Summary & Recap Note */}
             {(selectedResult.match_summary || selectedResult.matchSummary) && (
-              <div className="mb-6">
+              <div className="mb-6 max-w-2xl mx-auto w-full">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-base">📝</span>
                   <h4 className={`text-sm sm:text-base font-bold text-emerald-400 ${robotoSlab.className}`}>
                     Match Summary &amp; Recap
                   </h4>
                 </div>
-                <div className="p-4 rounded-xl bg-black/50 border border-gray-800 text-gray-200 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed shadow-inner">
+                <div className="p-4 sm:p-5 rounded-xl bg-black/50 border border-gray-800 text-gray-200 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed shadow-inner">
                   {selectedResult.match_summary || selectedResult.matchSummary}
                 </div>
               </div>
             )}
 
             {/* Match Info & Squad Roster */}
-            <div className="pt-4 border-t border-gray-800 space-y-4">
+            <div className="pt-4 border-t border-gray-800 space-y-4 max-w-2xl mx-auto w-full">
               {/* Location & Competition Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 {selectedResult.location && (
