@@ -136,20 +136,22 @@ async function getCompetitionDetails(competitionName?: string) {
 }
 
 // Helper to map positions to (v) verdediger, (m) middenvelder, (a) aanvaller
-function getPositionCategory(position?: string | null): "v" | "m" | "a" | null {
+function getPositionCategory(position?: string | null): "gk" | "v" | "m" | "a" | null {
   if (!position) return null;
   const p = position.toLowerCase().trim();
+
+  if (p.includes("goal") || p.includes("keep") || p.includes("doel") || p === "gk" || p === "dm") {
+    return "gk";
+  }
 
   if (
     p.includes("def") ||
     p.includes("verd") ||
     p.includes("back") ||
-    p.includes("keeper") ||
-    p.includes("doel") ||
-    p === "gk" ||
     p === "cb" ||
     p === "lb" ||
-    p === "rb"
+    p === "rb" ||
+    p === "v"
   ) {
     return "v";
   }
@@ -161,7 +163,8 @@ function getPositionCategory(position?: string | null): "v" | "m" | "a" | null {
     p === "cam" ||
     p === "cdm" ||
     p === "lm" ||
-    p === "rm"
+    p === "rm" ||
+    p === "m"
   ) {
     return "m";
   }
@@ -176,7 +179,8 @@ function getPositionCategory(position?: string | null): "v" | "m" | "a" | null {
     p === "st" ||
     p === "lw" ||
     p === "rw" ||
-    p === "cf"
+    p === "cf" ||
+    p === "a"
   ) {
     return "a";
   }
@@ -189,7 +193,7 @@ type PlayerMapItem = {
   name: string;
   number: string | null;
   position: string | null;
-  positionCode: "v" | "m" | "a" | null;
+  positionCode: "gk" | "v" | "m" | "a" | null;
 };
 
 // Fetch player metadata (number, position, id) from database
@@ -219,15 +223,49 @@ async function getPlayersMap(): Promise<Record<string, PlayerMapItem>> {
   }
 }
 
+function cleanPlayerDisplayName(rawName: string, playerInfo?: PlayerMapItem | null): string {
+  const base = playerInfo?.name || rawName || "";
+  return base.replace(/^\s*#?\d+[\s.-]*/, "").trim();
+}
+
 function findPlayerData(name: string, playersMap: Record<string, PlayerMapItem>): PlayerMapItem | null {
-  const clean = name.trim().toLowerCase();
+  const clean = cleanPlayerDisplayName(name).toLowerCase();
   if (playersMap[clean]) return playersMap[clean];
   for (const [key, val] of Object.entries(playersMap)) {
-    if (key === clean || key.includes(clean) || clean.includes(key)) {
+    const cleanKey = cleanPlayerDisplayName(key).toLowerCase();
+    if (cleanKey === clean || cleanKey.includes(clean) || clean.includes(cleanKey)) {
       return val;
     }
   }
   return null;
+}
+
+const POSITION_ORDER: Record<string, number> = {
+  gk: 1, // Goalkeepers
+  v: 2,  // Defenders
+  m: 3,  // Midfielders
+  a: 4,  // Attackers
+};
+
+function sortPlayersByPosition(
+  names: string[],
+  playersMap: Record<string, PlayerMapItem>
+): string[] {
+  return [...names].sort((a, b) => {
+    const pA = findPlayerData(a, playersMap);
+    const pB = findPlayerData(b, playersMap);
+
+    const orderA = (pA?.positionCode && POSITION_ORDER[pA.positionCode]) ?? 99;
+    const orderB = (pB?.positionCode && POSITION_ORDER[pB.positionCode]) ?? 99;
+
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+
+    const nameA = cleanPlayerDisplayName(a, pA).toLowerCase();
+    const nameB = cleanPlayerDisplayName(b, pB).toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
 }
 
 export default async function FixturesPage() {
@@ -294,34 +332,31 @@ export default async function FixturesPage() {
   const competitionInfo = await getCompetitionDetails(safeGame.competition);
   const leagueLink = competitionInfo?.league_link;
 
-  // Attendance processing
+  // Attendance processing (sorted: GK -> Defenders -> Midfielders -> Attackers)
   const attendance = nextGame.attendance || {};
-  const present = Object.entries(attendance)
-    .filter(([_, status]) => status === "present")
-    .map(([name]) => name);
-  const notSure = Object.entries(attendance)
-    .filter(([_, status]) => status === "not sure")
-    .map(([name]) => name);
-  const absent = Object.entries(attendance)
-    .filter(([_, status]) => status === "absent")
-    .map(([name]) => name);
+  const present = sortPlayersByPosition(
+    Object.entries(attendance)
+      .filter(([_, status]) => status === "present")
+      .map(([name]) => name),
+    playersMap
+  );
+  const notSure = sortPlayersByPosition(
+    Object.entries(attendance)
+      .filter(([_, status]) => status === "not sure")
+      .map(([name]) => name),
+    playersMap
+  );
+  const absent = sortPlayersByPosition(
+    Object.entries(attendance)
+      .filter(([_, status]) => status === "absent")
+      .map(([name]) => name),
+    playersMap
+  );
   const supporters = Object.entries(attendance)
     .filter(
       ([_, status]) => status === "supporter" || status === "coach"
     )
     .map(([name]) => name);
-
-  // Position breakdown counts for present players
-  let defendersCount = 0;
-  let midfieldersCount = 0;
-  let attackersCount = 0;
-
-  present.forEach((name) => {
-    const p = findPlayerData(name, playersMap);
-    if (p?.positionCode === "v") defendersCount++;
-    else if (p?.positionCode === "m") midfieldersCount++;
-    else if (p?.positionCode === "a") attackersCount++;
-  });
 
   const matchDate = formatMatchDate(safeGame.date);
   const gatheringTime = getGatheringTime(safeGame.kickoff);
@@ -380,23 +415,22 @@ export default async function FixturesPage() {
                     priority
                   />
                 </div>
-                <h3 className={`text-xs sm:text-base md:text-lg font-black text-white tracking-tight break-words ${robotoSlab.className}`}>
+                <h3 className={`text-xs sm:text-base md:text-lg font-black text-emerald-400 tracking-tight break-words font-mono ${robotoSlab.className}`}>
                   FC Mierda
                 </h3>
               </div>
 
               {/* Center: Kick-Off Digital Clock & Gathering */}
-              <div className="flex flex-col items-center justify-center text-center px-1 sm:px-3 flex-1 min-w-[125px] sm:min-w-[180px]">
-                <div className="text-[11px] sm:text-xs md:text-sm font-extrabold uppercase tracking-widest text-gray-300">
+              <div className="flex flex-col items-center justify-center text-center px-1 sm:px-3">
+                <div className="text-xs sm:text-sm font-bold uppercase tracking-widest text-emerald-400 mb-0.5 sm:mb-1">
                   Kick-Off
                 </div>
-                <div className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-black font-mono text-white tracking-tight drop-shadow-[0_2px_16px_rgba(16,185,129,0.6)] my-1 sm:my-1.5">
+                <div className={`text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight font-mono drop-shadow-[0_2px_12px_rgba(255,255,255,0.2)] ${robotoSlab.className}`}>
                   {safeGame.kickoff}
                 </div>
-                <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-xl bg-gray-900/90 border border-gray-700/80 text-[10px] sm:text-xs md:text-sm font-semibold text-gray-200 shadow-sm mt-0.5">
-                  <span className="text-emerald-400">⏰</span>
-                  <span>Gathering at:</span>
-                  <strong className="font-mono text-emerald-300 font-bold text-xs sm:text-sm md:text-base">
+                <div className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-gray-900/90 border border-gray-700/70 text-[10px] sm:text-xs md:text-sm font-medium text-gray-200 shadow-md mt-2.5 sm:mt-3.5 whitespace-nowrap shrink-0 max-w-full backdrop-blur-sm">
+                  <span className="text-gray-300 whitespace-nowrap">Gathering&nbsp;at:</span>
+                  <strong className="font-mono text-emerald-300 font-bold text-[10px] sm:text-xs md:text-sm whitespace-nowrap">
                     {gatheringTime}
                   </strong>
                 </div>
@@ -465,68 +499,34 @@ export default async function FixturesPage() {
               <div className="relative overflow-hidden p-2 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bg-gradient-to-b from-emerald-950/80 via-emerald-950/40 to-black/70 border sm:border-2 border-emerald-400/90 shadow-[0_0_25px_rgba(16,185,129,0.2)] ring-1 ring-emerald-400/30 flex flex-col justify-between min-w-0">
                 <div className="min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 mb-2 sm:mb-3 pb-1.5 sm:pb-2.5 border-b border-emerald-500/30">
-                    <div className="flex items-center gap-1 sm:gap-2 min-w-0">
-                      <span className="relative flex h-2 w-2 sm:h-3 sm:w-3 shrink-0">
+                    <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                      <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-emerald-500"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-emerald-500"></span>
                       </span>
-                      <div className="min-w-0">
-                        <span className="text-[11px] sm:text-sm md:text-base font-black uppercase tracking-wider text-emerald-300 block truncate">
-                          Present
-                        </span>
-                        <span className="text-[9px] sm:text-[10px] text-emerald-400/80 font-medium hidden sm:block">
-                          Ready to play
-                        </span>
-                      </div>
+                      <span className="text-[10px] sm:text-xs md:text-sm font-black uppercase tracking-wider text-emerald-300 whitespace-nowrap">
+                        Present
+                      </span>
                     </div>
 
-                    {/* Prominent Glow Counter Badge */}
-                    <div className="px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-md sm:rounded-xl bg-emerald-500/20 border border-emerald-400/80 sm:border-2 shadow-[0_0_12px_rgba(16,185,129,0.35)] flex items-center justify-center self-start sm:self-auto min-w-[28px] sm:min-w-[48px]">
-                      <span className="text-base sm:text-3xl md:text-4xl font-black font-mono text-emerald-200 drop-shadow-[0_2px_8px_rgba(16,185,129,0.6)]">
-                        {present.length}
+                    {/* Prominent Glow Counter Badge with explicit players label */}
+                    <div className="px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-xl bg-emerald-500/20 border border-emerald-400/80 sm:border-2 shadow-[0_0_12px_rgba(16,185,129,0.35)] flex items-center justify-center self-start sm:self-auto shrink-0">
+                      <span className="text-[10px] sm:text-xs md:text-sm font-bold font-mono text-emerald-200 whitespace-nowrap">
+                        {present.length} {present.length === 1 ? "player" : "players"}
                       </span>
                     </div>
                   </div>
-
-                  {/* Position Breakdown Subtle Counter */}
-                  {present.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1 pt-0.5 pb-1.5 sm:pb-2 mb-2 sm:mb-3 border-b border-emerald-500/20 text-[9px] sm:text-xs">
-                      <span
-                        className="px-1 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-bold flex items-center gap-0.5 shadow-sm"
-                        title="Verdedigers (v)"
-                      >
-                        <span>🛡️</span>
-                        <span>{defendersCount}</span>
-                        <span className="text-emerald-400/70 hidden sm:inline">(v)</span>
-                      </span>
-                      <span
-                        className="px-1 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-bold flex items-center gap-0.5 shadow-sm"
-                        title="Middenvelders (m)"
-                      >
-                        <span>⚙️</span>
-                        <span>{midfieldersCount}</span>
-                        <span className="text-emerald-400/70 hidden sm:inline">(m)</span>
-                      </span>
-                      <span
-                        className="px-1 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-bold flex items-center gap-0.5 shadow-sm"
-                        title="Aanvallers (a)"
-                      >
-                        <span>⚡</span>
-                        <span>{attackersCount}</span>
-                        <span className="text-emerald-400/70 hidden sm:inline">(a)</span>
-                      </span>
-                    </div>
-                  )}
 
                   {/* Present Players List */}
                   {present.length > 0 ? (
                     <div className="space-y-1 sm:space-y-1.5 min-w-0">
                       {present.map((name) => {
                         const playerInfo = findPlayerData(name, playersMap);
+                        const displayName = cleanPlayerDisplayName(name, playerInfo);
                         return (
                           <div
                             key={name}
-                            className="px-1.5 py-1 sm:px-2.5 sm:py-2 rounded-md sm:rounded-lg bg-black/50 border border-emerald-500/30 text-[10px] sm:text-xs md:text-sm font-semibold text-emerald-100 flex items-center justify-between shadow-sm min-w-0"
+                            className="px-1.5 py-1 sm:px-2.5 sm:py-2 rounded-md sm:rounded-lg bg-black/50 border border-emerald-500/30 text-[10px] sm:text-xs md:text-sm font-semibold text-emerald-100 flex items-center min-w-0 overflow-hidden shadow-sm"
                           >
                             <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 flex-1">
                               <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 shrink-0" />
@@ -534,39 +534,26 @@ export default async function FixturesPage() {
                                 <Link
                                   href={`/team?playerId=${playerInfo.id}#player-bio`}
                                   className="truncate hover:underline hover:text-emerald-300 transition-colors inline-flex items-center gap-1 min-w-0 flex-1"
-                                  title={`View ${name}'s bio`}
+                                  title={`View ${displayName}'s bio`}
                                 >
-                                  {playerInfo.number && (
-                                    <span className="font-mono text-emerald-400 font-bold text-[9px] sm:text-xs shrink-0">
-                                      #{playerInfo.number}
-                                    </span>
-                                  )}
-                                  <span className="truncate">{name}</span>
+                                  <span className="truncate">{displayName}</span>
                                   {playerInfo.positionCode && (
-                                    <span className="text-emerald-400/90 font-bold text-[9px] sm:text-xs shrink-0">
+                                    <span className="text-emerald-400 font-bold text-[9px] sm:text-xs shrink-0">
                                       ({playerInfo.positionCode})
                                     </span>
                                   )}
                                 </Link>
                               ) : (
                                 <div className="truncate inline-flex items-center gap-1 min-w-0 flex-1">
-                                  {playerInfo?.number && (
-                                    <span className="font-mono text-emerald-400 font-bold text-[9px] sm:text-xs shrink-0">
-                                      #{playerInfo.number}
-                                    </span>
-                                  )}
-                                  <span className="truncate">{name}</span>
+                                  <span className="truncate">{displayName}</span>
                                   {playerInfo?.positionCode && (
-                                    <span className="text-emerald-400/90 font-bold text-[9px] sm:text-xs shrink-0">
+                                    <span className="text-emerald-400 font-bold text-[9px] sm:text-xs shrink-0">
                                       ({playerInfo.positionCode})
                                     </span>
                                   )}
                                 </div>
                               )}
                             </div>
-                            <span className="hidden md:inline-flex text-[9px] uppercase font-black text-emerald-400/90 tracking-wider shrink-0 ml-1 px-1 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30">
-                              IN
-                            </span>
                           </div>
                         );
                       })}
@@ -582,19 +569,14 @@ export default async function FixturesPage() {
                 <div className="min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 mb-2 sm:mb-3 pb-1.5 sm:pb-2.5 border-b border-amber-500/20">
                     <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
-                      <span className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400 shrink-0" />
-                      <div className="min-w-0">
-                        <span className="text-[11px] sm:text-xs md:text-sm font-bold uppercase tracking-wider text-amber-300 block truncate">
-                          Not Sure
-                        </span>
-                        <span className="text-[9px] sm:text-[10px] text-amber-400/70 font-medium hidden sm:block">
-                          Pending
-                        </span>
-                      </div>
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-400 shrink-0" />
+                      <span className="text-[10px] sm:text-xs md:text-sm font-bold uppercase tracking-wider text-amber-300 whitespace-nowrap">
+                        Not Sure
+                      </span>
                     </div>
-                    <div className="px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-md sm:rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center self-start sm:self-auto min-w-[24px] sm:min-w-[36px]">
-                      <span className="text-base sm:text-xl md:text-2xl font-black font-mono text-amber-300">
-                        {notSure.length}
+                    <div className="px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-md sm:rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center self-start sm:self-auto shrink-0">
+                      <span className="text-[10px] sm:text-xs md:text-sm font-bold font-mono text-amber-300 whitespace-nowrap">
+                        {notSure.length} {notSure.length === 1 ? "player" : "players"}
                       </span>
                     </div>
                   </div>
@@ -603,45 +585,38 @@ export default async function FixturesPage() {
                     <div className="space-y-1 sm:space-y-1.5 min-w-0">
                       {notSure.map((name) => {
                         const playerInfo = findPlayerData(name, playersMap);
+                        const displayName = cleanPlayerDisplayName(name, playerInfo);
                         return (
                           <div
                             key={name}
-                            className="px-1.5 py-1 sm:px-2.5 sm:py-1.5 rounded-md sm:rounded-lg bg-black/40 border border-amber-500/20 text-[10px] sm:text-xs md:text-sm font-semibold text-amber-100 flex items-center gap-1 sm:gap-1.5 shadow-sm min-w-0"
+                            className="px-1.5 py-1 sm:px-2.5 sm:py-1.5 rounded-md sm:rounded-lg bg-black/40 border border-amber-500/20 text-[10px] sm:text-xs md:text-sm font-semibold text-amber-100 flex items-center min-w-0 overflow-hidden shadow-sm"
                           >
-                            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-amber-400 shrink-0" />
-                            {playerInfo?.id !== undefined ? (
-                              <Link
-                                href={`/team?playerId=${playerInfo.id}#player-bio`}
-                                className="truncate hover:underline hover:text-amber-200 transition-colors inline-flex items-center gap-1 min-w-0 flex-1"
-                                title={`View ${name}'s bio`}
-                              >
-                                {playerInfo.number && (
-                                  <span className="font-mono text-amber-400 font-bold text-[9px] sm:text-xs shrink-0">
-                                    #{playerInfo.number}
-                                  </span>
-                                )}
-                                <span className="truncate">{name}</span>
-                                {playerInfo.positionCode && (
-                                  <span className="text-amber-400/80 font-semibold text-[9px] sm:text-[11px] shrink-0">
-                                    ({playerInfo.positionCode})
-                                  </span>
-                                )}
-                              </Link>
-                            ) : (
-                              <div className="truncate inline-flex items-center gap-1 min-w-0 flex-1">
-                                {playerInfo?.number && (
-                                  <span className="font-mono text-amber-400 font-bold text-[9px] sm:text-xs shrink-0">
-                                    #{playerInfo.number}
-                                  </span>
-                                )}
-                                <span className="truncate">{name}</span>
-                                {playerInfo?.positionCode && (
-                                  <span className="text-amber-400/80 font-semibold text-[9px] sm:text-[11px] shrink-0">
-                                    ({playerInfo.positionCode})
-                                  </span>
-                                )}
-                              </div>
-                            )}
+                            <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 flex-1">
+                              <span className="w-1.5 h-1.5 sm:w-1.5 sm:h-1.5 rounded-full bg-amber-400 shrink-0" />
+                              {playerInfo?.id !== undefined ? (
+                                <Link
+                                  href={`/team?playerId=${playerInfo.id}#player-bio`}
+                                  className="truncate hover:underline hover:text-amber-200 transition-colors inline-flex items-center gap-1 min-w-0 flex-1"
+                                  title={`View ${displayName}'s bio`}
+                                >
+                                  <span className="truncate">{displayName}</span>
+                                  {playerInfo.positionCode && (
+                                    <span className="text-amber-400/90 font-bold text-[9px] sm:text-[11px] shrink-0">
+                                      ({playerInfo.positionCode})
+                                    </span>
+                                  )}
+                                </Link>
+                              ) : (
+                                <div className="truncate inline-flex items-center gap-1 min-w-0 flex-1">
+                                  <span className="truncate">{displayName}</span>
+                                  {playerInfo?.positionCode && (
+                                    <span className="text-amber-400/90 font-bold text-[9px] sm:text-[11px] shrink-0">
+                                      ({playerInfo.positionCode})
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -657,19 +632,14 @@ export default async function FixturesPage() {
                 <div className="min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 mb-2 sm:mb-3 pb-1.5 sm:pb-2.5 border-b border-rose-500/20">
                     <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
-                      <span className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-400 shrink-0" />
-                      <div className="min-w-0">
-                        <span className="text-[11px] sm:text-xs md:text-sm font-bold uppercase tracking-wider text-rose-300 block truncate">
-                          Absent
-                        </span>
-                        <span className="text-[9px] sm:text-[10px] text-rose-400/70 font-medium hidden sm:block">
-                          Unavailable
-                        </span>
-                      </div>
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-rose-400 shrink-0" />
+                      <span className="text-[10px] sm:text-xs md:text-sm font-bold uppercase tracking-wider text-rose-300 whitespace-nowrap">
+                        Absent
+                      </span>
                     </div>
-                    <div className="px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-md sm:rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center self-start sm:self-auto min-w-[24px] sm:min-w-[36px]">
-                      <span className="text-base sm:text-xl md:text-2xl font-black font-mono text-rose-300">
-                        {absent.length}
+                    <div className="px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-md sm:rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center self-start sm:self-auto shrink-0">
+                      <span className="text-[10px] sm:text-xs md:text-sm font-bold font-mono text-rose-300 whitespace-nowrap">
+                        {absent.length} {absent.length === 1 ? "player" : "players"}
                       </span>
                     </div>
                   </div>
@@ -678,45 +648,38 @@ export default async function FixturesPage() {
                     <div className="space-y-1 sm:space-y-1.5 min-w-0">
                       {absent.map((name) => {
                         const playerInfo = findPlayerData(name, playersMap);
+                        const displayName = cleanPlayerDisplayName(name, playerInfo);
                         return (
                           <div
                             key={name}
-                            className="px-1.5 py-1 sm:px-2.5 sm:py-1.5 rounded-md sm:rounded-lg bg-black/40 border border-rose-500/20 text-[10px] sm:text-xs md:text-sm font-semibold text-rose-200/80 flex items-center gap-1 sm:gap-1.5 shadow-sm min-w-0"
+                            className="px-1.5 py-1 sm:px-2.5 sm:py-1.5 rounded-md sm:rounded-lg bg-black/40 border border-rose-500/20 text-[10px] sm:text-xs md:text-sm font-semibold text-rose-200/80 flex items-center min-w-0 overflow-hidden shadow-sm"
                           >
-                            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-rose-400 shrink-0" />
-                            {playerInfo?.id !== undefined ? (
-                              <Link
-                                href={`/team?playerId=${playerInfo.id}#player-bio`}
-                                className="truncate hover:underline hover:text-rose-100 transition-colors inline-flex items-center gap-1 min-w-0 flex-1"
-                                title={`View ${name}'s bio`}
-                              >
-                                {playerInfo.number && (
-                                  <span className="font-mono text-rose-400 font-bold text-[9px] sm:text-xs shrink-0">
-                                    #{playerInfo.number}
-                                  </span>
-                                )}
-                                <span className="truncate">{name}</span>
-                                {playerInfo.positionCode && (
-                                  <span className="text-rose-400/80 font-semibold text-[9px] sm:text-[11px] shrink-0">
-                                    ({playerInfo.positionCode})
-                                  </span>
-                                )}
-                              </Link>
-                            ) : (
-                              <div className="truncate inline-flex items-center gap-1 min-w-0 flex-1">
-                                {playerInfo?.number && (
-                                  <span className="font-mono text-rose-400 font-bold text-[9px] sm:text-xs shrink-0">
-                                    #{playerInfo.number}
-                                  </span>
-                                )}
-                                <span className="truncate">{name}</span>
-                                {playerInfo?.positionCode && (
-                                  <span className="text-rose-400/80 font-semibold text-[9px] sm:text-[11px] shrink-0">
-                                    ({playerInfo.positionCode})
-                                  </span>
-                                )}
-                              </div>
-                            )}
+                            <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 flex-1">
+                              <span className="w-1.5 h-1.5 sm:w-1.5 sm:h-1.5 rounded-full bg-rose-400 shrink-0" />
+                              {playerInfo?.id !== undefined ? (
+                                <Link
+                                  href={`/team?playerId=${playerInfo.id}#player-bio`}
+                                  className="truncate hover:underline hover:text-rose-100 transition-colors inline-flex items-center gap-1 min-w-0 flex-1"
+                                  title={`View ${displayName}'s bio`}
+                                >
+                                  <span className="truncate">{displayName}</span>
+                                  {playerInfo.positionCode && (
+                                    <span className="text-rose-400/90 font-bold text-[9px] sm:text-[11px] shrink-0">
+                                      ({playerInfo.positionCode})
+                                    </span>
+                                  )}
+                                </Link>
+                              ) : (
+                                <div className="truncate inline-flex items-center gap-1 min-w-0 flex-1">
+                                  <span className="truncate">{displayName}</span>
+                                  {playerInfo?.positionCode && (
+                                    <span className="text-rose-400/90 font-bold text-[9px] sm:text-[11px] shrink-0">
+                                      ({playerInfo.positionCode})
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -741,7 +704,7 @@ export default async function FixturesPage() {
                       key={name}
                       className="px-2 py-0.5 rounded-full bg-blue-950/70 border border-blue-500/25 text-blue-200 text-[10px] sm:text-xs font-medium shadow-sm"
                     >
-                      {name}
+                      {cleanPlayerDisplayName(name)}
                     </span>
                   ))}
                 </div>
