@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
+import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "800", "900"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
@@ -282,9 +283,12 @@ export default function TeamPage() {
                 </div>
 
                 {dbError && (
-                  <div className="text-xs text-rose-400 bg-rose-950/40 border border-rose-800/50 rounded-lg p-2.5 mb-2">
-                    Error: {dbError}
-                  </div>
+                  <DatabaseUnavailableNotice
+                    title="Squad Data Offline"
+                    description="Player profiles and stats cannot be retrieved right now because database protections are active."
+                    className="mb-3 text-left"
+                    compact={true}
+                  />
                 )}
                 {dbLoading && (
                   <div className="text-xs text-emerald-400 bg-emerald-950/30 border border-emerald-800/40 rounded-lg p-2.5 mb-2 flex items-center gap-2">
@@ -503,6 +507,13 @@ export default function TeamPage() {
                         </p>
                       </div>
                     )}
+                  </div>
+                ) : dbError && dbPlayers.length === 0 ? (
+                  <div className="py-12">
+                    <DatabaseUnavailableNotice
+                      title="Squad Profiles Temporarily Offline"
+                      description="Player profiles, biographies, and season statistics cannot be loaded because database protections or quota cooldowns are currently active."
+                    />
                   </div>
                 ) : (
                   <div className="py-24 text-center text-gray-400 text-sm">

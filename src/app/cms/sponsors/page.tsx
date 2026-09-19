@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
+import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -65,6 +66,7 @@ export default function SponsorsCMSPage() {
   const router = useRouter();
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dbError, setDbError] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
   // Form states
@@ -84,11 +86,15 @@ export default function SponsorsCMSPage() {
       setLoading(true);
       const res = await fetch(`/api/sponsors?_t=${Date.now()}`, { cache: "no-store" });
       const data = await res.json();
+      if (data?.isFallback || data?.dbUnavailable) {
+        setDbError(true);
+      }
       if (data.success && Array.isArray(data.sponsors)) {
         setSponsors(data.sponsors);
       }
     } catch (err) {
       console.error("Failed to load sponsors:", err);
+      setDbError(true);
       setStatusMessage({ type: "error", text: "Failed to load sponsors from database." });
     } finally {
       setLoading(false);
@@ -271,6 +277,15 @@ export default function SponsorsCMSPage() {
             Manage official FC Mierda sponsor cards, custom badges, links, and direct Vercel Blob cloud-hosted logos.
           </p>
         </div>
+
+        {dbError && (
+          <div className="max-w-5xl w-full mb-6">
+            <DatabaseUnavailableNotice
+              title="Sponsors Database Restricted"
+              description="Database connection is currently restricted or in quota cooldown. Fallback club sponsors are loaded. Adding, editing, or deleting sponsors will be enabled once database access is restored."
+            />
+          </div>
+        )}
 
         {/* Status Notification */}
         {statusMessage && (

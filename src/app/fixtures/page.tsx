@@ -6,6 +6,7 @@ import { sql } from "@/lib/db";
 import TeamForm from "@/components/TeamForm";
 import Sponsors from "@/components/Sponsors";
 import SubscribeNotificationsButton from "@/components/SubscribeNotificationsButton";
+import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -58,15 +59,16 @@ function getGatheringTime(kickoff: string) {
   return `${String(gh).padStart(2, "0")}:${String(gm).padStart(2, "0")}`;
 }
 
-// Fetch the latest game from Neon Serverless
-async function getNextGameDirect() {
+// Fetch the latest game from Neon Serverless with explicit error detection
+async function getNextGameDirect(): Promise<{ data: any | null; isDbError: boolean }> {
   try {
     const rows = await sql`
       SELECT * FROM next_game ORDER BY id DESC LIMIT 1
     `;
-    return rows[0] || null;
-  } catch {
-    return null;
+    return { data: rows[0] || null, isDbError: false };
+  } catch (err) {
+    console.warn("[FixturesPage] Could not load next game from database:", err instanceof Error ? err.message : err);
+    return { data: null, isDbError: true };
   }
 }
 
@@ -192,21 +194,51 @@ function findPlayerData(name: string, playersMap: Record<string, PlayerMapItem>)
 }
 
 export default async function FixturesPage() {
-  const [nextGame, playersMap] = await Promise.all([
+  const [nextGameRes, playersMap] = await Promise.all([
     getNextGameDirect(),
     getPlayersMap(),
   ]);
 
+  const nextGame = nextGameRes.data;
+
+  // 1. Explicit Database Connection / Quota Restriction state
+  if (nextGameRes.isDbError) {
+    return (
+      <div className="relative min-h-screen flex flex-col items-center bg-gray-900 text-white">
+        <Menu />
+        <main className="flex-1 w-full flex flex-col items-center justify-center pt-24 sm:pt-36 pb-14 px-3.5 sm:px-6">
+          <DatabaseUnavailableNotice
+            title="Fixture & Availability Data Temporarily Unavailable"
+            description="The next match fixture details, kickoff time, and squad availability cannot be retrieved right now because database access is offline or restricted by quota limits."
+            className="my-8"
+          />
+        </main>
+        <Sponsors />
+        <Footer />
+      </div>
+    );
+  }
+
+  // 2. Legitimate empty database state (no upcoming fixture entered yet)
   if (!nextGame) {
     return (
       <div className="relative min-h-screen flex flex-col items-center bg-gray-900 text-white">
         <Menu />
-        <main className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+        <main className="flex-1 flex flex-col items-center justify-center pt-24 sm:pt-36 pb-14 p-6 text-center">
           <div className="p-8 rounded-2xl bg-gray-950/80 border border-gray-800 shadow-xl max-w-md">
-            <h2 className={`text-2xl font-bold mb-2 ${robotoSlab.className}`}>No Fixtures Scheduled</h2>
-            <p className="text-gray-400 text-sm">Please check back soon for upcoming match details.</p>
+            <div className="inline-block px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-3">
+              Fixture Schedule
+            </div>
+            <h2 className={`text-2xl font-bold mb-2 text-white ${robotoSlab.className}`}>Next Match Schedule Pending</h2>
+            <p className="text-gray-300 text-xs sm:text-sm leading-relaxed mb-5">
+              The match schedule for the upcoming round is currently being finalized with the league organizer.
+            </p>
+            <div className="flex justify-center">
+              <SubscribeNotificationsButton variant="subtle" />
+            </div>
           </div>
         </main>
+        <Sponsors />
         <Footer />
       </div>
     );

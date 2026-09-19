@@ -11,20 +11,20 @@ const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600"
 
 export const dynamic = "force-dynamic";
 
-async function getAllPlayers() {
+async function getAllPlayers(): Promise<{ players: any[]; isDbError: boolean }> {
   try {
     const rows = await sql`
       SELECT * FROM player_statistics ORDER BY player_name ASC
     `;
-    return rows || [];
+    return { players: rows || [], isDbError: false };
   } catch (err) {
     console.error("Failed to load players in team management:", err);
-    return [];
+    return { players: [], isDbError: true };
   }
 }
 
 export default async function TeamManagementPage() {
-  const players = await getAllPlayers();
+  const { players, isDbError } = await getAllPlayers();
 
   return (
     <div className={`relative min-h-screen flex flex-col items-center bg-gray-900 text-white overflow-x-hidden ${montserrat.className}`}>
@@ -71,7 +71,7 @@ export default async function TeamManagementPage() {
         </div>
 
         {/* Current Players Section */}
-        <ClientPlayerManagement players={players} />
+        <ClientPlayerManagement players={players} isDbError={isDbError} />
 
         {/* Add New Player Section */}
         <ClientAddPlayer />

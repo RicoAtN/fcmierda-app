@@ -6,6 +6,8 @@ import Footer from "@/components/Footer";
 import SubscriberStatsBadge from "@/components/SubscriberStatsBadge";
 import { useRouter } from "next/navigation";
 
+import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
+
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
 
@@ -69,6 +71,7 @@ type CompetitionRow = { competition_id: string; competition_name: string; oppone
 export default function NextGameDetailsPage() {
   const [latestCompetition, setLatestCompetition] = useState<CompetitionRow | null>(null);
   const [competitions, setCompetitions] = useState<CompetitionRow[]>([]);
+  const [dbError, setDbError] = useState(false);
   const [form, setForm] = useState({
     opponent: "",
     competition: "",
@@ -91,6 +94,9 @@ export default function NextGameDetailsPage() {
     fetch("/api/next-game")
       .then((res) => res.json())
       .then((data) => {
+        if (data?.dbUnavailable) {
+          setDbError(true);
+        }
         setCurrentAttendance(data.attendance || {});
         setForm({
           date: data.date || "",
@@ -101,6 +107,10 @@ export default function NextGameDetailsPage() {
           note: data.note || "",
         });
         setToBeAnnounced(data.opponent === "To be announced soon");
+      })
+      .catch((e) => {
+        console.warn("Failed to fetch next game:", e);
+        setDbError(true);
       });
   }, []);
 
@@ -268,6 +278,15 @@ export default function NextGameDetailsPage() {
               Configure upcoming fixture details, opponent, kickoff time, and push broadcast alerts for supporters.
             </p>
           </div>
+
+          {dbError && (
+            <div className="mb-6">
+              <DatabaseUnavailableNotice
+                title="Fixture Database Restricted"
+                description="Database connection is currently restricted or in quota cooldown. Live opponent data and changes cannot be saved until connection is restored."
+              />
+            </div>
+          )}
 
           {/* Action Tools Header */}
           <div className="mb-6 p-4 rounded-xl bg-gray-900/80 border border-gray-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">

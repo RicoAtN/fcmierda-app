@@ -6,6 +6,8 @@ import { sql } from "@/lib/db";
 import { getCmsActivityLogs, CmsActivityLog } from "@/lib/cms-logger";
 import ClientAnalyticsSections from "./ClientAnalyticsSections";
 
+import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
+
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "800", "900"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
@@ -133,6 +135,7 @@ async function getAnalyticsData() {
       recentSubs,
       metrics,
       activityLogs,
+      isDbError: false,
     };
   } catch (error) {
     console.error("Failed to fetch analytics data:", error);
@@ -150,12 +153,13 @@ async function getAnalyticsData() {
         nextGame: null,
       },
       activityLogs: [],
+      isDbError: true,
     };
   }
 }
 
 export default async function AnalyticsPage() {
-  const { admins, pushTotal, deviceBreakdown, recentSubs, metrics, activityLogs } = await getAnalyticsData();
+  const { admins, pushTotal, deviceBreakdown, recentSubs, metrics, activityLogs, isDbError } = await getAnalyticsData();
 
   return (
     <div className={`relative min-h-screen flex flex-col items-center bg-gray-900 text-white overflow-x-hidden ${montserrat.className}`}>
@@ -209,6 +213,15 @@ export default async function AnalyticsPage() {
             Audit logs of CMS actions, administrator role permissions, web push subscribers, and database system metrics.
           </p>
         </div>
+
+        {isDbError && (
+          <div className="max-w-3xl w-full mb-8">
+            <DatabaseUnavailableNotice
+              title="Telemetry & Logs Database Restricted"
+              description="Analytics telemetry and audit logs cannot be queried while database circuit breaker cooldown or quota limits are active."
+            />
+          </div>
+        )}
 
         {/* Interactive Collapsible Sections Accordion (Collapsed by Default) */}
         <ClientAnalyticsSections

@@ -5,6 +5,7 @@ import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
 import SubscriberStatsBadge from "@/components/SubscriberStatsBadge";
 import { useRouter } from "next/navigation";
+import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "600"] });
@@ -80,6 +81,8 @@ export default function PostMatchResultPage() {
     supportCoach: [] as string[],
   });
 
+  const [dbError, setDbError] = useState(false);
+
   // State for match result form
   const [goalsFCMierda, setGoalsFCMierda] = useState(0);
   const [goalsOpponent, setGoalsOpponent] = useState(0);
@@ -114,6 +117,9 @@ export default function PostMatchResultPage() {
       .then((res) => res.json())
       .then((data) => {
         if (!isMounted) return;
+        if (data?.dbUnavailable) {
+          setDbError(true);
+        }
         // Separate present and supporter/coach
         const present = Object.entries(data.attendance || {})
           .filter(([_, status]) => status === "present")
@@ -132,6 +138,7 @@ export default function PostMatchResultPage() {
         });
       })
       .catch((e) => {
+        if (isMounted) setDbError(true);
         console.error(e);
       });
     return () => { isMounted = false; };
@@ -144,10 +151,15 @@ export default function PostMatchResultPage() {
       .then((res) => res.json())
       .then((data) => {
         if (!isMounted) return;
-        setAllResults(data || []);
-        if (data && data.length > 0) setSelectedResult(data[0]);
+        if (data?.dbUnavailable) {
+          setDbError(true);
+        } else if (Array.isArray(data)) {
+          setAllResults(data || []);
+          if (data && data.length > 0) setSelectedResult(data[0]);
+        }
       })
       .catch((e) => {
+        if (isMounted) setDbError(true);
         console.error(e);
       });
     return () => { isMounted = false; };
@@ -557,6 +569,15 @@ export default function PostMatchResultPage() {
             Post newly concluded match results, record goal scorers & assists, assign Man of the Match, or update past scorelines.
           </p>
         </div>
+
+        {dbError && (
+          <div className="max-w-3xl w-full mx-auto mb-8">
+            <DatabaseUnavailableNotice
+              title="Match Records Database Restricted"
+              description="Database connection is currently restricted or in quota cooldown. Live match history and past scores are temporarily offline. Submitting new results will be available once the database restores."
+            />
+          </div>
+        )}
 
         {/* Section 1: Fill-in Last Match Result */}
         <div

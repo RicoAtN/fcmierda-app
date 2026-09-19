@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import { useEffect, useState } from "react";
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Link from "next/link";
+import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "900"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
@@ -99,6 +100,7 @@ function ChampionCell({ champion }: { champion: string | null }) {
 export default function CompetitionCMSPage() {
   const [rows, setRows] = useState<CompetitionOverviewRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   // Selection + form state
   const [loadingDetails, setLoadingDetails] = useState(false);
@@ -139,13 +141,14 @@ export default function CompetitionCMSPage() {
       try {
         const res = await fetch("/api/competition", { cache: "no-store" });
         const json = await res.json();
-        if (res.ok && Array.isArray(json.data)) {
+        if (res.ok && Array.isArray(json.data) && !json.error) {
           setRows(json.data);
+          setDbError(null);
         } else {
-          console.error("Load competitions failed:", json?.error);
+          setDbError(json?.error || "Database temporarily unavailable");
         }
-      } catch (e) {
-        console.error("Fetch competitions error:", e);
+      } catch (e: any) {
+        setDbError(e?.message || "Failed to fetch competitions");
       } finally {
         setLoading(false);
       }

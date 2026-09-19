@@ -66,7 +66,7 @@ export async function GET() {
   } catch (err: any) {
     console.error("GET /api/sponsors error:", err);
     return NextResponse.json(
-      { success: true, sponsors: defaultSponsors, isFallback: true },
+      { success: true, sponsors: defaultSponsors, isFallback: true, dbUnavailable: true },
       { status: 200 }
     );
   }

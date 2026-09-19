@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Roboto_Slab } from "next/font/google";
 import AvailabilityPushModal from "@/components/AvailabilityPushModal";
+import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "800"] });
 
@@ -46,6 +47,7 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
   const [knownSubs, setKnownSubs] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [dbOffline, setDbOffline] = useState(false);
   const [status, setStatus] = useState("");
   const [showPushModal, setShowPushModal] = useState(false);
 
@@ -169,10 +171,16 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
           fetch(`/api/next-game?_t=${Date.now()}`, { cache: "no-store" }),
         ]);
 
-        const { data: rawStats } = await resStats.json();
-        const dataNext = await resNext.json();
+        const statsJson = await resStats.json().catch(() => ({}));
+        const dataNext = await resNext.json().catch(() => ({}));
 
         if (!isMounted) return;
+
+        if (dataNext?.dbUnavailable || !resStats.ok || !resNext.ok) {
+          setDbOffline(true);
+        }
+
+        const rawStats = statsJson?.data || [];
 
         // Process Players
         const mains = (rawStats || []).filter((p: any) => p?.main_player === true);
@@ -187,63 +195,71 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
           })
           .filter((p: UiPlayer) => p.name.length);
 
-        setPlayersData(fetchedPlayers);
+        if (fetchedPlayers.length > 0) {
+          setPlayersData(fetchedPlayers);
+        }
 
         const fetchedSubs = nonMains
           .map((p: any) => stripLeadingNumber(String(p?.player_name ?? "")))
           .filter((name: string) => name.length > 0);
-        setKnownSubs(fetchedSubs);
+        if (fetchedSubs.length > 0) {
+          setKnownSubs(fetchedSubs);
+        }
 
         // Process Next Game
-        const nextGameData = {
-          date: dataNext?.date || "",
-          kickoff: dataNext?.kickoff || "",
-          opponent: dataNext?.opponent || "",
-          location: dataNext?.location || "Alexandria 66 Rotterdam",
-          competition: dataNext?.competition || "",
-          note: dataNext?.note || "",
-        };
+        if (dataNext?.opponent) {
+          const nextGameData = {
+            date: dataNext?.date || "",
+            kickoff: dataNext?.kickoff || "",
+            opponent: dataNext?.opponent || "",
+            location: dataNext?.location || "Alexandria 66 Rotterdam",
+            competition: dataNext?.competition || "",
+            note: dataNext?.note || "",
+          };
 
-        setForm(nextGameData);
-        onGameDataLoaded?.({
-          date: nextGameData.date,
-          kickoff: nextGameData.kickoff,
-          opponent: nextGameData.opponent,
-        });
+          setForm(nextGameData);
+          onGameDataLoaded?.({
+            date: nextGameData.date,
+            kickoff: nextGameData.kickoff,
+            opponent: nextGameData.opponent,
+          });
 
-        const incoming = (dataNext?.attendance || {}) as Record<string, string>;
-        const normalizedIncoming: Record<string, string> = Object.fromEntries(
-          Object.entries(incoming).map(([k, v]) => [normalizeKey(k), String(v || "unknown")])
-        );
+          const incoming = (dataNext?.attendance || {}) as Record<string, string>;
+          const normalizedIncoming: Record<string, string> = Object.fromEntries(
+            Object.entries(incoming).map(([k, v]) => [normalizeKey(k), String(v || "unknown")])
+          );
 
-        // Merge fetched players with existing attendance
-        const initialAttendance = { ...normalizedIncoming };
-        fetchedPlayers.forEach((p) => {
-          if (!initialAttendance[p.key]) initialAttendance[p.key] = "unknown";
-        });
-        setAttendance(initialAttendance);
+          // Merge fetched players with existing attendance
+          const initialAttendance = { ...normalizedIncoming };
+          fetchedPlayers.forEach((p) => {
+            if (!initialAttendance[p.key]) initialAttendance[p.key] = "unknown";
+          });
+          setAttendance(initialAttendance);
 
-        // Hydrate substitutes from attendance data for players not in the main squad
-        const mainPlayerKeys = new Set(fetchedPlayers.map((p) => p.key));
-        const loadedSubs: Substitute[] = Object.entries(normalizedIncoming)
-          .filter(([name, status]) => !mainPlayerKeys.has(name) && status !== "unknown")
-          .map(([name, status]) => ({ name, status }));
+          // Hydrate substitutes from attendance data for players not in the main squad
+          const mainPlayerKeys = new Set(fetchedPlayers.map((p) => p.key));
+          const loadedSubs: Substitute[] = Object.entries(normalizedIncoming)
+            .filter(([name, status]) => !mainPlayerKeys.has(name) && status !== "unknown")
+            .map(([name, status]) => ({ name, status }));
 
-        setSubs(
-          ensureTrailingEmptyRow(loadedSubs.length > 0 ? loadedSubs : [{ name: "", status: "unknown" }])
-        );
+          setSubs(
+            ensureTrailingEmptyRow(loadedSubs.length > 0 ? loadedSubs : [{ name: "", status: "unknown" }])
+          );
 
-        // Save fresh data into session cache for future instant loads
-        try {
-          sessionStorage.setItem("fcmierda_players_cache", JSON.stringify(fetchedPlayers));
-          sessionStorage.setItem("fcmierda_known_subs_cache", JSON.stringify(fetchedSubs));
-          sessionStorage.setItem("fcmierda_nextgame_cache", JSON.stringify(nextGameData));
-          sessionStorage.setItem("fcmierda_attendance_cache", JSON.stringify(initialAttendance));
-        } catch {
-          // ignore
+          // Save fresh data into session cache for future instant loads
+          try {
+            sessionStorage.setItem("fcmierda_players_cache", JSON.stringify(fetchedPlayers));
+            sessionStorage.setItem("fcmierda_known_subs_cache", JSON.stringify(fetchedSubs));
+            sessionStorage.setItem("fcmierda_nextgame_cache", JSON.stringify(nextGameData));
+            sessionStorage.setItem("fcmierda_attendance_cache", JSON.stringify(initialAttendance));
+          } catch {
+            // ignore
+          }
         }
       } catch (e: any) {
-        console.error("Failed to load player attendance data", e);
+        if (isMounted) {
+          setDbOffline(true);
+        }
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -324,13 +340,21 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
         setIsSaving(false);
       }
     } catch {
-      setStatus("Failed to save. Please try again.");
+      setStatus("⚠️ Failed to save. Database is temporarily offline or in quota cooldown.");
       setIsSaving(false);
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 text-left">
+      {dbOffline && (
+        <DatabaseUnavailableNotice
+          title="Attendance Server Cooldown"
+          description="The live squad roster and availability cannot be updated because database protections are active. Changes made right now cannot be saved until connection is restored."
+          className="mb-3 text-left"
+        />
+      )}
+
       <div>
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-base sm:text-lg font-bold text-white">Players</h3>

@@ -4,6 +4,7 @@ import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
 import TeamForm from "@/components/TeamForm";
+import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "800", "900"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
@@ -160,6 +161,7 @@ export default function StatisticsPage() {
   // Fetch stats for top performers & overall stats
   const [stats, setStats] = useState<PlayerStats[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [playerStatsError, setPlayerStatsError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -167,19 +169,28 @@ export default function StatisticsPage() {
       try {
         const compQuery = selectedPlayerComp !== "all" ? `?competition=${encodeURIComponent(selectedPlayerComp)}` : "";
         const res = await fetch(`/api/player-statistics${compQuery}`);
-        const { data } = (await res.json()) as { data: PlayerStats[] };
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          throw new Error((errJson as { error?: string })?.error || `HTTP ${res.status}`);
+        }
+        const json = await res.json();
+        const data = (json?.data || []) as PlayerStats[];
         if (isMounted) {
-          setStats(data ?? []);
+          setStats(data);
+          setPlayerStatsError(null);
           if (selectedPlayerComp === "all") {
             try {
-              sessionStorage.setItem("fcmierda_stats_players_all_cache", JSON.stringify(data ?? []));
+              sessionStorage.setItem("fcmierda_stats_players_all_cache", JSON.stringify(data));
             } catch {
               // ignore
             }
           }
         }
       } catch (e: any) {
-        console.error("Failed to load player statistics", e);
+        if (isMounted) {
+          console.error("Failed to load player statistics", e);
+          setPlayerStatsError(e instanceof Error ? e.message : "Failed to load");
+        }
       } finally {
         if (isMounted) setIsLoadingStats(false);
       }
@@ -635,9 +646,11 @@ export default function StatisticsPage() {
           </div>
 
           {teamStatsError && (
-            <div className="mt-3 text-xs text-rose-400 bg-rose-950/40 border border-rose-800/50 rounded-lg p-2.5">
-              Error: {teamStatsError}
-            </div>
+            <DatabaseUnavailableNotice
+              title="Team Statistics Offline"
+              description="Team match metrics, win rates, and defensive rankings could not be computed because database access is temporarily in cooldown."
+              className="mt-4 mb-3 text-left"
+            />
           )}
 
           {(() => {
@@ -798,40 +811,50 @@ export default function StatisticsPage() {
             )}
           </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {renderTopPerformerCards(
-              [
-                { heading: "Top goal scorers", groupedList: rankGroupedTop(mains, "goals"), valueKey: "goals" },
-                { heading: "Top assists", groupedList: rankGroupedTop(mains, "assists"), valueKey: "assists" },
-                { heading: "Top goal involvement", groupedList: rankGroupedTop(mains, "goals_involvement"), valueKey: "goals_involvement" },
-                { heading: "Most Man of the Match awards", groupedList: rankGroupedTop(mains, "fcmierda_man_of_the_match_awards"), valueKey: "fcmierda_man_of_the_match_awards" },
-                {
-                  heading: "Top avg goals per match",
-                  subtitle: `min. ${minMatchesThreshold} matches`,
-                  list: rankTop(
-                    mains.filter((s) => (s.match_played ?? 0) >= minMatchesThreshold),
-                    "average_goals_per_match"
-                  ),
-                  valueKey: "average_goals_per_match",
-                  isAvg: true,
-                },
-                {
-                  heading: "Lowest avg goals conceded per match",
-                  subtitle: `min. ${minMatchesThreshold} matches`,
-                  list: rankLowest(
-                    mains.filter((s) => (s.match_played ?? 0) >= minMatchesThreshold),
-                    "average_goals_conceded_per_match"
-                  ),
-                  valueKey: "average_goals_conceded_per_match",
-                  isAvg: true,
-                  invert: true,
-                },
-                { heading: "Most clean sheets", groupedList: rankGroupedTop(mains, "clean_sheets"), valueKey: "clean_sheets" },
-                { heading: "Most matches played", groupedList: rankGroupedTop(mains, "match_played"), valueKey: "match_played" },
-              ],
-              isLoadingStats
-            )}
-          </div>
+          {playerStatsError && mains.length === 0 ? (
+            <div className="py-6">
+              <DatabaseUnavailableNotice
+                title="Leaderboard & Player Stats Offline"
+                description="Top performers and individual player metrics cannot be retrieved right now because database protections or quota cooldowns are active."
+                className="mb-4"
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {renderTopPerformerCards(
+                [
+                  { heading: "Top goal scorers", groupedList: rankGroupedTop(mains, "goals"), valueKey: "goals" },
+                  { heading: "Top assists", groupedList: rankGroupedTop(mains, "assists"), valueKey: "assists" },
+                  { heading: "Top goal involvement", groupedList: rankGroupedTop(mains, "goals_involvement"), valueKey: "goals_involvement" },
+                  { heading: "Most Man of the Match awards", groupedList: rankGroupedTop(mains, "fcmierda_man_of_the_match_awards"), valueKey: "fcmierda_man_of_the_match_awards" },
+                  {
+                    heading: "Top avg goals per match",
+                    subtitle: `min. ${minMatchesThreshold} matches`,
+                    list: rankTop(
+                      mains.filter((s) => (s.match_played ?? 0) >= minMatchesThreshold),
+                      "average_goals_per_match"
+                    ),
+                    valueKey: "average_goals_per_match",
+                    isAvg: true,
+                  },
+                  {
+                    heading: "Lowest avg goals conceded per match",
+                    subtitle: `min. ${minMatchesThreshold} matches`,
+                    list: rankLowest(
+                      mains.filter((s) => (s.match_played ?? 0) >= minMatchesThreshold),
+                      "average_goals_conceded_per_match"
+                    ),
+                    valueKey: "average_goals_conceded_per_match",
+                    isAvg: true,
+                    invert: true,
+                  },
+                  { heading: "Most clean sheets", groupedList: rankGroupedTop(mains, "clean_sheets"), valueKey: "clean_sheets" },
+                  { heading: "Most matches played", groupedList: rankGroupedTop(mains, "match_played"), valueKey: "match_played" },
+                ],
+                isLoadingStats
+              )}
+            </div>
+          )}
         </section>
 
         {/* Overall Statistics Section */}
@@ -847,33 +870,43 @@ export default function StatisticsPage() {
             </p>
           </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            {renderStatBlocks(
-              [
-                { heading: "Goals", list: rankTop(mains, "goals", mains.length), valueKey: "goals" },
-                { heading: "Assists", list: rankTop(mains, "assists", mains.length), valueKey: "assists" },
-                { heading: "Goals Involvement", list: rankTop(mains, "goals_involvement", mains.length), valueKey: "goals_involvement" },
-                { heading: "Clean Sheets", list: rankTop(mains, "clean_sheets", mains.length), valueKey: "clean_sheets" },
-                { heading: "Man of the Match Awards", list: rankTop(mains, "fcmierda_man_of_the_match_awards", mains.length), valueKey: "fcmierda_man_of_the_match_awards" },
-                {
-                  heading: "Avg goals per match",
-                  list: rankTop(mains, "average_goals_per_match", mains.length),
-                  valueKey: "average_goals_per_match",
-                  isAvg: true,
-                },
-                {
-                  heading: "Avg goals conceded per match",
-                  list: rankLowest(mains, "average_goals_conceded_per_match", mains.length),
-                  valueKey: "average_goals_conceded_per_match",
-                  isAvg: true,
-                  invert: true,
-                },
-                { heading: "Matches played", list: rankTop(mains, "match_played", mains.length), valueKey: "match_played" },
-              ],
-              true,
-              isLoadingStats
-            )}
-          </div>
+          {playerStatsError && mains.length === 0 ? (
+            <div className="py-6">
+              <DatabaseUnavailableNotice
+                title="Player Statistics Offline"
+                description="Squad season statistics, goals, assists, and metrics cannot be computed because database access is temporarily offline or in quota cooldown."
+                className="mb-4"
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              {renderStatBlocks(
+                [
+                  { heading: "Goals", list: rankTop(mains, "goals", mains.length), valueKey: "goals" },
+                  { heading: "Assists", list: rankTop(mains, "assists", mains.length), valueKey: "assists" },
+                  { heading: "Goals Involvement", list: rankTop(mains, "goals_involvement", mains.length), valueKey: "goals_involvement" },
+                  { heading: "Clean Sheets", list: rankTop(mains, "clean_sheets", mains.length), valueKey: "clean_sheets" },
+                  { heading: "Man of the Match Awards", list: rankTop(mains, "fcmierda_man_of_the_match_awards", mains.length), valueKey: "fcmierda_man_of_the_match_awards" },
+                  {
+                    heading: "Avg goals per match",
+                    list: rankTop(mains, "average_goals_per_match", mains.length),
+                    valueKey: "average_goals_per_match",
+                    isAvg: true,
+                  },
+                  {
+                    heading: "Avg goals conceded per match",
+                    list: rankLowest(mains, "average_goals_conceded_per_match", mains.length),
+                    valueKey: "average_goals_conceded_per_match",
+                    isAvg: true,
+                    invert: true,
+                  },
+                  { heading: "Matches played", list: rankTop(mains, "match_played", mains.length), valueKey: "match_played" },
+                ],
+                true,
+                isLoadingStats
+              )}
+            </div>
+          )}
         </section>
       </main>
 

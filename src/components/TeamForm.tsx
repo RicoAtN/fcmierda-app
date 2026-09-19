@@ -91,12 +91,12 @@ export default function TeamForm({ teamId, className = "" }: Props) {
       className={`group w-full max-w-sm mx-auto flex flex-col items-center gap-2 cursor-pointer bg-black/50 hover:bg-black/60 backdrop-blur-md border border-white/15 hover:border-emerald-500/50 rounded-2xl p-4 sm:p-5 text-center shadow-2xl hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.25)] transition-all duration-300 hover:-translate-y-0.5 ${className}`}
       aria-label="Team recent form"
     >
-      <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-bold text-[11px] sm:text-xs uppercase tracking-widest">
-        <span>⚡ Team Recent Form</span>
+      <div className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full ${error ? "bg-amber-950/80 border-amber-500/40 text-amber-300" : "bg-emerald-950/80 border-emerald-500/30 text-emerald-300"} border text-[11px] sm:text-xs font-bold uppercase tracking-widest`}>
+        <span>{error ? "⚠️ Team Form (Offline)" : "⚡ Team Recent Form"}</span>
       </div>
 
       <span className="text-gray-300 text-xs sm:text-sm font-medium">
-        Last 5 match outcomes
+        {error ? "Match outcomes temporarily offline" : "Last 5 match outcomes"}
       </span>
 
       <div className="flex items-center justify-center gap-2 sm:gap-2.5 my-1">

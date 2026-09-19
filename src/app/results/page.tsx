@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import React from "react";
 import ClientMatchResults from "./ClientMatchResults";
 import TeamForm from "@/components/TeamForm";
+import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -16,7 +17,7 @@ const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "800"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 // Fetch all match results from Neon DB
-async function getAllResults(): Promise<MatchResult[]> {
+async function getAllResults(): Promise<{ results: MatchResult[]; isDbError: boolean }> {
   try {
     const rows = await sql`
       SELECT
@@ -38,9 +39,10 @@ async function getAllResults(): Promise<MatchResult[]> {
       FROM match_result
       ORDER BY date DESC
     `;
-    return rows as MatchResult[];
-  } catch {
-    return [];
+    return { results: rows as MatchResult[], isDbError: false };
+  } catch (err) {
+    console.warn("[ResultsPage] Could not load match results:", err instanceof Error ? err.message : err);
+    return { results: [], isDbError: true };
   }
 }
 
@@ -178,11 +180,14 @@ async function getPlayerMap(): Promise<Record<string, PlayerMapData>> {
 }
 
 export default async function ResultsPage() {
-  const [allResults, competitions, playerMap] = await Promise.all([
+  const [allResultsRes, competitions, playerMap] = await Promise.all([
     getAllResults(),
     getCompetitionsOverview(),
     getPlayerMap(),
   ]);
+
+  const allResults = allResultsRes.results;
+  const isDbError = allResultsRes.isDbError;
 
   // Create dictionary mapping competition name -> league_link
   const competitionLinkMap: Record<string, string> = {};
@@ -213,6 +218,14 @@ export default async function ResultsPage() {
             Review FC Mierda&apos;s match scores, goal scorers, highlights, and competition standings.
           </p>
         </div>
+
+        {isDbError && (
+          <DatabaseUnavailableNotice
+            title="Match Records Temporarily Offline"
+            description="Detailed match scores, goal scorers, and player statistics cannot be fetched because database access is temporarily offline or in quota cooldown."
+            className="mb-8"
+          />
+        )}
 
         {/* All match results & Interactive Detail Card */}
         <div id="all-results" className="max-w-5xl w-full rounded-2xl p-4 sm:p-8 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-sm mx-auto mb-8">

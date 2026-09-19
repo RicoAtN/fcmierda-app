@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { updatePlayerAction } from "./actions";
 import PlayerPhotoUploader from "@/components/PlayerPhotoUploader";
 import { Roboto_Slab } from "next/font/google";
+import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "900"] });
 
@@ -58,7 +59,13 @@ type Player = {
   [key: string]: any;
 };
 
-export default function ClientPlayerManagement({ players }: { players: Player[] }) {
+export default function ClientPlayerManagement({
+  players,
+  isDbError = false,
+}: {
+  players: Player[];
+  isDbError?: boolean;
+}) {
   const [filterMain, setFilterMain] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -92,6 +99,14 @@ export default function ClientPlayerManagement({ players }: { players: Player[] 
 
   return (
     <div id="current-players" className="max-w-5xl w-full rounded-2xl p-5 sm:p-8 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-md mx-auto mb-10 scroll-mt-24">
+      {isDbError && (
+        <DatabaseUnavailableNotice
+          title="Squad Roster Offline"
+          description="Player records and management are temporarily inaccessible due to database protections or quota cooldown."
+          className="mb-6 text-left"
+        />
+      )}
+
       <div className="flex items-center justify-between pb-4 mb-6 border-b border-gray-800">
         <div>
           <h2 className={`text-lg sm:text-xl font-bold text-white ${robotoSlab.className}`}>

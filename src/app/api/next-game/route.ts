@@ -37,7 +37,7 @@ export async function GET() {
       }
     );
   } catch (err) {
-    console.error("GET /api/next-game failed", err);
+    console.warn("GET /api/next-game suppressed error (db offline / restricted):", err instanceof Error ? err.message : err);
     return NextResponse.json(
       {
         date: "",
@@ -47,6 +47,7 @@ export async function GET() {
         competition: "",
         note: "",
         attendance: {},
+        dbUnavailable: true,
       },
       { status: 200 }
     );
