@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
+import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,12 +37,6 @@ function safeParseArray(val: unknown): any[] {
 
 export async function GET(req: NextRequest) {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) {
-      return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
-    }
-    const sql = neon(dbUrl);
-
     const { searchParams } = new URL(req.url);
     const competition = searchParams.get("competition")?.trim();
 
@@ -235,6 +229,6 @@ export async function GET(req: NextRequest) {
     );
   } catch (err) {
     console.error("Player statistics API error:", err);
-    return NextResponse.json({ error: "Failed to load player statistics" }, { status: 500 });
+    return NextResponse.json({ data: [], error: "Failed to load player statistics" }, { status: 200 });
   }
 }

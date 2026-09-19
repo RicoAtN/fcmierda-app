@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "pg";
+import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
 export async function POST(req: NextRequest) {
-  let client;
   try {
     const body = await req.json();
     const { endpoint, keys, deviceType, userAgent, oldEndpoint } = body || {};
@@ -35,30 +30,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    client = await pool.connect();
-
-    // Ensure columns exist
-    await client.query(`
-      ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS device_type VARCHAR(50);
-      ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS user_agent TEXT;
-    `);
-
     // Clean up replaced old endpoint if provided
     if (oldEndpoint && oldEndpoint !== endpoint) {
-      await client.query("DELETE FROM push_subscriptions WHERE endpoint = $1", [oldEndpoint]);
+      await sql`DELETE FROM push_subscriptions WHERE endpoint = ${oldEndpoint}`;
     }
 
-    await client.query(
-      `INSERT INTO push_subscriptions (endpoint, p256dh, auth, device_type, user_agent, created_at)
-       VALUES ($1, $2, $3, $4, $5, NOW())
-       ON CONFLICT (endpoint) DO UPDATE 
-       SET p256dh = EXCLUDED.p256dh,
-           auth = EXCLUDED.auth,
-           device_type = COALESCE(EXCLUDED.device_type, push_subscriptions.device_type),
-           user_agent = COALESCE(EXCLUDED.user_agent, push_subscriptions.user_agent),
-           created_at = NOW()`,
-      [endpoint, keys.p256dh, keys.auth, resolvedDeviceType, effectiveUa]
-    );
+    await sql`
+      INSERT INTO push_subscriptions (endpoint, p256dh, auth, device_type, user_agent, created_at)
+      VALUES (${endpoint}, ${keys.p256dh}, ${keys.auth}, ${resolvedDeviceType}, ${effectiveUa}, NOW())
+      ON CONFLICT (endpoint) DO UPDATE 
+      SET p256dh = EXCLUDED.p256dh,
+          auth = EXCLUDED.auth,
+          device_type = COALESCE(EXCLUDED.device_type, push_subscriptions.device_type),
+          user_agent = COALESCE(EXCLUDED.user_agent, push_subscriptions.user_agent),
+          created_at = NOW()
+    `;
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {
@@ -67,7 +53,5 @@ export async function POST(req: NextRequest) {
       { success: false, error: "Failed to store subscription" },
       { status: 500 }
     );
-  } finally {
-    if (client) client.release();
   }
 }

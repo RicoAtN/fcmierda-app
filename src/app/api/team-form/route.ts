@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
+import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) {
-      return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
-    }
-    const sql = neon(dbUrl);
-
     const rows = (await sql`
       SELECT
         CASE LOWER(TRIM(COALESCE(game_result, '')))
@@ -42,6 +36,6 @@ export async function GET() {
     );
   } catch (err) {
     console.error("Team form API error:", err);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    return NextResponse.json({ data: { results: [] }, error: "Internal error" }, { status: 200 });
   }
 }

@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "pg";
+import { sql } from "@/lib/db";
 import webpush from "web-push";
 import { PushNotificationRequest } from "@/types/notifications";
 import { logCmsActivity } from "@/lib/cms-logger";
 
 export const runtime = "nodejs";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
 
 const DEFAULT_VAPID_SUBJECT = "mailto:fcmierdaofficial@gmail.com";
 const DEFAULT_VAPID_PUBLIC_KEY =
@@ -52,7 +48,6 @@ function formatDayMonth(dateStr?: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  let client;
   try {
     ensureVapidConfigured();
     const body: PushNotificationRequest = await req.json();
@@ -147,11 +142,9 @@ export async function POST(req: NextRequest) {
       payloadUrl = customUrl || droneVideoData?.youtubeUrl || "/results";
     }
 
-    client = await pool.connect();
-    const subsResult = await client.query(
-      "SELECT id, endpoint, p256dh, auth FROM push_subscriptions"
-    );
-    const subscriptions = subsResult.rows || [];
+    const subscriptions = (await sql`
+      SELECT id, endpoint, p256dh, auth FROM push_subscriptions
+    `) as { id: number; endpoint: string; p256dh: string; auth: string }[];
 
     if (subscriptions.length === 0) {
       return NextResponse.json({
@@ -200,10 +193,9 @@ export async function POST(req: NextRequest) {
     // Delete expired subscriptions
     if (expiredIds.length > 0) {
       try {
-        await client.query(
-          "DELETE FROM push_subscriptions WHERE id = ANY($1::int[])",
-          [expiredIds]
-        );
+        await sql`
+          DELETE FROM push_subscriptions WHERE id = ANY(${expiredIds}::int[])
+        `;
       } catch (deleteError) {
         console.error("Failed to clean up expired subscriptions:", deleteError);
       }
@@ -236,7 +228,5 @@ export async function POST(req: NextRequest) {
       { success: false, error: "Failed to dispatch notifications" },
       { status: 500 }
     );
-  } finally {
-    if (client) client.release();
   }
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon, neonConfig } from "@neondatabase/serverless";
+import { sql } from "@/lib/db";
 import { logCmsActivity } from "@/lib/cms-logger";
 
 export const runtime = "nodejs";
@@ -23,8 +23,8 @@ function parseOpponents(opponentsValue: unknown): string[] {
   return [];
 }
 
-async function getSchema(sql: any) {
-  const cols = (await sql`
+async function getSchema(sqlFn: typeof sql) {
+  const cols = (await sqlFn`
     SELECT column_name, data_type
     FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'competition';
@@ -98,11 +98,6 @@ function validateNew(payload: any) {
 
 export async function GET(_req: NextRequest) {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
-    neonConfig.fetchConnectionCache = true;
-    const sql = neon(dbUrl);
-
     const schema = await getSchema(sql);
     let rows: any[] = [];
     if (schema.hasOrganisation) {
@@ -188,17 +183,12 @@ export async function GET(_req: NextRequest) {
     );
   } catch (err: any) {
     console.error("[/api/competition GET] Error:", err);
-    return NextResponse.json({ error: err?.message || "Failed to load competitions" }, { status: 500 });
+    return NextResponse.json({ data: [], error: err?.message || "Failed to load competitions" }, { status: 200 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
-    neonConfig.fetchConnectionCache = true;
-    const sql = neon(dbUrl);
-
     const raw = await req.json();
     const payload = normalizeNew(raw);
     const errors = validateNew(payload);

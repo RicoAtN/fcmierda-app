@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
+import { sql } from "@/lib/db";
 import { del } from "@vercel/blob";
 import { logCmsActivity } from "@/lib/cms-logger";
 
@@ -20,66 +20,37 @@ export type SponsorRecord = {
   created_at?: string;
 };
 
-async function getSql() {
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl) throw new Error("DATABASE_URL environment variable is not configured.");
-  return neon(dbUrl);
-}
-
-async function ensureTableAndSeed(sql: any) {
-  await sql`
-    CREATE TABLE IF NOT EXISTS sponsors (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
-      badge VARCHAR(100) DEFAULT 'Club Sponsor',
-      logo TEXT NOT NULL,
-      url TEXT NOT NULL,
-      tagline TEXT DEFAULT '',
-      description TEXT DEFAULT '',
-      button_label VARCHAR(100) DEFAULT 'Visit website',
-      highlight_color VARCHAR(50) DEFAULT 'emerald',
-      display_order INT DEFAULT 0,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-    );
-  `;
-
-  // Check if empty, seed default sponsors
-  const countRes = (await sql`SELECT count(*)::int as count FROM sponsors;`) as { count: number }[];
-  if (countRes[0]?.count === 0) {
-    await sql`
-      INSERT INTO sponsors (name, badge, logo, url, tagline, description, button_label, highlight_color, display_order)
-      VALUES 
-      (
-        'Momo Barbershop',
-        'Official Barbershop',
-        '/momoLogo.jpg',
-        'https://www.momobarbershop.com/',
-        'FC Mierda''s favorite barbershop',
-        'Keeping the squad fresh, styled, and razor-sharp on and off the pitch. Momo is far more than a barbershop—it''s a premium haircut experience where you can enjoy a coffee, catch up on good conversation, and treat yourself to the house specialty: a legendary Calippo ice cream.',
-        'Visit momobarbershop.com',
-        'emerald',
-        1
-      ),
-      (
-        'Second Love',
-        'Club Sponsor',
-        '/SecondloveLogo.jpg',
-        'https://www.secondlove.nl/',
-        'Discreet & exciting adventures',
-        'Sure, football will always be your first love—but the ball doesn''t cuddle back! Second Love gives you the chance to find love right next to football. Completely discreet, exciting, and with zero VAR checking your moves.',
-        'Visit secondlove.nl',
-        'rose',
-        2
-      );
-    `;
-  }
-}
+const defaultSponsors: SponsorRecord[] = [
+  {
+    id: 1,
+    name: "Momo Barbershop",
+    badge: "Official Barbershop",
+    logo: "/momoLogo.jpg",
+    url: "https://www.momobarbershop.com/",
+    tagline: "FC Mierda's favorite barbershop",
+    description:
+      "Keeping the squad fresh, styled, and razor-sharp on and off the pitch. Momo is far more than a barbershop—it's a premium haircut experience where you can enjoy a coffee, catch up on good conversation, and treat yourself to the house specialty: a legendary Calippo ice cream.",
+    button_label: "Visit momobarbershop.com",
+    highlight_color: "emerald",
+    display_order: 1,
+  },
+  {
+    id: 2,
+    name: "Second Love",
+    badge: "Club Sponsor",
+    logo: "/SecondloveLogo.jpg",
+    url: "https://www.secondlove.nl/",
+    tagline: "Discreet & exciting adventures",
+    description:
+      "Sure, football will always be your first love—but the ball doesn't cuddle back! Second Love gives you the chance to find love right next to football. Completely discreet, exciting, and with zero VAR checking your moves.",
+    button_label: "Visit secondlove.nl",
+    highlight_color: "rose",
+    display_order: 2,
+  },
+];
 
 export async function GET() {
   try {
-    const sql = await getSql();
-    await ensureTableAndSeed(sql);
-
     const rows = (await sql`
       SELECT id, name, badge, logo, url, tagline, description, button_label, highlight_color, display_order, created_at
       FROM sponsors
@@ -87,7 +58,7 @@ export async function GET() {
     `) as SponsorRecord[];
 
     return NextResponse.json(
-      { success: true, sponsors: rows },
+      { success: true, sponsors: rows.length > 0 ? rows : defaultSponsors },
       {
         headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
       }
@@ -95,8 +66,8 @@ export async function GET() {
   } catch (err: any) {
     console.error("GET /api/sponsors error:", err);
     return NextResponse.json(
-      { success: false, error: err?.message || "Failed to load sponsors." },
-      { status: 500 }
+      { success: true, sponsors: defaultSponsors, isFallback: true },
+      { status: 200 }
     );
   }
 }
@@ -122,9 +93,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const sql = await getSql();
-    await ensureTableAndSeed(sql);
 
     const inserted = (await sql`
       INSERT INTO sponsors (name, badge, logo, url, tagline, description, button_label, highlight_color, display_order)
@@ -180,9 +148,6 @@ export async function PUT(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const sql = await getSql();
-    await ensureTableAndSeed(sql);
 
     const updated = (await sql`
       UPDATE sponsors
@@ -244,9 +209,6 @@ export async function DELETE(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const sql = await getSql();
-    await ensureTableAndSeed(sql);
 
     // Get logo url first for blob cleanup and sponsor name for logging
     const existing = (await sql`

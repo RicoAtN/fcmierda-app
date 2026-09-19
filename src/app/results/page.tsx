@@ -1,6 +1,6 @@
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
-import { neon } from "@neondatabase/serverless";
+import { sql } from "@/lib/db";
 import Footer from "@/components/Footer";
 import React from "react";
 import ClientMatchResults from "./ClientMatchResults";
@@ -18,11 +18,23 @@ const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600"
 // Fetch all match results from Neon DB
 async function getAllResults(): Promise<MatchResult[]> {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) return [];
-    const sql = neon(dbUrl);
     const rows = await sql`
-      SELECT *
+      SELECT
+        id,
+        date,
+        opponent,
+        game_result,
+        goals_fcmierda,
+        goals_opponent,
+        youtube,
+        location,
+        competition,
+        attendance,
+        support_coach,
+        goal_scorers,
+        fcmierda_man_of_the_match,
+        fcmierda_man_of_the_match_id,
+        match_summary
       FROM match_result
       ORDER BY date DESC
     `;
@@ -66,9 +78,6 @@ type CompetitionOverviewRow = {
 
 async function getCompetitionsOverview(): Promise<CompetitionOverviewRow[]> {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) return [];
-    const sql = neon(dbUrl);
     const rows = await sql`
       SELECT competition_name, end_period, fcmierda_final_rank, competition_champion, league_link
       FROM competition
@@ -135,9 +144,6 @@ type PlayerMapData = {
 
 async function getPlayerMap(): Promise<Record<string, PlayerMapData>> {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) return {};
-    const sql = neon(dbUrl);
     const rows = await sql`
       SELECT
         ps.player_id::text AS id,
@@ -145,10 +151,11 @@ async function getPlayerMap(): Promise<Record<string, PlayerMapData>> {
         ps.player_number::text AS number,
         CASE
           WHEN ps.photo_link IS NULL OR TRIM(ps.photo_link) = '' THEN NULL
-          WHEN ps.photo_link ~ '^[a-z]+://' THEN ps.photo_link
-          WHEN LEFT(ps.photo_link, 5) = 'data:' THEN ps.photo_link
-          WHEN LEFT(ps.photo_link, 1) = '/' THEN ps.photo_link
-          ELSE '/' || ps.photo_link
+          WHEN LEFT(ps.photo_link, 5) = 'data:' THEN NULL
+          WHEN ps.photo_link ~ '^https?://' AND LENGTH(ps.photo_link) < 1024 THEN ps.photo_link
+          WHEN LEFT(ps.photo_link, 1) = '/' AND LENGTH(ps.photo_link) < 1024 THEN ps.photo_link
+          WHEN LENGTH(ps.photo_link) < 1024 THEN '/' || ps.photo_link
+          ELSE NULL
         END AS photo
       FROM player_statistics ps
       WHERE ps.player_name IS NOT NULL

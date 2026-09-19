@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
+import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,12 +26,6 @@ type MainPlayerRow = {
 
 export async function GET() {
   try {
-    const DATABASE_URL = process.env.DATABASE_URL;
-    if (!DATABASE_URL) {
-      return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
-    }
-
-    const sql = neon(DATABASE_URL);
 
     const rows = await sql`
       SELECT
@@ -80,6 +74,6 @@ export async function GET() {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     console.error("Failed to load main players:", msg);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ data: [], error: msg }, { status: 200 });
   }
 }

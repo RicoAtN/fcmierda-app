@@ -150,11 +150,16 @@ export default function ClientMatchResults({
 }) {
   const [clientPlayerMap, setClientPlayerMap] = React.useState<Record<string, PlayerMapData>>(playerMap || {});
 
+  const hasFetchedPlayersRef = React.useRef(false);
+
   React.useEffect(() => {
     if (playerMap && Object.keys(playerMap).length > 0) {
       setClientPlayerMap(playerMap);
       return;
     }
+    if (hasFetchedPlayersRef.current) return;
+    hasFetchedPlayersRef.current = true;
+
     (async () => {
       try {
         const res = await fetch(`/api/main-players?_t=${Date.now()}`);

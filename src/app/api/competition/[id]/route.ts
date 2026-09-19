@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon, neonConfig } from "@neondatabase/serverless";
+import { sql } from "@/lib/db";
 import { logCmsActivity } from "@/lib/cms-logger";
 
 export const runtime = "nodejs";
@@ -64,8 +64,8 @@ function isNumericId(s: string) {
   return /^\d+$/.test(s);
 }
 
-async function getCompetitionSchema(sql: any) {
-  const cols = (await sql`
+async function getCompetitionSchema(sqlFn: typeof sql) {
+  const cols = (await sqlFn`
     SELECT column_name, data_type
     FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'competition';
@@ -106,11 +106,6 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   try {
     const { id } = await ctx.params; // await the Promise-based params in Next 16
     const key = decodeURIComponent(id);
-
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
-    neonConfig.fetchConnectionCache = true;
-    const sql = neon(dbUrl);
 
     const byId = isNumericId(key);
     const schema = await getCompetitionSchema(sql);
@@ -232,11 +227,6 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     const { id } = await ctx.params; // await the Promise-based params in Next 16
     const payload = await req.json(); // read once
     const whereKey = (payload.id as string | undefined) ?? decodeURIComponent(id);
-
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
-    neonConfig.fetchConnectionCache = true;
-    const sql = neon(dbUrl);
 
     const byId = /^\d+$/.test(whereKey);
     const schema = await getCompetitionSchema(sql);
@@ -488,11 +478,6 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
       .trim()
       .toLowerCase();
     if (pw !== "calippo") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
-    neonConfig.fetchConnectionCache = true;
-    const sql = neon(dbUrl);
 
     const key = decodeURIComponent(id);
     const byId = /^\d+$/.test(key);

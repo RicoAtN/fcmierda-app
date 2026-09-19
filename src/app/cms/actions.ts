@@ -1,10 +1,7 @@
 "use server";
-import postgres from "postgres";
+import { sql } from "@/lib/db";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-
-// Connecting to your neon_database via environment variables
-const sql = postgres(process.env.DATABASE_URL || "");
 
 export async function login(prevState: any, formData: FormData) {
   const username = formData.get("username")?.toString();

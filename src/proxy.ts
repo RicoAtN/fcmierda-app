@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // Explicitly exempt these public routes from any authentication
@@ -26,6 +26,8 @@ export function middleware(request: NextRequest) {
   if (isLoginRoute && session) {
     return NextResponse.redirect(new URL('/cms', request.url));
   }
+
+  return NextResponse.next();
 }
 
 export const config = {

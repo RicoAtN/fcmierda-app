@@ -1,13 +1,9 @@
 "use server";
 
-import { Pool } from "pg";
+import { sql } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { del } from "@vercel/blob";
 import { logCmsActivity } from "@/lib/cms-logger";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
 
 export async function updatePlayerAction(playerId: number | string, data: any) {
   if (!playerId) {
@@ -15,11 +11,10 @@ export async function updatePlayerAction(playerId: number | string, data: any) {
   }
 
   // Check if there was an old photo that needs deletion from Vercel Blob
-  const oldPhotoRes = await pool.query(
-    "SELECT photo_link FROM player_statistics WHERE player_id = $1",
-    [playerId]
-  );
-  const oldPhoto = oldPhotoRes.rows[0]?.photo_link;
+  const oldPhotoRes = await sql`
+    SELECT photo_link FROM player_statistics WHERE player_id = ${playerId}
+  `;
+  const oldPhoto = oldPhotoRes[0]?.photo_link;
   const newPhoto = data.photo_link ?? null;
 
   if (
@@ -40,34 +35,20 @@ export async function updatePlayerAction(playerId: number | string, data: any) {
     }
   }
 
-  const query = `
+  await sql`
     UPDATE player_statistics 
     SET 
-      player_name = $1,
-      player_number = $2,
-      player_callsign = $3,
-      player_position = $4,
-      photo_link = $5,
-      main_player = $6,
-      biography_main = $7,
-      biography_detail = $8,
+      player_name = ${data.player_name},
+      player_number = ${data.player_number || data.number || null},
+      player_callsign = ${data.player_callsign || data.nickname || null},
+      player_position = ${data.player_position || data.role || null},
+      photo_link = ${newPhoto},
+      main_player = ${data.main_player || false},
+      biography_main = ${data.biography_main || data.biography || null},
+      biography_detail = ${data.biography_detail || null},
       updated_at = NOW()
-    WHERE player_id = $9
+    WHERE player_id = ${playerId}
   `;
-  
-  const values = [
-    data.player_name,
-    data.player_number || data.number || null,
-    data.player_callsign || data.nickname || null,
-    data.player_position || data.role || null,
-    newPhoto,
-    data.main_player || false,
-    data.biography_main || data.biography || null,
-    data.biography_detail || null,
-    playerId
-  ];
-
-  await pool.query(query, values);
 
   // Log activity
   await logCmsActivity({
@@ -95,39 +76,35 @@ export async function updatePlayerAction(playerId: number | string, data: any) {
 export async function addPlayerAction(data: any) {
   // Check if player_id is unique
   if (data.player_id) {
-    const check = await pool.query("SELECT player_id FROM player_statistics WHERE player_id = $1", [data.player_id]);
-    if (check.rows.length > 0) {
+    const check = await sql`
+      SELECT player_id FROM player_statistics WHERE player_id = ${data.player_id}
+    `;
+    if (check.length > 0) {
       return { success: false, error: "The Player ID already exists. Please pick a unique number." };
     }
   }
 
-  const query = `
-    INSERT INTO player_statistics (
-      player_id, player_name, player_number, player_callsign, player_position,
-      photo_link, main_player, biography_main, biography_detail,
-      match_played, goals, assists, clean_sheets,
-      updated_at
-    ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9,
-      0, 0, 0, 0,
-      NOW()
-    )
-  `;
-  
-  const values = [
-    data.player_id,
-    data.player_name,
-    data.player_number || null,
-    data.player_callsign || null,
-    data.player_position || null,
-    data.photo_link || null,
-    data.main_player || false,
-    data.biography_main || null,
-    data.biography_detail || null
-  ];
-
   try {
-    await pool.query(query, values);
+    await sql`
+      INSERT INTO player_statistics (
+        player_id, player_name, player_number, player_callsign, player_position,
+        photo_link, main_player, biography_main, biography_detail,
+        match_played, goals, assists, clean_sheets,
+        updated_at
+      ) VALUES (
+        ${data.player_id},
+        ${data.player_name},
+        ${data.player_number || null},
+        ${data.player_callsign || null},
+        ${data.player_position || null},
+        ${data.photo_link || null},
+        ${data.main_player || false},
+        ${data.biography_main || null},
+        ${data.biography_detail || null},
+        0, 0, 0, 0,
+        NOW()
+      )
+    `;
 
     // Log activity
     await logCmsActivity({
@@ -151,7 +128,7 @@ export async function addPlayerAction(data: any) {
     revalidatePath("/fixtures");
     return { success: true };
   } catch (error: any) {
-    if (error.code === '23505') {
+    if (error.code === '23505' || (error.message && error.message.includes("unique"))) {
       return { success: false, error: `Duplicate entry error: ${error.detail || 'A player with this ID or Name already exists.'}` };
     }
     console.error("Database Error:", error);

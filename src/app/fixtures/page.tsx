@@ -2,7 +2,7 @@ import { Roboto_Slab, Montserrat } from "next/font/google";
 import Link from "next/link";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
-import { neon } from "@neondatabase/serverless";
+import { sql } from "@/lib/db";
 import TeamForm from "@/components/TeamForm";
 import Sponsors from "@/components/Sponsors";
 import SubscribeNotificationsButton from "@/components/SubscribeNotificationsButton";
@@ -61,9 +61,6 @@ function getGatheringTime(kickoff: string) {
 // Fetch the latest game from Neon Serverless
 async function getNextGameDirect() {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) return null;
-    const sql = neon(dbUrl);
     const rows = await sql`
       SELECT * FROM next_game ORDER BY id DESC LIMIT 1
     `;
@@ -76,9 +73,6 @@ async function getNextGameDirect() {
 // Fetch competition details for current next game
 async function getCompetitionDetails(competitionName?: string) {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) return null;
-    const sql = neon(dbUrl);
     if (competitionName && competitionName.trim().length) {
       const rows = await sql`
         SELECT competition_name, league_link, organisation
@@ -162,9 +156,6 @@ type PlayerMapItem = {
 // Fetch player metadata (number, position, id) from database
 async function getPlayersMap(): Promise<Record<string, PlayerMapItem>> {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) return {};
-    const sql = neon(dbUrl);
     const rows = await sql`
       SELECT player_id, player_name, player_number, player_position
       FROM player_statistics

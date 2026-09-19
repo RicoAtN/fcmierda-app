@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
+import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,14 +17,21 @@ type TeamStats = {
   win_percentage: number;
 };
 
+const defaultTeamStats: TeamStats = {
+  match_played: 0,
+  clean_sheets: 0,
+  total_wins: 0,
+  total_losses: 0,
+  total_draws: 0,
+  goals_scored: 0,
+  average_goals_per_match: 0,
+  goals_conceded: 0,
+  average_goals_conceded_per_match: 0,
+  win_percentage: 0,
+};
+
 export async function GET(req: NextRequest) {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) {
-      return NextResponse.json({ error: "DATABASE_URL not set" }, { status: 500 });
-    }
-    const sql = neon(dbUrl);
-
     const { searchParams } = new URL(req.url);
     const competition = searchParams.get("competition")?.trim();
 
@@ -145,6 +152,6 @@ export async function GET(req: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to load team statistics";
     console.error("Team statistics API error:", err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ data: defaultTeamStats, error: message }, { status: 200 });
   }
 }

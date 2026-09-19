@@ -21,9 +21,6 @@ export default function TeamForm({ teamId, className = "" }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // configurable refresh (ms). Modest 60s interval to prevent serverless load.
-  const REFRESH_INTERVAL = 60000; // 60s
-
   const normalize = (r: string) => {
     const v = (r || "").trim().toUpperCase();
     if (v === "W" || v === "WIN" || v === "VICTORY") return "W";
@@ -32,38 +29,9 @@ export default function TeamForm({ teamId, className = "" }: Props) {
     return "";
   };
 
-  const fetchForm = async () => {
-    try {
-      setError(null);
-      const url = `/api/team-form${teamId ? `?teamId=${encodeURIComponent(String(teamId))}` : ""}`;
-      const res = await fetch(url, {
-        headers: { "Accept": "application/json" }
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const j = await res.json();
-      const next: string[] = j?.data?.results ?? [];
-      // normalize for comparison before setting state
-      const norm = next.map((r: string) => normalize(r));
-      const current = (results ?? []).map(r => normalize(r));
-      const changed = norm.length !== current.length || norm.some((v, i) => v !== current[i]);
-      if (changed) {
-        setResults(norm);
-        try {
-          sessionStorage.setItem("fcmierda_team_form_cache", JSON.stringify(norm));
-        } catch {
-          // ignore
-        }
-      }
-    } catch (e: any) {
-      // Keep prior results on background refresh failures
-      if (!results) setResults([]);
-      setError(e?.message || "Failed to load form");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    let isMounted = true;
+
     // 1. Hydrate from cache immediately
     try {
       const cached = sessionStorage.getItem("fcmierda_team_form_cache");
@@ -75,41 +43,41 @@ export default function TeamForm({ teamId, className = "" }: Props) {
       // ignore
     }
 
-    // 2. Fetch fresh
-    fetchForm();
-
-    // polling with visibility awareness
-    let intervalId: number | undefined;
-    const start = () => {
-      if (intervalId) return;
-      intervalId = window.setInterval(() => {
-        if (document.visibilityState === "visible" && navigator.onLine) {
-          fetchForm();
+    // 2. Fetch fresh once on mount or when teamId changes
+    (async () => {
+      try {
+        setError(null);
+        const url = `/api/team-form${teamId ? `?teamId=${encodeURIComponent(String(teamId))}` : ""}`;
+        const res = await fetch(url, {
+          headers: { "Accept": "application/json" }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const j = await res.json();
+        const next: string[] = j?.data?.results ?? [];
+        const norm = next.map((r: string) => normalize(r));
+        if (isMounted) {
+          setResults(norm);
+          try {
+            sessionStorage.setItem("fcmierda_team_form_cache", JSON.stringify(norm));
+          } catch {
+            // ignore
+          }
         }
-      }, REFRESH_INTERVAL);
-    };
-    const stop = () => {
-      if (intervalId) {
-        window.clearInterval(intervalId);
-        intervalId = undefined;
+      } catch (e: any) {
+        if (isMounted) {
+          if (!results) setResults([]);
+          setError(e?.message || "Failed to load form");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    };
-    const onVis = () => {
-      if (document.visibilityState === "visible") {
-        fetchForm();
-        start();
-      } else {
-        stop();
-      }
-    };
-    document.addEventListener("visibilitychange", onVis);
-    start();
+    })();
 
     return () => {
-      stop();
-      document.removeEventListener("visibilitychange", onVis);
+      isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId]);
 
   const items = (results ?? []).map(normalize);

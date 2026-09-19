@@ -1,7 +1,7 @@
 import { Roboto_Slab, Montserrat } from "next/font/google";
 import Menu from "@/components/Menu";
 import Footer from "@/components/Footer";
-import { Pool } from "pg";
+import { sql } from "@/lib/db";
 import Link from "next/link";
 import ClientPlayerManagement from "./ClientPlayerManagement";
 import ClientAddPlayer from "./ClientAddPlayer";
@@ -9,17 +9,18 @@ import ClientAddPlayer from "./ClientAddPlayer";
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "900"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
 export const dynamic = "force-dynamic";
 
 async function getAllPlayers() {
-  const { rows } = await pool.query(
-    `SELECT * FROM player_statistics ORDER BY player_name ASC`
-  );
-  return rows;
+  try {
+    const rows = await sql`
+      SELECT * FROM player_statistics ORDER BY player_name ASC
+    `;
+    return rows || [];
+  } catch (err) {
+    console.error("Failed to load players in team management:", err);
+    return [];
+  }
 }
 
 export default async function TeamManagementPage() {

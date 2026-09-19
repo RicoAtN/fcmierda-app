@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
+import { sql } from "@/lib/db";
 import { logCmsActivity } from "@/lib/cms-logger";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) {
-      console.error("DATABASE_URL is not set");
-      return NextResponse.json({}, { status: 500 });
-    }
-
-    const sql = neon(dbUrl);
     const rows = await sql`
       SELECT id, date, kickoff, opponent, location, competition, note, attendance, created_at, updated_at
       FROM next_game
@@ -45,19 +38,23 @@ export async function GET() {
     );
   } catch (err) {
     console.error("GET /api/next-game failed", err);
-    return NextResponse.json({}, { status: 500 });
+    return NextResponse.json(
+      {
+        date: "",
+        kickoff: "",
+        opponent: "",
+        location: "Alexandria 66 Rotterdam",
+        competition: "",
+        note: "",
+        attendance: {},
+      },
+      { status: 200 }
+    );
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl) {
-      console.error("DATABASE_URL is not set");
-      return NextResponse.json({}, { status: 500 });
-    }
-
-    const sql = neon(dbUrl);
     const body = await req.json();
     const { date, kickoff, opponent, location, competition, note, attendance } = body || {};
 
@@ -118,6 +115,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err) {
     console.error("POST /api/next-game failed", err);
-    return NextResponse.json({}, { status: 500 });
+    return NextResponse.json({ ok: false, error: "Failed to save next game" }, { status: 500 });
   }
 }

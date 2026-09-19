@@ -1,29 +1,15 @@
 import { NextResponse } from "next/server";
-import { Pool } from "pg";
+import { sql } from "@/lib/db";
 import { PushStatsResponse } from "@/types/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
 export async function GET() {
-  let client;
   try {
-    client = await pool.connect();
-
-    // Ensure columns exist in case table was created earlier without them
-    await client.query(`
-      ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS device_type VARCHAR(50);
-      ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS user_agent TEXT;
-    `);
-
-    const result = await client.query(
-      "SELECT id, endpoint, device_type, user_agent FROM push_subscriptions"
-    );
-    const rows = result.rows || [];
+    const rows = (await sql`
+      SELECT id, endpoint, device_type, user_agent FROM push_subscriptions
+    `) as { id: number; endpoint?: string; device_type?: string; user_agent?: string }[];
 
     const breakdown = {
       desktop: 0,
@@ -68,7 +54,7 @@ export async function GET() {
     return NextResponse.json(response, {
       status: 200,
       headers: {
-        "Cache-Control": "no-store, max-age=0",
+        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
       },
     });
   } catch (err: unknown) {
@@ -80,9 +66,7 @@ export async function GET() {
         breakdown: { desktop: 0, android: 0, ios: 0, other: 0 },
         error: "Failed to retrieve push subscriber statistics",
       },
-      { status: 500 }
+      { status: 200 }
     );
-  } finally {
-    if (client) client.release();
   }
 }

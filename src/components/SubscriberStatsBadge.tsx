@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { PushStatsResponse } from "@/types/notifications";
 
 interface SubscriberStatsBadgeProps {
@@ -20,28 +20,34 @@ export default function SubscriberStatsBadge({
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const onStatsUpdateRef = useRef(onStatsUpdate);
+  useEffect(() => {
+    onStatsUpdateRef.current = onStatsUpdate;
+  }, [onStatsUpdate]);
+
   const fetchStats = useCallback(async (manual = false) => {
     if (manual) setIsRefreshing(true);
     try {
       const res = await fetch(`/api/push/stats?_t=${Date.now()}`, {
         cache: "no-store",
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: PushStatsResponse = await res.json();
       if (data && data.success) {
         setStats(data);
-        if (onStatsUpdate) {
-          onStatsUpdate(data.total);
+        if (onStatsUpdateRef.current) {
+          onStatsUpdateRef.current(data.total);
         }
       }
     } catch (err) {
-      console.error("Failed to load subscriber stats:", err);
+      console.warn("Failed to load subscriber stats:", err);
     } finally {
       setLoading(false);
       if (manual) {
         setTimeout(() => setIsRefreshing(false), 400);
       }
     }
-  }, [onStatsUpdate]);
+  }, []);
 
   useEffect(() => {
     fetchStats();
