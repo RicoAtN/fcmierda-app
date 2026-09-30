@@ -147,6 +147,8 @@ export default function TeamPage() {
   const [dbQuery, setDbQuery] = useState("");
   const [dbRoleFilter, setDbRoleFilter] = useState<string>("All");
   const [selectedDbId, setSelectedDbId] = useState<string | null>(null);
+  const [playerDetailsMap, setPlayerDetailsMap] = useState<Record<string, DBPlayerWithStats>>({});
+  const [loadingDetailsId, setLoadingDetailsId] = useState<string | null>(null);
   const dbBioRef = useRef<HTMLDivElement | null>(null);
 
   // Read the playerId from the URL if navigating from the Statistics or Results page
@@ -197,10 +199,57 @@ export default function TeamPage() {
     return items.sort(compareDbPlayers);
   }, [dbPlayers, dbQuery, dbRoleFilter]);
 
+  const activeId = selectedDbId ?? (dbFiltered[0]?.player_id ? String(dbFiltered[0].player_id) : null);
+
+  // Fetch player-specific data on-demand only when selected/clicked
+  useEffect(() => {
+    if (!activeId) return;
+    if (playerDetailsMap[activeId]) return; // Already cached in-memory
+
+    let cancelled = false;
+    setLoadingDetailsId(activeId);
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/main-players?id=${encodeURIComponent(activeId)}`);
+        if (res.ok) {
+          const { data } = await res.json();
+          if (!cancelled && data) {
+            setPlayerDetailsMap((prev) => ({
+              ...prev,
+              [activeId]: data,
+            }));
+          }
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch details for player ${activeId}:`, err);
+      } finally {
+        if (!cancelled) {
+          setLoadingDetailsId((curr) => (curr === activeId ? null : curr));
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeId, playerDetailsMap]);
+
+  const selectedSummary = useMemo(() => {
+    if (!activeId) return null;
+    return dbPlayers.find((p) => String(p.player_id) === String(activeId)) ?? null;
+  }, [activeId, dbPlayers]);
+
+  const selectedDetails = activeId ? playerDetailsMap[activeId] : null;
+  const isSelectedLoading = loadingDetailsId === activeId && !selectedDetails;
+
   const selectedDb = useMemo(() => {
-    const id = selectedDbId ?? dbFiltered[0]?.player_id ?? null;
-    return id ? dbPlayers.find((p) => String(p.player_id) === String(id)) ?? null : null;
-  }, [selectedDbId, dbFiltered, dbPlayers]);
+    if (!selectedSummary) return null;
+    return {
+      ...selectedSummary,
+      ...(selectedDetails || {}),
+    };
+  }, [selectedSummary, selectedDetails]);
 
   function handleDbSelect(id: string) {
     setSelectedDbId(id);
@@ -424,7 +473,12 @@ export default function TeamPage() {
                         </div>
 
                         {/* Player Summary Callout */}
-                        {selectedDb.biography_main && (
+                        {isSelectedLoading ? (
+                          <div className="mt-4 pt-3.5 border-t border-gray-800/80 animate-pulse">
+                            <div className="h-3 w-20 bg-gray-800 rounded mb-2" />
+                            <div className="h-14 bg-gray-800/40 rounded-lg border border-gray-800" />
+                          </div>
+                        ) : selectedDb.biography_main ? (
                           <div className="mt-4 pt-3.5 border-t border-gray-800/80">
                             <div className="text-[11px] uppercase tracking-wider text-emerald-400 font-bold mb-1.5 flex items-center justify-center sm:justify-start gap-1">
                               <span>📝</span>
@@ -434,12 +488,23 @@ export default function TeamPage() {
                               {selectedDb.biography_main}
                             </p>
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
 
                     {/* Stats Matrix */}
-                    {(() => {
+                    {isSelectedLoading ? (
+                      <div className="mb-6 animate-pulse">
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <div className="h-3 w-28 bg-gray-800 rounded" />
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+                          {[...Array(8)].map((_, i) => (
+                            <div key={i} className="h-16 bg-black/40 border border-gray-800/60 rounded-xl" />
+                          ))}
+                        </div>
+                      </div>
+                    ) : (() => {
                       const role = (selectedDb.role || "").toLowerCase();
                       const isCoach = role.includes("coach");
                       if (isCoach) return null;
@@ -494,7 +559,12 @@ export default function TeamPage() {
                     })()}
 
                     {/* Detailed Biography (if present) */}
-                    {selectedDb.biography_detail && (
+                    {isSelectedLoading ? (
+                      <div className="mt-6 pt-5 border-t border-gray-800/80 animate-pulse">
+                        <div className="h-3 w-36 bg-gray-800 rounded mb-2" />
+                        <div className="h-12 bg-gray-800/40 rounded border border-gray-800/60" />
+                      </div>
+                    ) : selectedDb.biography_detail ? (
                       <div className="mt-6 pt-5 border-t border-gray-800/80">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-sm">📖</span>
@@ -506,7 +576,7 @@ export default function TeamPage() {
                           {selectedDb.biography_detail}
                         </p>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 ) : dbError && dbPlayers.length === 0 ? (
                   <div className="py-12">

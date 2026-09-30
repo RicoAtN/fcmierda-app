@@ -140,17 +140,22 @@ function safeArray(val: unknown): string[] {
 export default function ClientMatchResults({
   allResults,
   competitionLinkMap,
+  competitionList,
   playerMap,
-  rowsToShow = 5,
+  rowsToShow = 4,
 }: {
   allResults: MatchResult[];
   competitionLinkMap?: Record<string, string>;
+  competitionList?: string[];
   playerMap?: Record<string, PlayerMapData>;
   rowsToShow?: number;
 }) {
   const [clientPlayerMap, setClientPlayerMap] = React.useState<Record<string, PlayerMapData>>(playerMap || {});
   const [resultsList, setResultsList] = React.useState<MatchResult[]>(allResults || []);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+
+  // Competition round filter state
+  const [selectedCompetition, setSelectedCompetition] = React.useState<string>("all");
 
   const hasFetchedPlayersRef = React.useRef(false);
   const hasFetchedMatchesRef = React.useRef(false);
@@ -159,6 +164,7 @@ export default function ClientMatchResults({
     // 1. Initial hydration from server prop
     if (playerMap && Object.keys(playerMap).length > 0) {
       setClientPlayerMap((prev) => ({ ...playerMap, ...prev }));
+      return; // Already provided by server SSR, skip redundant client call to save Neon & Vercel resources
     }
 
     // 2. Hydrate from session storage
@@ -179,19 +185,20 @@ export default function ClientMatchResults({
             }
           }
           setClientPlayerMap((prev) => ({ ...prev, ...map }));
+          return; // Cached, skip network call
         }
       }
     } catch {
       // ignore
     }
 
-    // 3. Always fetch fresh main players on the client to ensure full photo data is loaded
+    // 3. Fallback client fetch only if server prop and session storage are both empty
     if (hasFetchedPlayersRef.current) return;
     hasFetchedPlayersRef.current = true;
 
     (async () => {
       try {
-        const res = await fetch(`/api/main-players?_t=${Date.now()}`);
+        const res = await fetch(`/api/main-players`);
         if (res.ok) {
           const { data } = await res.json();
           const map: Record<string, PlayerMapData> = {};
@@ -231,7 +238,7 @@ export default function ClientMatchResults({
 
     (async () => {
       try {
-        const res = await fetch(`/api/match-result?all=true&_t=${Date.now()}`);
+        const res = await fetch(`/api/match-result?all=true`);
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
@@ -246,19 +253,43 @@ export default function ClientMatchResults({
     })();
   }, [allResults]);
 
+  // Extract all available competitions from match records + competition table
+  const availableCompetitions = React.useMemo(() => {
+    const set = new Set<string>();
+    if (competitionList && Array.isArray(competitionList)) {
+      for (const c of competitionList) {
+        if (c && c.trim()) set.add(c.trim());
+      }
+    }
+    for (const r of resultsList) {
+      if (r.competition && r.competition.trim()) {
+        set.add(r.competition.trim());
+      }
+    }
+    return Array.from(set);
+  }, [resultsList, competitionList]);
+
+  // Filter matches client-side (instantaneous, 0 additional database queries)
+  const filteredResults = React.useMemo(() => {
+    if (selectedCompetition === "all") return resultsList;
+    return resultsList.filter(
+      (r) => (r.competition || "").trim().toLowerCase() === selectedCompetition.trim().toLowerCase()
+    );
+  }, [resultsList, selectedCompetition]);
+
   const [selectedId, setSelectedId] = React.useState<number | null>(
     resultsList && resultsList.length > 0 ? resultsList[0].id : null
   );
 
   React.useEffect(() => {
-    if (!selectedId && resultsList && resultsList.length > 0) {
-      setSelectedId(resultsList[0].id);
+    if (!selectedId && filteredResults && filteredResults.length > 0) {
+      setSelectedId(filteredResults[0].id);
     }
-  }, [resultsList, selectedId]);
+  }, [filteredResults, selectedId]);
 
-  // ensure selectedResult is defined based on selectedId (fallback to first result)
+  // ensure selectedResult is defined based on selectedId (fallback to first filtered result)
   const selectedResult: MatchResult | undefined =
-    (resultsList || []).find((r) => r.id === selectedId) || (resultsList && resultsList[0]);
+    (filteredResults || []).find((r) => r.id === selectedId) || (filteredResults && filteredResults[0]);
 
   const detailsRef = React.useRef<HTMLElement | null>(null);
   const router = useRouter();
@@ -291,9 +322,17 @@ export default function ClientMatchResults({
     }
 
     if (targetId && !Number.isNaN(targetId)) {
-      const matchExists = resultsList && resultsList.some((r) => r.id === targetId);
-      if (matchExists) {
+      const match = resultsList.find((r) => r.id === targetId);
+      if (match) {
         setSelectedId(targetId);
+        // If the match belongs to a specific competition, sync the filter if needed
+        if (match.competition && selectedCompetition !== "all" && match.competition.trim().toLowerCase() !== selectedCompetition.trim().toLowerCase()) {
+          setSelectedCompetition("all");
+        }
+        const matchIndex = filteredResults.findIndex((r) => r.id === targetId);
+        if (matchIndex !== -1) {
+          setVisibleCount((prev) => Math.max(prev, matchIndex + 5));
+        }
       }
       scrollToDetails();
     } else if (
@@ -304,7 +343,7 @@ export default function ClientMatchResults({
     ) {
       scrollToDetails();
     }
-  }, [resultsList, scrollToDetails]);
+  }, [resultsList, filteredResults, selectedCompetition, scrollToDetails]);
 
   React.useEffect(() => {
     syncMatchFromUrl();
@@ -318,8 +357,72 @@ export default function ClientMatchResults({
     };
   }, [syncMatchFromUrl]);
 
+  // Initial 10 matches visible, incrementally load 10 more when scrolling down
+  const [visibleCount, setVisibleCount] = React.useState<number>(10);
+  const sentinelDesktopRef = React.useRef<HTMLTableRowElement | null>(null);
+  const sentinelMobileRef = React.useRef<HTMLDivElement | null>(null);
+
+  const loadMore = React.useCallback(() => {
+    setVisibleCount((prev) => {
+      if (prev < filteredResults.length) {
+        return Math.min(prev + 10, filteredResults.length);
+      }
+      return prev;
+    });
+  }, [filteredResults.length]);
+
+  const handleTableScroll = React.useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+      if (scrollHeight - scrollTop - clientHeight < 80) {
+        loadMore();
+      }
+    },
+    [loadMore]
+  );
+
+  // IntersectionObserver for desktop table end sentinel
+  React.useEffect(() => {
+    const el = sentinelDesktopRef.current;
+    if (!el || visibleCount >= filteredResults.length) return;
+    if (typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          loadMore();
+        }
+      },
+      { rootMargin: "80px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visibleCount, filteredResults.length, loadMore]);
+
+  // IntersectionObserver for mobile list end sentinel
+  React.useEffect(() => {
+    const el = sentinelMobileRef.current;
+    if (!el || visibleCount >= filteredResults.length) return;
+    if (typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          loadMore();
+        }
+      },
+      { rootMargin: "80px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visibleCount, filteredResults.length, loadMore]);
+
   function handleSelectAndScroll(id: number) {
     setSelectedId(id);
+    const matchIndex = filteredResults.findIndex((r) => r.id === id);
+    if (matchIndex !== -1 && matchIndex >= visibleCount) {
+      setVisibleCount((prev) => Math.max(prev, matchIndex + 5));
+    }
     try {
       const newHash = `#match-${id}`;
       if (window.history && window.history.replaceState) {
@@ -332,6 +435,24 @@ export default function ClientMatchResults({
     }
     scrollToDetails();
   }
+
+  function handleCompetitionChange(comp: string) {
+    setSelectedCompetition(comp);
+    setVisibleCount(10);
+    const nextList =
+      comp === "all"
+        ? resultsList
+        : resultsList.filter(
+            (r) => (r.competition || "").trim().toLowerCase() === comp.trim().toLowerCase()
+          );
+    if (nextList.length > 0 && (!selectedId || !nextList.some((r) => r.id === selectedId))) {
+      setSelectedId(nextList[0].id);
+    }
+  }
+
+  const displayedResults = React.useMemo(() => {
+    return filteredResults.slice(0, visibleCount);
+  }, [filteredResults, visibleCount]);
 
   if (!resultsList || resultsList.length === 0) {
     if (isLoading) {
@@ -355,24 +476,58 @@ export default function ClientMatchResults({
     <>
       {/* Table Section */}
       <section className="w-full mb-8">
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-2 border-b border-gray-800">
           <div className="flex items-center gap-2">
             <span className="text-lg">📋</span>
             <h2 className={`text-xl sm:text-2xl font-extrabold text-white tracking-tight ${robotoSlab.className}`}>
               Match History
             </h2>
           </div>
-          <span className="text-xs font-semibold text-gray-400">
-            {resultsList.length} matches
-          </span>
+
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full sm:w-auto">
+            {/* Subtle Competition Round Dropdown */}
+            {availableCompetitions.length > 0 && (
+              <div className="relative w-full sm:w-64">
+                <select
+                  id="results-competition-filter"
+                  aria-label="Filter matches by competition round"
+                  value={selectedCompetition}
+                  onChange={(e) => handleCompetitionChange(e.target.value)}
+                  className="w-full appearance-none bg-gray-950/90 hover:bg-gray-900 text-white text-xs font-medium rounded-lg pl-3 pr-8 py-1.5 border border-gray-700/80 hover:border-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all cursor-pointer shadow-sm"
+                >
+                  <option value="all">🏆 All Competitions ({resultsList.length})</option>
+                  {availableCompetitions.map((comp) => {
+                    const count = resultsList.filter(
+                      (r) => (r.competition || "").trim().toLowerCase() === comp.trim().toLowerCase()
+                    ).length;
+                    return (
+                      <option key={comp} value={comp}>
+                        {comp} {count > 0 ? `(${count})` : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </div>
+              </div>
+            )}
+
+            <span className="text-xs font-semibold text-gray-400 shrink-0">
+              Showing {displayedResults.length} of {filteredResults.length} matches
+            </span>
+          </div>
         </div>
 
         <div className="rounded-xl overflow-hidden bg-gray-900/90 border border-gray-800 shadow-inner">
           {/* Desktop Table (sm and up) */}
           <div className="hidden sm:block">
             <div
+              onScroll={handleTableScroll}
               className="overflow-y-auto custom-scrollbar"
-              style={{ maxHeight: `${(rowsToShow || 5) * ROW_HEIGHT_PX}px` }}
+              style={{ maxHeight: `${(rowsToShow || 4) * ROW_HEIGHT_PX}px` }}
             >
               <table className="min-w-full w-full text-xs sm:text-sm table-fixed">
                 <colgroup>
@@ -394,62 +549,82 @@ export default function ClientMatchResults({
                 </thead>
 
                 <tbody className="divide-y divide-gray-800/80">
-                  {resultsList.map((result) => {
-                    const isSelected = selectedId === result.id;
-                    const lower = (result.game_result || "").toLowerCase();
-                    return (
-                      <tr
-                        key={result.id}
-                        onClick={() => handleSelectAndScroll(result.id)}
-                        className={`cursor-pointer transition-colors ${isSelected
-                            ? "bg-emerald-950/50 border-l-4 border-l-emerald-400 font-bold"
-                            : "hover:bg-gray-800/50"
-                          }`}
-                        style={{ height: ROW_HEIGHT_PX }}
-                      >
-                        <td className="px-3.5 text-gray-300 align-middle">
-                          {result.date ? formatShortDate(result.date) : "-"}
-                        </td>
-                        <td className="px-3.5 text-white font-medium align-middle truncate">
-                          {result.opponent ?? "-"}
-                        </td>
-                        <td className="px-3.5 align-middle">
-                          {lower === "win" && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-bold text-xs shadow-sm">
-                              Win
-                            </span>
-                          )}
-                          {lower === "draw" && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/50 text-amber-300 font-bold text-xs shadow-sm">
-                              Draw
-                            </span>
-                          )}
-                          {["loss", "lost"].includes(lower) && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-rose-950/80 border border-rose-500/50 text-rose-300 font-bold text-xs shadow-sm">
-                              Loss
-                            </span>
-                          )}
-                          {!result.game_result && (
-                            <span className="px-2 py-0.5 rounded bg-gray-800 text-gray-400 text-xs">
-                              -
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3.5 text-center align-middle font-mono font-bold text-gray-100">
-                          {(result.goals_fcmierda ?? "-") + " - " + (result.goals_opponent ?? "-")}
-                        </td>
-                        <td className="px-3.5 text-center align-middle">
-                          {result.youtube ? (
-                            <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 font-semibold text-[11px]">
-                              Available
-                            </span>
-                          ) : (
-                            <span className="text-gray-600 text-xs">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {displayedResults.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-3.5 py-8 text-center text-xs sm:text-sm text-gray-400">
+                        No match results recorded for this competition round.
+                      </td>
+                    </tr>
+                  ) : (
+                    displayedResults.map((result) => {
+                      const isSelected = selectedId === result.id;
+                      const lower = (result.game_result || "").toLowerCase();
+                      return (
+                        <tr
+                          key={result.id}
+                          onClick={() => handleSelectAndScroll(result.id)}
+                          className={`cursor-pointer transition-colors ${isSelected
+                              ? "bg-emerald-950/50 border-l-4 border-l-emerald-400 font-bold"
+                              : "hover:bg-gray-800/50"
+                            }`}
+                          style={{ height: ROW_HEIGHT_PX }}
+                        >
+                          <td className="px-3.5 text-gray-300 align-middle">
+                            {result.date ? formatShortDate(result.date) : "-"}
+                          </td>
+                          <td className="px-3.5 text-white font-medium align-middle truncate">
+                            {result.opponent ?? "-"}
+                          </td>
+                          <td className="px-3.5 align-middle">
+                            {lower === "win" && (
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-bold text-xs shadow-sm">
+                                Win
+                              </span>
+                            )}
+                            {lower === "draw" && (
+                              <span className="px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/50 text-amber-300 font-bold text-xs shadow-sm">
+                                Draw
+                              </span>
+                            )}
+                            {["loss", "lost"].includes(lower) && (
+                              <span className="px-2.5 py-0.5 rounded-full bg-rose-950/80 border border-rose-500/50 text-rose-300 font-bold text-xs shadow-sm">
+                                Loss
+                              </span>
+                            )}
+                            {!result.game_result && (
+                              <span className="px-2 py-0.5 rounded bg-gray-800 text-gray-400 text-xs">
+                                -
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3.5 text-center align-middle font-mono font-bold text-gray-100">
+                            {(result.goals_fcmierda ?? "-") + " - " + (result.goals_opponent ?? "-")}
+                          </td>
+                          <td className="px-3.5 text-center align-middle">
+                            {result.youtube ? (
+                              <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 font-semibold text-[11px]">
+                                Available
+                              </span>
+                            ) : (
+                              <span className="text-gray-600 text-xs">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+
+                  {/* Desktop bottom sentinel / loading indicator */}
+                  {visibleCount < filteredResults.length && (
+                    <tr ref={sentinelDesktopRef} className="bg-gray-950/60">
+                      <td colSpan={5} className="px-3.5 py-3 text-center text-xs text-gray-400">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="w-3.5 h-3.5 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+                          <span>Scroll down to load earlier matches ({filteredResults.length - visibleCount} more)...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -458,58 +633,76 @@ export default function ClientMatchResults({
           {/* Mobile Stacked Cards (under sm) */}
           <div className="sm:hidden">
             <div
+              onScroll={handleTableScroll}
               className="overflow-y-auto custom-scrollbar divide-y divide-gray-800"
-              style={{ maxHeight: `${(rowsToShow || 5) * (ROW_HEIGHT_PX + 20)}px` }}
+              style={{ maxHeight: `${(rowsToShow || 4) * (ROW_HEIGHT_PX + 20)}px` }}
             >
-              {resultsList.map((result) => {
-                const isSelected = selectedId === result.id;
-                const lower = (result.game_result || "").toLowerCase();
-                return (
-                  <button
-                    key={result.id}
-                    onClick={() => handleSelectAndScroll(result.id)}
-                    className={`w-full text-left px-3.5 py-2.5 transition-colors ${isSelected ? "bg-emerald-950/50 border-l-4 border-l-emerald-400" : "hover:bg-gray-800/50"
-                      }`}
-                  >
-                    <div className="flex justify-between items-center gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-white truncate">
-                          {result.opponent ?? "-"}
+              {displayedResults.length === 0 ? (
+                <div className="p-8 text-center text-xs sm:text-sm text-gray-400">
+                  No match results recorded for this competition round.
+                </div>
+              ) : (
+                displayedResults.map((result) => {
+                  const isSelected = selectedId === result.id;
+                  const lower = (result.game_result || "").toLowerCase();
+                  return (
+                    <button
+                      key={result.id}
+                      onClick={() => handleSelectAndScroll(result.id)}
+                      className={`w-full text-left px-3.5 py-2.5 transition-colors ${isSelected ? "bg-emerald-950/50 border-l-4 border-l-emerald-400" : "hover:bg-gray-800/50"
+                        }`}
+                    >
+                      <div className="flex justify-between items-center gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-bold text-white truncate">
+                            {result.opponent ?? "-"}
+                          </div>
+                          <div className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <span>{result.date ? formatShortDate(result.date) : "-"}</span>
+                            {result.youtube && (
+                              <span className="text-emerald-400/90 font-semibold">• Video available</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                          <span>{result.date ? formatShortDate(result.date) : "-"}</span>
-                          {result.youtube && (
-                            <span className="text-emerald-400/90 font-semibold">• Video available</span>
-                          )}
-                        </div>
-                      </div>
 
-                      <div className="flex items-center gap-2.5 shrink-0">
-                        <div className="font-mono font-bold text-sm text-gray-200">
-                          {(result.goals_fcmierda ?? "-") + " - " + (result.goals_opponent ?? "-")}
-                        </div>
-                        <div>
-                          {lower === "win" && (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-bold text-[11px]">
-                              Win
-                            </span>
-                          )}
-                          {lower === "draw" && (
-                            <span className="px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/50 text-amber-300 font-bold text-[11px]">
-                              Draw
-                            </span>
-                          )}
-                          {["loss", "lost"].includes(lower) && (
-                            <span className="px-2 py-0.5 rounded-full bg-rose-950/80 border border-rose-500/50 text-rose-300 font-bold text-[11px]">
-                              Loss
-                            </span>
-                          )}
+                        <div className="flex items-center gap-2.5 shrink-0">
+                          <div className="font-mono font-bold text-sm text-gray-200">
+                            {(result.goals_fcmierda ?? "-") + " - " + (result.goals_opponent ?? "-")}
+                          </div>
+                          <div>
+                            {lower === "win" && (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-bold text-[11px]">
+                                Win
+                              </span>
+                            )}
+                            {lower === "draw" && (
+                              <span className="px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/50 text-amber-300 font-bold text-[11px]">
+                                Draw
+                              </span>
+                            )}
+                            {["loss", "lost"].includes(lower) && (
+                              <span className="px-2 py-0.5 rounded-full bg-rose-950/80 border border-rose-500/50 text-rose-300 font-bold text-[11px]">
+                                Loss
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })
+              )}
+
+              {/* Mobile bottom sentinel / loading indicator */}
+              {visibleCount < filteredResults.length && (
+                <div
+                  ref={sentinelMobileRef}
+                  className="p-3 text-center text-xs text-gray-400 flex items-center justify-center gap-2 bg-gray-950/60"
+                >
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+                  <span>Scroll down to load earlier matches ({filteredResults.length - visibleCount} more)...</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

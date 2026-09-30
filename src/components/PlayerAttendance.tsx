@@ -121,13 +121,17 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
     });
   }
 
-  // Hydrate from session storage immediately on initial mount (0ms instant render)
+  // Hydrate from session storage or local storage immediately on initial mount (0ms instant render)
   useEffect(() => {
     try {
-      const cachedPlayers = sessionStorage.getItem("fcmierda_players_cache");
-      const cachedSubs = sessionStorage.getItem("fcmierda_known_subs_cache");
-      const cachedNextGame = sessionStorage.getItem("fcmierda_nextgame_cache");
-      const cachedAttendance = sessionStorage.getItem("fcmierda_attendance_cache");
+      const getCached = (key: string) => {
+        return sessionStorage.getItem(key) || localStorage.getItem(key);
+      };
+
+      const cachedPlayers = getCached("fcmierda_players_cache");
+      const cachedSubs = getCached("fcmierda_known_subs_cache");
+      const cachedNextGame = getCached("fcmierda_nextgame_cache");
+      const cachedAttendance = getCached("fcmierda_attendance_cache");
 
       if (cachedPlayers) {
         const parsedPlayers = JSON.parse(cachedPlayers);
@@ -160,15 +164,15 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
     }
   }, []);
 
-  // Fetch latest players and next game in parallel with stale-while-revalidate
+  // Fetch latest players (lightweight namesOnly) and next game in parallel
   useEffect(() => {
     let isMounted = true;
     (async () => {
       try {
-        // Parallel requests cut load time in half
+        // Parallel requests using lightweight ?namesOnly=true for minimal payload and sub-50ms latency
         const [resStats, resNext] = await Promise.all([
-          fetch(`/api/player-statistics?_t=${Date.now()}`, { cache: "no-store" }),
-          fetch(`/api/next-game?_t=${Date.now()}`, { cache: "no-store" }),
+          fetch(`/api/player-statistics?namesOnly=true`),
+          fetch(`/api/next-game`),
         ]);
 
         const statsJson = await resStats.json().catch(() => ({}));
@@ -246,12 +250,22 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
             ensureTrailingEmptyRow(loadedSubs.length > 0 ? loadedSubs : [{ name: "", status: "unknown" }])
           );
 
-          // Save fresh data into session cache for future instant loads
+          // Save fresh data into session and local storage for instant future loads
           try {
-            sessionStorage.setItem("fcmierda_players_cache", JSON.stringify(fetchedPlayers));
-            sessionStorage.setItem("fcmierda_known_subs_cache", JSON.stringify(fetchedSubs));
-            sessionStorage.setItem("fcmierda_nextgame_cache", JSON.stringify(nextGameData));
-            sessionStorage.setItem("fcmierda_attendance_cache", JSON.stringify(initialAttendance));
+            const playersStr = JSON.stringify(fetchedPlayers);
+            const subsStr = JSON.stringify(fetchedSubs);
+            const nextGameStr = JSON.stringify(nextGameData);
+            const attStr = JSON.stringify(initialAttendance);
+
+            sessionStorage.setItem("fcmierda_players_cache", playersStr);
+            sessionStorage.setItem("fcmierda_known_subs_cache", subsStr);
+            sessionStorage.setItem("fcmierda_nextgame_cache", nextGameStr);
+            sessionStorage.setItem("fcmierda_attendance_cache", attStr);
+
+            localStorage.setItem("fcmierda_players_cache", playersStr);
+            localStorage.setItem("fcmierda_known_subs_cache", subsStr);
+            localStorage.setItem("fcmierda_nextgame_cache", nextGameStr);
+            localStorage.setItem("fcmierda_attendance_cache", attStr);
           } catch {
             // ignore
           }

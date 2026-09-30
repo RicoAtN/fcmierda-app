@@ -39,6 +39,31 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const competition = searchParams.get("competition")?.trim();
+    const namesOnly = searchParams.get("namesOnly") === "true" || searchParams.get("summary") === "true";
+
+    // 0. Lightweight mode for attendance tracker & roster lookups (zero heavy fields or calculations)
+    if (namesOnly) {
+      const lightweightRows = await sql`
+        SELECT
+          ps.player_id,
+          ps.player_name,
+          ps.player_number,
+          ps.main_player
+        FROM player_statistics ps
+        WHERE ps.player_name IS NOT NULL AND TRIM(ps.player_name) != ''
+        ORDER BY ps.player_id;
+      `;
+
+      return NextResponse.json(
+        { data: lightweightRows },
+        {
+          status: 200,
+          headers: {
+            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          },
+        }
+      );
+    }
 
     // Fetch base player records
     const basePlayers = (await sql`

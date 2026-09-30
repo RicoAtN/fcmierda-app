@@ -102,6 +102,37 @@ export default function StatisticsPage() {
   const [selectedTeamComp, setSelectedTeamComp] = useState<string>("all");
   const [selectedPlayerComp, setSelectedPlayerComp] = useState<string>("all");
 
+  // Lazy load overall statistics section on scroll down to section
+  const [showOverallStats, setShowOverallStats] = useState<boolean>(false);
+  const overallSectionRef = React.useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    // If URL hash targets overall stats, show immediately
+    if (typeof window !== "undefined" && window.location.hash.toLowerCase().includes("overall")) {
+      setShowOverallStats(true);
+      return;
+    }
+
+    const el = overallSectionRef.current;
+    if (!el) return;
+
+    if (typeof IntersectionObserver !== "undefined") {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]?.isIntersecting) {
+            setShowOverallStats(true);
+            observer.disconnect();
+          }
+        },
+        { rootMargin: "350px 0px" } // Preload 350px before entering viewport
+      );
+      observer.observe(el);
+      return () => observer.disconnect();
+    } else {
+      setShowOverallStats(true);
+    }
+  }, []);
+
   // Hydrate initial stats from session cache for instant render
   useEffect(() => {
     try {
@@ -858,7 +889,11 @@ export default function StatisticsPage() {
         </section>
 
         {/* Overall Statistics Section */}
-        <section id="overall-statistics" className="max-w-5xl w-full rounded-2xl p-4 sm:p-7 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-sm mx-auto mb-8">
+        <section
+          id="overall-statistics"
+          ref={overallSectionRef}
+          className="max-w-5xl w-full rounded-2xl p-4 sm:p-7 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-sm mx-auto mb-8 min-h-[160px]"
+        >
           <header className="mb-6 text-center">
             <h2 className={`text-2xl sm:text-3xl font-black text-white tracking-tight ${robotoSlab.className}`}>
               {isAllTimePlayerView ? "Overall Player Statistics" : `Player Statistics — ${selectedPlayerComp}`}
@@ -870,7 +905,21 @@ export default function StatisticsPage() {
             </p>
           </header>
 
-          {playerStatsError && mains.length === 0 ? (
+          {!showOverallStats ? (
+            <div className="py-10 px-4 text-center rounded-xl bg-gray-900/60 border border-gray-800 flex flex-col items-center justify-center gap-2.5">
+              <div className="w-5 h-5 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin opacity-80" />
+              <p className="text-xs sm:text-sm text-gray-300 font-medium">
+                Scroll down to load complete squad leaderboards &amp; metrics…
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowOverallStats(true)}
+                className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold underline underline-offset-4 cursor-pointer mt-0.5"
+              >
+                Click to load now
+              </button>
+            </div>
+          ) : playerStatsError && mains.length === 0 ? (
             <div className="py-6">
               <DatabaseUnavailableNotice
                 title="Player Statistics Offline"

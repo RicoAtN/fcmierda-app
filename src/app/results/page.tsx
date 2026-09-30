@@ -235,8 +235,9 @@ export default async function ResultsPage() {
           <ClientMatchResults
             allResults={allResults}
             competitionLinkMap={competitionLinkMap}
+            competitionList={competitions.map((c) => c.competition_name).filter(Boolean)}
             playerMap={playerMap}
-            rowsToShow={5}
+            rowsToShow={4}
           />
         </div>
 
