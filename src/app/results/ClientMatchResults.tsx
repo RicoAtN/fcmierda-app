@@ -291,6 +291,83 @@ export default function ClientMatchResults({
   const selectedResult: MatchResult | undefined =
     (filteredResults || []).find((r) => r.id === selectedId) || (filteredResults && filteredResults[0]);
 
+  // Track on-demand fetched MOTM photos to avoid heavy SSR payloads while keeping MOTM photos crisp
+  const [motmPhotoMap, setMotmPhotoMap] = React.useState<Record<string, string>>({});
+
+  React.useEffect(() => {
+    const rawMotm = selectedResult?.fcmierda_man_of_the_match?.trim();
+    if (!rawMotm) return;
+
+    const motmKey = rawMotm.toLowerCase();
+    const cleanMotmKey = motmKey.replace(/[^\p{L}\p{N}]/gu, "");
+
+    // 1. If we already have the photo in motmPhotoMap, nothing to do
+    if (motmPhotoMap[motmKey] || (cleanMotmKey && motmPhotoMap[cleanMotmKey])) return;
+
+    // 2. If clientPlayerMap already has this player's photo, populate motmPhotoMap
+    const existing =
+      clientPlayerMap[motmKey] ||
+      clientPlayerMap[cleanMotmKey] ||
+      Object.values(clientPlayerMap).find((p) => {
+        const pKey = p.name.toLowerCase();
+        const pClean = pKey.replace(/[^\p{L}\p{N}]/gu, "");
+        return (
+          pKey === motmKey ||
+          pClean === cleanMotmKey ||
+          pKey.startsWith(motmKey) ||
+          motmKey.startsWith(pKey) ||
+          (cleanMotmKey.length >= 3 && (pClean.startsWith(cleanMotmKey) || cleanMotmKey.startsWith(pClean)))
+        );
+      });
+
+    if (existing?.photo) {
+      setMotmPhotoMap((prev) => ({
+        ...prev,
+        [motmKey]: existing.photo!,
+        ...(cleanMotmKey ? { [cleanMotmKey]: existing.photo! } : {}),
+      }));
+      return;
+    }
+
+    // 3. Otherwise fetch on-demand for this single player
+    let isCancelled = false;
+    (async () => {
+      try {
+        const motmId = existing?.id ?? getPlayerId(rawMotm);
+        const queryParams = new URLSearchParams();
+        if (motmId !== undefined) queryParams.set("id", String(motmId));
+        queryParams.set("name", rawMotm);
+
+        const res = await fetch(`/api/main-players?${queryParams.toString()}`);
+        if (res.ok) {
+          const { data } = await res.json();
+          if (!isCancelled && data && data.photo) {
+            setMotmPhotoMap((prev) => ({
+              ...prev,
+              [motmKey]: data.photo,
+              ...(cleanMotmKey ? { [cleanMotmKey]: data.photo } : {}),
+            }));
+            setClientPlayerMap((prev) => ({
+              ...prev,
+              [motmKey]: {
+                id: String(data.player_id || motmId || ""),
+                name: data.name || rawMotm,
+                photo: data.photo,
+                number: data.number || prev[motmKey]?.number || null,
+              },
+            }));
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch MOTM photo:", err);
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedResult?.fcmierda_man_of_the_match, clientPlayerMap, motmPhotoMap]);
+
   const detailsRef = React.useRef<HTMLElement | null>(null);
   const router = useRouter();
 
@@ -858,7 +935,10 @@ export default function ClientMatchResults({
                 });
 
               const motmId = playerData?.id ?? getPlayerId(motmName);
-              const motmPhoto = playerData?.photo;
+              const motmPhoto =
+                motmPhotoMap[motmKey] ||
+                (cleanMotmKey ? motmPhotoMap[cleanMotmKey] : undefined) ||
+                playerData?.photo;
 
               const getInitials = (name: string) => {
                 const clean = name.replace(/[^\p{L}\p{N}\s]/gu, "").trim();
@@ -874,12 +954,11 @@ export default function ClientMatchResults({
                   <div className="shrink-0 relative">
                     {motmPhoto ? (
                       <div className="w-12 h-12 sm:w-14 sm:h-14 relative rounded-full overflow-hidden border-2 border-amber-400/70 shadow-md bg-gray-950 group-hover:scale-105 group-hover:border-amber-300 transition-transform duration-200">
-                        <Image
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
                           src={motmPhoto}
                           alt={motmName}
-                          fill
-                          unoptimized
-                          className="object-cover"
+                          className="w-full h-full object-cover"
                           style={{ objectPosition: "center 35%" }}
                         />
                       </div>

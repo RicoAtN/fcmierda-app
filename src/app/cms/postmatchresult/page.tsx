@@ -100,6 +100,33 @@ export default function PostMatchResultPage() {
   const [allResults, setAllResults] = useState<MatchResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<MatchResult | null>(null);
 
+  // Match archive pagination state (limit to 5 initially)
+  const [archiveVisibleCount, setArchiveVisibleCount] = useState<number>(5);
+
+  const scrollToMatchEditor = () => {
+    const attemptScroll = (count = 0) => {
+      const el = document.getElementById("selected-match-editor");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (count < 6) {
+        setTimeout(() => attemptScroll(count + 1), 60);
+      }
+    };
+    setTimeout(() => attemptScroll(0), 40);
+  };
+
+  const handleArchiveScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 60) {
+      setArchiveVisibleCount((prev) => {
+        if (prev < allResults.length) {
+          return Math.min(prev + 5, allResults.length);
+        }
+        return prev;
+      });
+    }
+  };
+
   // Edit mode state
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState<MatchResult | null>(null);
@@ -933,12 +960,22 @@ export default function PostMatchResultPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* List Table */}
             <div className="lg:col-span-5 flex flex-col">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Matches Archive ({allResults.length})
-              </span>
-              <div className="rounded-xl border border-gray-800 bg-gray-900/80 overflow-hidden shadow-inner max-h-[480px] overflow-y-auto">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Matches Archive ({allResults.length})
+                </span>
+                {allResults.length > 5 && (
+                  <span className="text-[11px] text-gray-500 font-medium">
+                    Showing {Math.min(archiveVisibleCount, allResults.length)} of {allResults.length}
+                  </span>
+                )}
+              </div>
+              <div
+                onScroll={handleArchiveScroll}
+                className="rounded-xl border border-gray-800 bg-gray-900/80 overflow-hidden shadow-inner max-h-[235px] overflow-y-auto"
+              >
                 <table className="w-full text-xs sm:text-sm">
-                  <thead className="bg-black/40 border-b border-gray-800 sticky top-0">
+                  <thead className="bg-black/40 border-b border-gray-800 sticky top-0 z-10">
                     <tr>
                       <th className="py-2.5 px-3 text-left text-gray-400 font-semibold">Date</th>
                       <th className="py-2.5 px-3 text-left text-gray-400 font-semibold">Opponent</th>
@@ -946,13 +983,16 @@ export default function PostMatchResultPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800/60">
-                    {allResults.map((result, idx) => {
+                    {allResults.slice(0, archiveVisibleCount).map((result, idx) => {
                       const isSelected = selectedResult && selectedResult.id === result.id;
                       const res = (result.gameResult || result.game_result || "").toLowerCase();
                       return (
                         <tr
                           key={result.id || idx}
-                          onClick={() => setSelectedResult(result)}
+                          onClick={() => {
+                            setSelectedResult(result);
+                            scrollToMatchEditor();
+                          }}
                           className={`cursor-pointer transition-colors ${
                             isSelected
                               ? "bg-emerald-950/60 text-emerald-200 font-semibold"
@@ -984,10 +1024,19 @@ export default function PostMatchResultPage() {
                   </tbody>
                 </table>
               </div>
+              {archiveVisibleCount < allResults.length && (
+                <button
+                  type="button"
+                  onClick={() => setArchiveVisibleCount((prev) => Math.min(prev + 5, allResults.length))}
+                  className="mt-2 py-1.5 px-3 rounded-lg text-center text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 bg-gray-900/60 hover:bg-gray-900 border border-gray-800 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>↓ Scroll down for more ({allResults.length - archiveVisibleCount} remaining)</span>
+                </button>
+              )}
             </div>
 
             {/* Selected Match Details / Editor View */}
-            <div className="lg:col-span-7">
+            <div id="selected-match-editor" className="lg:col-span-7 scroll-mt-24 sm:scroll-mt-8">
               {selectedResult ? (
                 <div className="rounded-xl border border-gray-800 bg-gray-900/90 p-5 sm:p-6 shadow-xl">
                   {!editMode ? (
@@ -1016,6 +1065,7 @@ export default function PostMatchResultPage() {
                             setEditForm({ ...selectedResult });
                             setEditNotifyUsers(false);
                             setEditCustomNotificationText("");
+                            scrollToMatchEditor();
                           }}
                           className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white shadow transition-all cursor-pointer"
                         >

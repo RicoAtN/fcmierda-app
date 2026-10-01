@@ -143,8 +143,10 @@ type PlayerMapData = {
   number?: string | null;
 };
 
-async function getPlayerMap(): Promise<Record<string, PlayerMapData>> {
+async function getPlayerMap(initialMotmName?: string): Promise<Record<string, PlayerMapData>> {
   try {
+    const motmTarget = (initialMotmName || "").trim();
+    const motmLike = motmTarget ? `%${motmTarget}%` : "";
     const rows = await sql`
       SELECT
         ps.player_id::text AS id,
@@ -152,7 +154,13 @@ async function getPlayerMap(): Promise<Record<string, PlayerMapData>> {
         ps.player_number::text AS number,
         CASE
           WHEN ps.photo_link IS NULL OR TRIM(ps.photo_link) = '' THEN NULL
-          WHEN LEFT(ps.photo_link, 5) = 'data:' THEN NULL
+          WHEN ${motmTarget} != '' AND (LOWER(TRIM(ps.player_name)) = LOWER(${motmTarget}) OR ps.player_name ILIKE ${motmLike}) THEN
+            CASE
+              WHEN ps.photo_link ~ '^[a-z]+://' THEN ps.photo_link
+              WHEN LEFT(ps.photo_link, 5) = 'data:' THEN ps.photo_link
+              WHEN LEFT(ps.photo_link, 1) = '/' THEN ps.photo_link
+              ELSE '/' || ps.photo_link
+            END
           WHEN ps.photo_link ~ '^https?://' AND LENGTH(ps.photo_link) < 1024 THEN ps.photo_link
           WHEN LEFT(ps.photo_link, 1) = '/' AND LENGTH(ps.photo_link) < 1024 THEN ps.photo_link
           WHEN LENGTH(ps.photo_link) < 1024 THEN '/' || ps.photo_link
@@ -179,14 +187,16 @@ async function getPlayerMap(): Promise<Record<string, PlayerMapData>> {
 }
 
 export default async function ResultsPage() {
-  const [allResultsRes, competitions, playerMap] = await Promise.all([
-    getAllResults(),
-    getCompetitionsOverview(),
-    getPlayerMap(),
-  ]);
-
+  const allResultsRes = await getAllResults();
   const allResults = allResultsRes.results;
   const isDbError = allResultsRes.isDbError;
+
+  const initialMotm = allResults[0]?.fcmierda_man_of_the_match?.trim();
+
+  const [competitions, playerMap] = await Promise.all([
+    getCompetitionsOverview(),
+    getPlayerMap(initialMotm),
+  ]);
 
   // Create dictionary mapping competition name -> league_link
   const competitionLinkMap: Record<string, string> = {};

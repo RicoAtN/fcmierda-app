@@ -31,10 +31,14 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const playerId = searchParams.get("id") || searchParams.get("playerId");
+    const playerName = searchParams.get("name") || searchParams.get("playerName");
     const detailed = searchParams.get("detailed") === "true";
 
-    // 1. Fetch single player full details on demand (when clicked/selected)
-    if (playerId) {
+    // 1. Fetch single player full details on demand (when clicked/selected or for MOTM profile)
+    if (playerId || playerName) {
+      const pId = (playerId || "").trim();
+      const pName = (playerName || "").trim();
+      const pNameLike = pName ? `%${pName}%` : "";
       const rows = await sql`
         SELECT
           ps.player_id::text AS player_id,
@@ -61,7 +65,11 @@ export async function GET(req: NextRequest) {
           ps.biography_detail,
           ps.main_player
         FROM player_statistics ps
-        WHERE ps.player_id::text = ${playerId}
+        WHERE (${pId} != '' AND (ps.player_id::text = ${pId} OR ps.player_number::text = ${pId}))
+           OR (${pName} != '' AND (LOWER(TRIM(ps.player_name)) = LOWER(${pName}) OR ps.player_name ILIKE ${pNameLike}))
+        ORDER BY
+          CASE WHEN ${pName} != '' AND LOWER(TRIM(ps.player_name)) = LOWER(${pName}) THEN 1 ELSE 2 END,
+          ps.player_id
         LIMIT 1;
       `;
 
