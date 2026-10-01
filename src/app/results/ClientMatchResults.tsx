@@ -552,7 +552,7 @@ export default function ClientMatchResults({
   return (
     <>
       {/* Table Section */}
-      <section className="w-full mb-8">
+      <section id="match-history" className="w-full mb-8 scroll-mt-24 sm:scroll-mt-28">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-2 border-b border-gray-800">
           <div className="flex items-center gap-2">
             <span className="text-lg">📋</span>
@@ -596,6 +596,14 @@ export default function ClientMatchResults({
               Showing {displayedResults.length} of {filteredResults.length} matches
             </span>
           </div>
+        </div>
+
+        {/* Short explainer note */}
+        <div className="flex items-center gap-2 mb-3.5 px-3.5 py-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/25 text-xs text-emerald-300 shadow-sm">
+          <span className="text-sm shrink-0">💡</span>
+          <span className="leading-relaxed">
+            <strong className="font-semibold text-white">Interactive Table:</strong> Click on any match row to view its full match result, Man of the Match, and recap below.
+          </span>
         </div>
 
         <div className="rounded-xl overflow-hidden bg-gray-900/90 border border-gray-800 shadow-inner">
@@ -790,8 +798,23 @@ export default function ClientMatchResults({
         <section
           id="match-details"
           ref={detailsRef}
-          className="w-full pt-6 border-t border-gray-800 scroll-mt-6 sm:scroll-mt-8"
+          className="w-full pt-6 border-t border-gray-800 scroll-mt-24 sm:scroll-mt-28"
         >
+          {/* Section Header */}
+          <div className="flex items-center justify-between gap-3 mb-4 max-w-3xl mx-auto px-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">⭐</span>
+              <h2 className={`text-xl sm:text-2xl font-extrabold text-white tracking-tight ${robotoSlab.className}`}>
+                {selectedResult.id === resultsList[0]?.id ? "Latest Match Report" : "Match Report"}
+              </h2>
+            </div>
+            {selectedResult.id === resultsList[0]?.id && (
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 uppercase tracking-wider">
+                Latest Game
+              </span>
+            )}
+          </div>
+
           {/* Match Recap Card */}
           <div className="rounded-2xl p-4 sm:p-7 md:p-8 text-white bg-gray-900/90 border border-gray-800 shadow-xl max-w-3xl mx-auto">
             {/* Header: Date & Competition Badges */}

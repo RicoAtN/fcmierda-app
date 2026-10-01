@@ -223,6 +223,75 @@ async function getPlayersMap(): Promise<Record<string, PlayerMapItem>> {
   }
 }
 
+type HistoricMatchItem = {
+  id: number;
+  date: string;
+  opponent: string;
+  game_result?: string | null;
+  goals_fcmierda?: number | string | null;
+  goals_opponent?: number | string | null;
+};
+
+async function getHistoricMatchesAgainstOpponent(opponentName?: string): Promise<HistoricMatchItem[]> {
+  if (!opponentName || !opponentName.trim() || opponentName === "-") {
+    return [];
+  }
+  const clean = opponentName.trim();
+  const base = clean.replace(/\s+\d+$/, "").trim();
+  const likeExact = `%${clean}%`;
+  const likeBase = base.length >= 3 ? `%${base}%` : likeExact;
+
+  try {
+    const rows = await sql`
+      SELECT
+        id,
+        date,
+        opponent,
+        game_result,
+        goals_fcmierda,
+        goals_opponent
+      FROM match_result
+      WHERE LOWER(TRIM(opponent)) = LOWER(${clean})
+         OR opponent ILIKE ${likeExact}
+         OR opponent ILIKE ${likeBase}
+      ORDER BY date DESC NULLS LAST, id DESC
+      LIMIT 5
+    `;
+    return rows as HistoricMatchItem[];
+  } catch (err) {
+    console.warn("[FixturesPage] Could not load historic matches against opponent:", err);
+    return [];
+  }
+}
+
+function getMatchOutcome(m: HistoricMatchItem): { outcome: "W" | "D" | "L"; gf: number; ga: number } {
+  const gf = Number(m.goals_fcmierda ?? 0);
+  const ga = Number(m.goals_opponent ?? 0);
+  const gr = (m.game_result || "").trim().toLowerCase();
+
+  let outcome: "W" | "D" | "L";
+  if (gr === "win" || gr === "won" || gr === "w") {
+    outcome = "W";
+  } else if (gr === "loss" || gr === "lost" || gr === "l") {
+    outcome = "L";
+  } else if (gr === "draw" || gr === "d" || gr === "tie") {
+    outcome = "D";
+  } else {
+    if (gf > ga) outcome = "W";
+    else if (gf < ga) outcome = "L";
+    else outcome = "D";
+  }
+
+  return { outcome, gf, ga };
+}
+
+const h2hColorFor = (outcome: "W" | "D" | "L") =>
+  outcome === "W"
+    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 hover:border-emerald-400 hover:bg-emerald-500/30 shadow-emerald-500/10"
+    : outcome === "D"
+    ? "bg-amber-500/20 text-amber-300 border-amber-500/50 hover:border-amber-400 hover:bg-amber-500/30 shadow-amber-500/10"
+    : "bg-rose-500/20 text-rose-300 border-rose-500/50 hover:border-rose-400 hover:bg-rose-500/30 shadow-rose-500/10";
+
 function cleanPlayerDisplayName(rawName: string, playerInfo?: PlayerMapItem | null): string {
   const base = playerInfo?.name || rawName || "";
   return base.replace(/^\s*#?\d+[\s.-]*/, "").trim();
@@ -329,8 +398,30 @@ export default async function FixturesPage() {
     note: nextGame.note || "-",
   };
 
-  const competitionInfo = await getCompetitionDetails(safeGame.competition);
+  const [competitionInfo, historicMatches] = await Promise.all([
+    getCompetitionDetails(safeGame.competition),
+    getHistoricMatchesAgainstOpponent(safeGame.opponent),
+  ]);
   const leagueLink = competitionInfo?.league_link;
+
+  const last5HistoricMatches = historicMatches.slice(0, 5);
+
+  const h2hStats = last5HistoricMatches.reduce(
+    (acc, m) => {
+      const { outcome } = getMatchOutcome(m);
+      if (outcome === "W") acc.w++;
+      else if (outcome === "D") acc.d++;
+      else if (outcome === "L") acc.l++;
+      return acc;
+    },
+    { w: 0, d: 0, l: 0 }
+  );
+
+  const h2hSummaryParts: string[] = [];
+  if (h2hStats.w > 0) h2hSummaryParts.push(`${h2hStats.w}W`);
+  if (h2hStats.d > 0) h2hSummaryParts.push(`${h2hStats.d}D`);
+  if (h2hStats.l > 0) h2hSummaryParts.push(`${h2hStats.l}L`);
+  const h2hSummary = h2hSummaryParts.length > 0 ? h2hSummaryParts.join(" ") : null;
 
   // Attendance processing (sorted: GK -> Defenders -> Midfielders -> Attackers)
   const attendance = nextGame.attendance || {};
@@ -388,7 +479,7 @@ export default async function FixturesPage() {
           </div>
 
           {/* Unified Kick-Off Tile Container */}
-          <div className="p-3.5 sm:p-6 md:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-gray-950 via-black/90 to-gray-950 border border-emerald-500/35 shadow-[0_0_35px_rgba(16,185,129,0.18)] w-full max-w-2xl mx-auto space-y-3 sm:space-y-4">
+          <div className="p-2.5 sm:p-6 md:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-gray-950 via-black/90 to-gray-950 border border-emerald-500/35 shadow-[0_0_35px_rgba(16,185,129,0.18)] w-full max-w-2xl mx-auto space-y-2.5 sm:space-y-4">
             
             {/* 1. Top Header: Stacked Match Date */}
             <div className="flex flex-col items-center justify-center pb-2 border-b border-gray-800/80 w-full text-center">
@@ -401,47 +492,90 @@ export default async function FixturesPage() {
             </div>
 
             {/* 2. Central Row: FC Mierda (Left) | Kick-Off Time (Center) | Opponent (Right) */}
-            <div className="flex items-center justify-between gap-2 sm:gap-4 md:gap-6 py-1 sm:py-2 w-full">
+            <div className="flex items-center justify-between gap-1 sm:gap-4 md:gap-6 py-1 sm:py-2 w-full min-w-0">
               
               {/* Left Side: FC Mierda */}
-              <div className="flex flex-col items-center text-center flex-1 max-w-[100px] sm:max-w-[140px] shrink-0">
-                <div className="relative w-14 h-14 sm:w-20 sm:h-20 md:w-22 md:h-22 mb-1.5 drop-shadow-[0_4px_16px_rgba(16,185,129,0.35)] shrink-0">
+              <div className="flex flex-col items-center text-center w-[72px] sm:w-[110px] md:w-[130px] shrink-0 min-w-0">
+                <div className="relative w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mb-1 drop-shadow-[0_4px_16px_rgba(16,185,129,0.35)] shrink-0">
                   <Image
                     src="/FCMierda-team-logo.png"
                     alt="FC Mierda"
                     fill
                     className="object-contain"
-                    sizes="(max-width: 640px) 56px, (max-width: 768px) 80px, 88px"
+                    sizes="(max-width: 640px) 48px, (max-width: 768px) 64px, 80px"
                     priority
                   />
                 </div>
-                <h3 className={`text-xs sm:text-base md:text-lg font-black text-emerald-400 tracking-tight break-words font-mono ${robotoSlab.className}`}>
+                <h3 className={`text-[11px] sm:text-sm md:text-base font-black text-emerald-400 tracking-tight truncate max-w-full font-mono ${robotoSlab.className}`}>
                   FC Mierda
                 </h3>
               </div>
 
               {/* Center: Kick-Off Digital Clock & Gathering */}
-              <div className="flex flex-col items-center justify-center text-center px-1 sm:px-3">
-                <div className="text-xs sm:text-sm font-bold uppercase tracking-widest text-emerald-400 mb-0.5 sm:mb-1">
+              <div className="flex flex-col items-center justify-center text-center flex-1 min-w-0 px-0.5 sm:px-2">
+                <div className="text-[10px] sm:text-xs md:text-sm font-bold uppercase tracking-widest text-emerald-400 mb-0.5">
                   Kick-Off
                 </div>
-                <div className={`text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight font-mono drop-shadow-[0_2px_12px_rgba(255,255,255,0.2)] ${robotoSlab.className}`}>
+                <div className={`text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight font-mono drop-shadow-[0_2px_12px_rgba(255,255,255,0.2)] ${robotoSlab.className}`}>
                   {safeGame.kickoff}
                 </div>
-                <div className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-gray-900/90 border border-gray-700/70 text-[10px] sm:text-xs md:text-sm font-medium text-gray-200 shadow-md mt-2.5 sm:mt-3.5 whitespace-nowrap shrink-0 max-w-full backdrop-blur-sm">
-                  <span className="text-gray-300 whitespace-nowrap">Gathering&nbsp;at:</span>
-                  <strong className="font-mono text-emerald-300 font-bold text-[10px] sm:text-xs md:text-sm whitespace-nowrap">
+                <div className="inline-flex items-center justify-center gap-1 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-gray-900/90 border border-gray-700/70 text-[9px] sm:text-xs md:text-sm font-medium text-gray-200 shadow-md mt-1.5 sm:mt-2.5 whitespace-nowrap shrink-0 max-w-full backdrop-blur-sm">
+                  <span className="text-gray-300 whitespace-nowrap">Gathering:</span>
+                  <strong className="font-mono text-emerald-300 font-bold text-[9px] sm:text-xs md:text-sm whitespace-nowrap">
                     {gatheringTime}
                   </strong>
+                </div>
+
+                {/* Historic Match Results Against Opponent */}
+                <div className="flex flex-col items-center justify-center mt-2 sm:mt-3 pt-1.5 sm:pt-2 border-t border-gray-800/80 w-full max-w-[170px] sm:max-w-[220px]">
+                  <div className="flex items-center justify-center gap-1 mb-1 text-center">
+                    <span className="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                      ⚔️ H2H
+                    </span>
+                    {h2hSummary && (
+                      <span className="text-[9px] sm:text-[11px] font-mono font-bold text-emerald-400">
+                        ({h2hSummary})
+                      </span>
+                    )}
+                  </div>
+
+                  {last5HistoricMatches.length > 0 ? (
+                    <div className="flex items-center justify-center gap-1 sm:gap-1.5 flex-nowrap w-full">
+                      {last5HistoricMatches.map((m) => {
+                        const { outcome, gf, ga } = getMatchOutcome(m);
+                        return (
+                          <Link
+                            key={m.id}
+                            href={`/results#match-${m.id}`}
+                            title={`${m.date ? `${m.date}: ` : ""}${outcome === "W" ? "Win" : outcome === "D" ? "Draw" : "Loss"} (${gf}-${ga}) vs ${m.opponent} (Click to view recap)`}
+                            className={`group/h2h flex flex-col items-center justify-center rounded-lg sm:rounded-xl border shadow-sm ${h2hColorFor(
+                              outcome
+                            )} px-0.5 py-0.5 sm:px-1.5 sm:py-1 w-7 sm:w-9 h-7 sm:h-9 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer`}
+                          >
+                            <span className="text-[9px] sm:text-xs font-black tracking-wider leading-none">
+                              {outcome}
+                            </span>
+                            <span className="text-[7px] sm:text-[9px] font-mono font-bold tracking-tight leading-none mt-0.5 opacity-90 group-hover/h2h:opacity-100">
+                              {gf}-{ga}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-900/60 border border-gray-800/80 text-[9px] sm:text-[10px] text-gray-400">
+                      <span>First meeting</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Right Side: Opponent */}
-              <div className="flex flex-col items-center text-center flex-1 max-w-[100px] sm:max-w-[140px] shrink-0">
-                <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-22 md:h-22 mb-1.5 rounded-full bg-gradient-to-br from-gray-800 to-gray-950 border-2 border-gray-700 shadow-xl flex items-center justify-center text-xl sm:text-3xl md:text-4xl drop-shadow-md shrink-0">
+              <div className="flex flex-col items-center text-center w-[72px] sm:w-[110px] md:w-[130px] shrink-0 min-w-0">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mb-1 rounded-full bg-gradient-to-br from-gray-800 to-gray-950 border-2 border-gray-700 shadow-xl flex items-center justify-center text-lg sm:text-2xl md:text-3xl drop-shadow-md shrink-0">
                   ⚽
                 </div>
-                <h3 className={`text-xs sm:text-base md:text-lg font-black text-white tracking-tight break-words font-mono ${robotoSlab.className}`}>
+                <h3 className={`text-[11px] sm:text-sm md:text-base font-black text-white tracking-tight break-words line-clamp-2 max-w-full font-mono ${robotoSlab.className}`}>
                   {safeGame.opponent}
                 </h3>
               </div>

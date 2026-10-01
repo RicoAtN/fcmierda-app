@@ -6,6 +6,8 @@ import React from "react";
 import ClientMatchResults from "./ClientMatchResults";
 import TeamForm from "@/components/TeamForm";
 import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
+import ResultsQuickNav from "@/components/ResultsQuickNav";
+import OpponentHistory from "@/components/OpponentHistory";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -228,6 +230,9 @@ export default async function ResultsPage() {
           </p>
         </div>
 
+        {/* Top Instructions & Quick Jump Bar */}
+        <ResultsQuickNav />
+
         {isDbError && (
           <DatabaseUnavailableNotice
             title="Match Records Temporarily Offline"
@@ -237,7 +242,7 @@ export default async function ResultsPage() {
         )}
 
         {/* All match results & Interactive Detail Card */}
-        <div id="all-results" className="max-w-4xl w-full rounded-2xl p-4 sm:p-7 md:p-8 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-sm mx-auto mb-8">
+        <div id="all-results" className="max-w-4xl w-full rounded-2xl p-4 sm:p-7 md:p-8 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-sm mx-auto mb-8 scroll-mt-24 sm:scroll-mt-28">
           <div className="flex justify-center mb-6">
             <TeamForm teamId={1} />
           </div>
@@ -293,7 +298,7 @@ export default async function ResultsPage() {
         </div>
 
         {/* Competitions overview */}
-        <div id="competitions-overview" className="max-w-4xl w-full rounded-2xl p-4 sm:p-8 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-sm mx-auto mb-10">
+        <div id="competitions-overview" className="max-w-4xl w-full rounded-2xl p-4 sm:p-8 text-white bg-gray-950/85 border border-gray-800 shadow-2xl backdrop-blur-sm mx-auto mb-10 scroll-mt-24 sm:scroll-mt-28">
           <div className="mb-4 pb-3 border-b border-gray-800">
             <div className="flex items-center gap-2">
               <span className="text-xl">🏆</span>
@@ -361,6 +366,9 @@ export default async function ResultsPage() {
             </table>
           </div>
         </div>
+
+        {/* History of Match Results Per Opponent (H2H) */}
+        <OpponentHistory allResults={allResults} />
       </main>
 
       <Footer />
