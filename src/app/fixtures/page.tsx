@@ -255,7 +255,6 @@ async function getHistoricMatchesAgainstOpponent(opponentName?: string): Promise
          OR opponent ILIKE ${likeExact}
          OR opponent ILIKE ${likeBase}
       ORDER BY date DESC NULLS LAST, id DESC
-      LIMIT 5
     `;
     return rows as HistoricMatchItem[];
   } catch (err) {
@@ -285,12 +284,12 @@ function getMatchOutcome(m: HistoricMatchItem): { outcome: "W" | "D" | "L"; gf: 
   return { outcome, gf, ga };
 }
 
-const h2hColorFor = (outcome: "W" | "D" | "L") =>
-  outcome === "W"
-    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 hover:border-emerald-400 hover:bg-emerald-500/30 shadow-emerald-500/10"
-    : outcome === "D"
-    ? "bg-amber-500/20 text-amber-300 border-amber-500/50 hover:border-amber-400 hover:bg-amber-500/30 shadow-amber-500/10"
-    : "bg-rose-500/20 text-rose-300 border-rose-500/50 hover:border-rose-400 hover:bg-rose-500/30 shadow-rose-500/10";
+const colorFor = (r: "W" | "D" | "L") =>
+  r === "W"
+    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-emerald-500/10"
+    : r === "D"
+    ? "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-amber-500/10"
+    : "bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-rose-500/10";
 
 function cleanPlayerDisplayName(rawName: string, playerInfo?: PlayerMapItem | null): string {
   const base = playerInfo?.name || rawName || "";
@@ -404,9 +403,7 @@ export default async function FixturesPage() {
   ]);
   const leagueLink = competitionInfo?.league_link;
 
-  const last5HistoricMatches = historicMatches.slice(0, 5);
-
-  const h2hStats = last5HistoricMatches.reduce(
+  const overallH2hStats = historicMatches.reduce(
     (acc, m) => {
       const { outcome } = getMatchOutcome(m);
       if (outcome === "W") acc.w++;
@@ -417,11 +414,14 @@ export default async function FixturesPage() {
     { w: 0, d: 0, l: 0 }
   );
 
-  const h2hSummaryParts: string[] = [];
-  if (h2hStats.w > 0) h2hSummaryParts.push(`${h2hStats.w}W`);
-  if (h2hStats.d > 0) h2hSummaryParts.push(`${h2hStats.d}D`);
-  if (h2hStats.l > 0) h2hSummaryParts.push(`${h2hStats.l}L`);
-  const h2hSummary = h2hSummaryParts.length > 0 ? h2hSummaryParts.join(" ") : null;
+  // Overall record in numbers: wins, draws, and losses
+  const overallH2hSummary =
+    historicMatches.length > 0
+      ? `${overallH2hStats.w}W ${overallH2hStats.d}D ${overallH2hStats.l}L`
+      : null;
+
+  // Always show strictly the last max 5 games in the score tiles
+  const last5HistoricMatches = historicMatches.slice(0, 5);
 
   // Attendance processing (sorted: GK -> Defenders -> Midfielders -> Attackers)
   const attendance = nextGame.attendance || {};
@@ -480,7 +480,7 @@ export default async function FixturesPage() {
 
           {/* Unified Kick-Off Tile Container */}
           <div className="p-2.5 sm:p-6 md:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-gray-950 via-black/90 to-gray-950 border border-emerald-500/35 shadow-[0_0_35px_rgba(16,185,129,0.18)] w-full max-w-2xl mx-auto space-y-2.5 sm:space-y-4">
-            
+
             {/* 1. Top Header: Stacked Match Date */}
             <div className="flex flex-col items-center justify-center pb-2 border-b border-gray-800/80 w-full text-center">
               <span className="text-emerald-400 font-extrabold text-xs sm:text-sm tracking-wide uppercase">
@@ -493,7 +493,7 @@ export default async function FixturesPage() {
 
             {/* 2. Central Row: FC Mierda (Left) | Kick-Off Time (Center) | Opponent (Right) */}
             <div className="flex items-center justify-between gap-1 sm:gap-4 md:gap-6 py-1 sm:py-2 w-full min-w-0">
-              
+
               {/* Left Side: FC Mierda */}
               <div className="flex flex-col items-center text-center w-[72px] sm:w-[110px] md:w-[130px] shrink-0 min-w-0">
                 <div className="relative w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mb-1 drop-shadow-[0_4px_16px_rgba(16,185,129,0.35)] shrink-0">
@@ -526,44 +526,68 @@ export default async function FixturesPage() {
                   </strong>
                 </div>
 
-                {/* Historic Match Results Against Opponent */}
-                <div className="flex flex-col items-center justify-center mt-2 sm:mt-3 pt-1.5 sm:pt-2 border-t border-gray-800/80 w-full max-w-[170px] sm:max-w-[220px]">
-                  <div className="flex items-center justify-center gap-1 mb-1 text-center">
-                    <span className="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                      ⚔️ H2H
+                {/* Historic Match Results Against Opponent (Matching TeamForm.tsx design) */}
+                <div className="flex flex-col items-center justify-center mt-2 sm:mt-3 pt-1.5 sm:pt-2.5 border-t border-gray-800/80 w-full max-w-[195px] sm:max-w-[280px] md:max-w-[320px]">
+                  {/* Header Pill with Color-Coded Overall Record (Green Win, Orange Draw, Red Loss) */}
+                  <div
+                    title={`Overall record vs ${safeGame.opponent}: ${overallH2hStats.w} wins, ${overallH2hStats.d} draws, ${overallH2hStats.l} losses in ${historicMatches.length} total matches`}
+                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gray-950/95 border border-gray-800 text-[10px] sm:text-xs mb-1.5 shadow-sm"
+                  >
+                    <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px] sm:text-[10px]">
+                      ⚔️ H2H:
                     </span>
-                    {h2hSummary && (
-                      <span className="text-[9px] sm:text-[11px] font-mono font-bold text-emerald-400">
-                        ({h2hSummary})
+                    {historicMatches.length > 0 ? (
+                      <span className="inline-flex items-center gap-1.5 font-mono font-bold text-[11px] sm:text-xs">
+                        <span className="text-emerald-400 font-black">{overallH2hStats.w}W</span>
+                        <span className="text-gray-600 font-light">•</span>
+                        <span className="text-amber-400 font-black">{overallH2hStats.d}D</span>
+                        <span className="text-gray-600 font-light">•</span>
+                        <span className="text-rose-400 font-black">{overallH2hStats.l}L</span>
                       </span>
+                    ) : (
+                      <span className="font-normal text-[10px] text-gray-500 lowercase">0 matches</span>
                     )}
                   </div>
 
+                  {/* Form Tiles Row (Single horizontal row with score) */}
                   {last5HistoricMatches.length > 0 ? (
-                    <div className="flex items-center justify-center gap-1 sm:gap-1.5 flex-nowrap w-full">
-                      {last5HistoricMatches.map((m) => {
-                        const { outcome, gf, ga } = getMatchOutcome(m);
-                        return (
-                          <Link
-                            key={m.id}
-                            href={`/results#match-${m.id}`}
-                            title={`${m.date ? `${m.date}: ` : ""}${outcome === "W" ? "Win" : outcome === "D" ? "Draw" : "Loss"} (${gf}-${ga}) vs ${m.opponent} (Click to view recap)`}
-                            className={`group/h2h flex flex-col items-center justify-center rounded-lg sm:rounded-xl border shadow-sm ${h2hColorFor(
-                              outcome
-                            )} px-0.5 py-0.5 sm:px-1.5 sm:py-1 w-7 sm:w-9 h-7 sm:h-9 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer`}
-                          >
-                            <span className="text-[9px] sm:text-xs font-black tracking-wider leading-none">
-                              {outcome}
-                            </span>
-                            <span className="text-[7px] sm:text-[9px] font-mono font-bold tracking-tight leading-none mt-0.5 opacity-90 group-hover/h2h:opacity-100">
-                              {gf}-{ga}
-                            </span>
-                          </Link>
-                        );
-                      })}
+                    <div className="w-full flex flex-col items-center">
+                      <div className="flex items-center justify-center gap-1.5 sm:gap-2 my-0.5 flex-nowrap w-full">
+                        {last5HistoricMatches.map((m, i) => {
+                          const { outcome, gf, ga } = getMatchOutcome(m);
+                          const isLatest = i === 0;
+                          return (
+                            <Link
+                              key={m.id}
+                              href={`/results#match-${m.id}`}
+                              title={`${isLatest ? "Most Recent - " : ""}${m.date ? `${m.date}: ` : ""}${outcome === "W" ? "Win" : outcome === "D" ? "Draw" : "Loss"} (${gf}-${ga}) vs ${m.opponent} (Click to view recap)`}
+                              className={`group/h2h flex flex-col items-center justify-center rounded-xl border shadow-sm ${colorFor(
+                                outcome
+                              )} font-extrabold transition-all duration-200 hover:scale-105 active:scale-95 ${
+                                isLatest ? "ring-2 ring-emerald-400/60" : ""
+                              } w-[33px] sm:w-10 md:w-11 h-[36px] sm:h-11 md:h-12 shrink-0 cursor-pointer`}
+                            >
+                              <span className="text-xs sm:text-sm md:text-base leading-none">
+                                {outcome}
+                              </span>
+                              <span className="text-[7.5px] sm:text-[9.5px] md:text-[10px] font-mono font-bold tracking-tight leading-none mt-1 opacity-90 group-hover/h2h:opacity-100">
+                                {gf}-{ga}
+                              </span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+
+                      {/* Direction Legend (Identical to TeamForm) */}
+                      {last5HistoricMatches.length > 1 && (
+                        <div className="flex justify-between w-full px-1 text-[9px] sm:text-[10px] text-gray-400 font-semibold mt-1">
+                          <span>← Most Recent</span>
+                          <span>Older →</span>
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-900/60 border border-gray-800/80 text-[9px] sm:text-[10px] text-gray-400">
+                    <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-900/60 border border-gray-800 text-[10px] text-gray-400">
                       <span>First meeting</span>
                     </div>
                   )}
