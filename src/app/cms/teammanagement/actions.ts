@@ -68,8 +68,6 @@ export async function updatePlayerAction(playerId: number | string, data: any) {
   // Purge cached pages so changes reflect immediately
   revalidatePath("/cms/teammanagement");
   revalidatePath("/team");
-  revalidatePath("/statistics");
-  revalidatePath("/fixtures");
   return { success: true };
 }
 
@@ -124,8 +122,6 @@ export async function addPlayerAction(data: any) {
     // Purge the cached data so the page displays the latest values immediately
     revalidatePath("/cms/teammanagement");
     revalidatePath("/team");
-    revalidatePath("/statistics");
-    revalidatePath("/fixtures");
     return { success: true };
   } catch (error: any) {
     if (error.code === '23505' || (error.message && error.message.includes("unique"))) {

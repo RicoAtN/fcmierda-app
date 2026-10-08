@@ -326,7 +326,6 @@ export async function POST(req: NextRequest) {
       const { revalidatePath } = await import("next/cache");
       revalidatePath("/results");
       revalidatePath("/fixtures");
-      revalidatePath("/statistics");
     } catch {
       // ignore
     }

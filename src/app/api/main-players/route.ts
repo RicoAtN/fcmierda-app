@@ -131,7 +131,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 3. Lightweight squad list for frontend: only names, photos, numbers, roles, and call signs
+    // 3. Full squad list for frontend: includes photos, stats, numbers, roles, call signs, and biographies in one query
     const rows = await sql`
       SELECT
         ps.player_id::text AS player_id,
@@ -146,6 +146,16 @@ export async function GET(req: NextRequest) {
           WHEN LEFT(ps.photo_link, 1) = '/' THEN ps.photo_link
           ELSE '/' || ps.photo_link
         END AS photo,
+        ps.match_played,
+        ps.goals,
+        ps.assists,
+        ps.clean_sheets,
+        ps.goals_involvement,
+        ps.average_goals_per_match,
+        ps.average_goals_conceded_per_match,
+        ps.fcmierda_man_of_the_match_awards,
+        ps.biography_main,
+        ps.biography_detail,
         ps.main_player
       FROM player_statistics ps
       WHERE ps.main_player IS TRUE
@@ -157,7 +167,7 @@ export async function GET(req: NextRequest) {
     `;
 
     return NextResponse.json(
-      { data: rows as MainPlayerSummary[] },
+      { data: rows as MainPlayerDetail[] },
       {
         status: 200,
         headers: {

@@ -18,8 +18,6 @@ export const metadata: Metadata = {
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "800"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-export const revalidate = 30;
-
 // Helper to format date with Weekday and structured components (timezone-safe)
 function formatMatchDate(dateStr: string) {
   if (!dateStr || dateStr === "-") {

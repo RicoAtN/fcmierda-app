@@ -107,8 +107,6 @@ export async function POST(req: Request) {
     try {
       const { revalidatePath } = await import("next/cache");
       revalidatePath("/fixtures");
-      revalidatePath("/");
-      revalidatePath("/results");
     } catch {
       // ignore
     }

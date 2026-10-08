@@ -77,10 +77,6 @@ export async function POST(req: NextRequest) {
     try {
       const { revalidatePath } = await import("next/cache");
       revalidatePath("/results");
-      revalidatePath("/fixtures");
-      revalidatePath("/");
-      revalidatePath("/statistics");
-      revalidatePath("/team");
     } catch {
       // ignore
     }
@@ -137,10 +133,6 @@ export async function PUT(req: NextRequest) {
     try {
       const { revalidatePath } = await import("next/cache");
       revalidatePath("/results");
-      revalidatePath("/fixtures");
-      revalidatePath("/");
-      revalidatePath("/statistics");
-      revalidatePath("/team");
     } catch {
       // ignore
     }

@@ -375,5 +375,3 @@ export default async function ResultsPage() {
     </div>
   );
 }
-
-export const revalidate = 30;

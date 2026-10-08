@@ -225,7 +225,9 @@ export default function NextGameDetailsPage() {
         setStatus("Saved! The fixtures page now shows your update.");
       }
 
-      setTimeout(() => router.push("/fixtures#next-game"), 1400);
+      setTimeout(() => {
+        window.location.href = "/fixtures#next-game";
+      }, 1400);
     } catch (err: unknown) {
       console.error(err);
       const message = err instanceof Error ? err.message : "Failed to save. Try again.";

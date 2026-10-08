@@ -347,7 +347,9 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
 
       const isSubscribed = await checkIsSubscribed();
       if (isSubscribed) {
-        setTimeout(() => router.push("/fixtures#next-game"), 400);
+        setTimeout(() => {
+          window.location.href = "/fixtures#next-game";
+        }, 400);
       } else {
         // Show push notification call-to-action modal
         setShowPushModal(true);
@@ -523,7 +525,7 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
         isOpen={showPushModal}
         onClose={() => {
           setShowPushModal(false);
-          router.push("/fixtures#next-game");
+          window.location.href = "/fixtures#next-game";
         }}
       />
     </form>

@@ -11,8 +11,7 @@ import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "800", "900"] });
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// Enable ISR Edge Caching (60 seconds) to reduce Vercel compute usage and eliminate continuous re-rendering
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 type AdminUser = {
   id: number;

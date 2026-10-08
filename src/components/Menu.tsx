@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -16,6 +17,13 @@ const NAV_LINKS = [
 export default function Menu() {
   const { isMuted, isPlaying, toggleMute } = useAudio();
   const pathname = usePathname();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const showMuted = !isMounted || isMuted;
 
   return (
     <nav className="absolute top-0 left-0 w-full flex items-center justify-between py-3 sm:py-4 md:py-6 z-30 px-2.5 sm:px-4 md:px-8 max-w-7xl mx-auto right-0">
@@ -44,10 +52,10 @@ export default function Menu() {
         <button
           onClick={toggleMute}
           className="text-white hover:text-emerald-400 transition-all duration-200 focus:outline-none flex items-center justify-center p-1 sm:p-1.5 hover:scale-110 active:scale-95"
-          aria-label={isMuted ? "Unmute background music" : "Mute background music"}
-          title={isMuted ? "Unmute music" : "Mute music"}
+          aria-label={showMuted ? "Unmute background music" : "Mute background music"}
+          title={showMuted ? "Unmute music" : "Mute music"}
         >
-          {isMuted ? (
+          {showMuted ? (
             <span className="text-lg sm:text-xl md:text-2xl leading-none select-none">🔇</span>
           ) : (
             <SoundWaveIcon isAnimated={isPlaying} className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
