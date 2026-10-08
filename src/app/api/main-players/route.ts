@@ -48,10 +48,11 @@ export async function GET(req: NextRequest) {
           ps.player_position AS role,
           CASE
             WHEN ps.photo_link IS NULL OR TRIM(ps.photo_link) = '' THEN NULL
-            WHEN ps.photo_link ~ '^[a-z]+://' THEN ps.photo_link
-            WHEN LEFT(ps.photo_link, 5) = 'data:' THEN ps.photo_link
-            WHEN LEFT(ps.photo_link, 1) = '/' THEN ps.photo_link
-            ELSE '/' || ps.photo_link
+            WHEN LEFT(ps.photo_link, 5) = 'data:' THEN '/api/player-photo?id=' || ps.player_id::text
+            WHEN ps.photo_link ~ '^[a-z]+://' AND LENGTH(ps.photo_link) < 1024 THEN ps.photo_link
+            WHEN LEFT(ps.photo_link, 1) = '/' AND LENGTH(ps.photo_link) < 1024 THEN ps.photo_link
+            WHEN LENGTH(ps.photo_link) < 1024 THEN '/' || ps.photo_link
+            ELSE '/api/player-photo?id=' || ps.player_id::text
           END AS photo,
           ps.match_played,
           ps.goals,
@@ -95,10 +96,11 @@ export async function GET(req: NextRequest) {
           ps.player_position AS role,
           CASE
             WHEN ps.photo_link IS NULL OR TRIM(ps.photo_link) = '' THEN NULL
-            WHEN ps.photo_link ~ '^[a-z]+://' THEN ps.photo_link
-            WHEN LEFT(ps.photo_link, 5) = 'data:' THEN ps.photo_link
-            WHEN LEFT(ps.photo_link, 1) = '/' THEN ps.photo_link
-            ELSE '/' || ps.photo_link
+            WHEN LEFT(ps.photo_link, 5) = 'data:' THEN '/api/player-photo?id=' || ps.player_id::text
+            WHEN ps.photo_link ~ '^[a-z]+://' AND LENGTH(ps.photo_link) < 1024 THEN ps.photo_link
+            WHEN LEFT(ps.photo_link, 1) = '/' AND LENGTH(ps.photo_link) < 1024 THEN ps.photo_link
+            WHEN LENGTH(ps.photo_link) < 1024 THEN '/' || ps.photo_link
+            ELSE '/api/player-photo?id=' || ps.player_id::text
           END AS photo,
           ps.match_played,
           ps.goals,
@@ -141,10 +143,11 @@ export async function GET(req: NextRequest) {
         ps.player_position AS role,
         CASE
           WHEN ps.photo_link IS NULL OR TRIM(ps.photo_link) = '' THEN NULL
-          WHEN ps.photo_link ~ '^[a-z]+://' THEN ps.photo_link
-          WHEN LEFT(ps.photo_link, 5) = 'data:' THEN ps.photo_link
-          WHEN LEFT(ps.photo_link, 1) = '/' THEN ps.photo_link
-          ELSE '/' || ps.photo_link
+          WHEN LEFT(ps.photo_link, 5) = 'data:' THEN '/api/player-photo?id=' || ps.player_id::text
+          WHEN ps.photo_link ~ '^[a-z]+://' AND LENGTH(ps.photo_link) < 1024 THEN ps.photo_link
+          WHEN LEFT(ps.photo_link, 1) = '/' AND LENGTH(ps.photo_link) < 1024 THEN ps.photo_link
+          WHEN LENGTH(ps.photo_link) < 1024 THEN '/' || ps.photo_link
+          ELSE '/api/player-photo?id=' || ps.player_id::text
         END AS photo,
         ps.match_played,
         ps.goals,

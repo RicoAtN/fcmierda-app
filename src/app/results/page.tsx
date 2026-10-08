@@ -156,17 +156,11 @@ async function getPlayerMap(initialMotmName?: string): Promise<Record<string, Pl
         ps.player_number::text AS number,
         CASE
           WHEN ps.photo_link IS NULL OR TRIM(ps.photo_link) = '' THEN NULL
-          WHEN ${motmTarget} != '' AND (LOWER(TRIM(ps.player_name)) = LOWER(${motmTarget}) OR ps.player_name ILIKE ${motmLike}) THEN
-            CASE
-              WHEN ps.photo_link ~ '^[a-z]+://' THEN ps.photo_link
-              WHEN LEFT(ps.photo_link, 5) = 'data:' THEN ps.photo_link
-              WHEN LEFT(ps.photo_link, 1) = '/' THEN ps.photo_link
-              ELSE '/' || ps.photo_link
-            END
-          WHEN ps.photo_link ~ '^https?://' AND LENGTH(ps.photo_link) < 1024 THEN ps.photo_link
+          WHEN LEFT(ps.photo_link, 5) = 'data:' THEN '/api/player-photo?id=' || ps.player_id::text
+          WHEN ps.photo_link ~ '^[a-z]+://' AND LENGTH(ps.photo_link) < 1024 THEN ps.photo_link
           WHEN LEFT(ps.photo_link, 1) = '/' AND LENGTH(ps.photo_link) < 1024 THEN ps.photo_link
           WHEN LENGTH(ps.photo_link) < 1024 THEN '/' || ps.photo_link
-          ELSE NULL
+          ELSE '/api/player-photo?id=' || ps.player_id::text
         END AS photo
       FROM player_statistics ps
       WHERE ps.player_name IS NOT NULL
