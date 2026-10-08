@@ -3,79 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Fallback VAPID public key
-const FALLBACK_VAPID_KEY =
-  "BFX4DWhXbZcIGVG_AzLcljZcTGydrXgIGBpSNRDjoNFIH5rKdHsbDkYrxXQshLD_y6sKwBh1d5N6m1z4LiG_Wk0";
-
-// Utility to convert VAPID public key from base64 to Uint8Array
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
-// Helper to detect device platform accurately
-function detectDeviceType(): "android" | "ios" | "desktop" {
-  if (typeof window === "undefined") return "desktop";
-  const ua = (window.navigator.userAgent || "").toLowerCase();
-  const platform = (window.navigator.platform || "").toLowerCase();
-  const maxTouchPoints = window.navigator.maxTouchPoints || 0;
-  const uaDataPlatform = (((window.navigator as any).userAgentData?.platform || "") as string).toLowerCase();
-
-  // 1. Check iOS / iPadOS
-  if (/iphone|ipad|ipod/.test(ua) || (platform.includes("macintel") && maxTouchPoints > 1)) {
-    return "ios";
-  }
-
-  // 2. Check Android (Chrome, Firefox, Samsung Internet, Edge, etc.)
-  if (/android/.test(ua) || /android/.test(uaDataPlatform)) {
-    return "android";
-  }
-
-  // 3. Desktop
-  return "desktop";
-}
-
-// Background sync function to update existing subscribers' device type in DB
-async function syncExistingSubscription(): Promise<boolean> {
-  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return false;
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    const sub = await registration.pushManager.getSubscription();
-    if (sub) {
-      const rawSub = sub.toJSON();
-      const deviceType = detectDeviceType();
-      const ua = window.navigator.userAgent || "";
-
-      await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          endpoint: sub.endpoint,
-          keys: {
-            p256dh: rawSub.keys?.p256dh,
-            auth: rawSub.keys?.auth,
-          },
-          deviceType,
-          userAgent: ua,
-        }),
-      });
-
-      localStorage.setItem("fcmierda_push_v2_subscribed", "true");
-      return true;
-    }
-  } catch (err) {
-    // Non-critical background sync error
-  }
-  return false;
-}
+import { syncPushSubscription } from "@/lib/push-sync";
 
 export default function PushNotificationModal() {
   const [showModal, setShowModal] = useState(false);
@@ -115,8 +43,8 @@ export default function PushNotificationModal() {
       navigator.serviceWorker
         .register("/sw.js")
         .then(async () => {
-          const synced = await syncExistingSubscription();
-          if (synced && !forcePrompt) {
+          const synced = await syncPushSubscription();
+          if (synced.isSubscribed && !forcePrompt) {
             setShowModal(false);
           }
         })
@@ -181,74 +109,12 @@ export default function PushNotificationModal() {
         return;
       }
 
-      // Request browser permission
-      const permission = await Notification.requestPermission();
-      if (permission === "granted") {
-        if ("serviceWorker" in navigator) {
-          const registration = await navigator.serviceWorker.ready;
-
-          // Retrieve VAPID public key with multi-layer fallback
-          let vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-          if (!vapidPublicKey) {
-            try {
-              const res = await fetch("/api/push/vapid-key");
-              const json = await res.json();
-              vapidPublicKey = json.publicKey;
-            } catch (keyErr) {
-              console.warn("Using fallback VAPID key:", keyErr);
-              vapidPublicKey = FALLBACK_VAPID_KEY;
-            }
-          }
-
-          if (!vapidPublicKey) {
-            vapidPublicKey = FALLBACK_VAPID_KEY;
-          }
-
-          const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
-
-          let subscription = await registration.pushManager.getSubscription();
-          let oldEndpoint: string | undefined;
-
-          // If no subscription exists, create one
-          if (!subscription) {
-            subscription = await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: convertedKey,
-            });
-          }
-
-          const rawSub = subscription.toJSON();
-          const deviceType = detectDeviceType();
-          const ua = window.navigator.userAgent || "";
-
-          // Save subscription in database
-          await fetch("/api/push/subscribe", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              endpoint: subscription.endpoint,
-              keys: {
-                p256dh: rawSub.keys?.p256dh,
-                auth: rawSub.keys?.auth,
-              },
-              deviceType,
-              userAgent: ua,
-              oldEndpoint,
-            }),
-          });
-        }
-
-        localStorage.setItem("fcmierda_push_v2_subscribed", "true");
-        localStorage.removeItem("fcmierda_push_subscribed");
-        localStorage.removeItem("fcmierda_push_dismissed_at");
+      const res = await syncPushSubscription({ forceReSubscribe: true });
+      if (res.success && res.isSubscribed) {
         setShowModal(false);
-
-        // Redirect visitor to the fixtures page
         router.push("/fixtures");
-      } else {
-        // User chose to deny/block in browser prompt
-        localStorage.setItem("fcmierda_push_dismissed_at", Date.now().toString());
-        setShowModal(false);
+      } else if (res.error) {
+        alert(res.error);
       }
     } catch (error) {
       console.error("Failed to subscribe to push notifications:", error);

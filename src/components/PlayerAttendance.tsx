@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Roboto_Slab } from "next/font/google";
 import AvailabilityPushModal from "@/components/AvailabilityPushModal";
 import DatabaseUnavailableNotice from "@/components/DatabaseUnavailableNotice";
+import { syncPushSubscription, getActualPushSubscription } from "@/lib/push-sync";
 
 const robotoSlab = Roboto_Slab({ subsets: ["latin"], weight: ["700", "800"] });
 
@@ -57,26 +58,20 @@ export default function PlayerAttendance({ onGameDataLoaded }: PlayerAttendanceP
 
     // 1. Browser Notification permission granted
     if ("Notification" in window && Notification.permission === "granted") {
+      syncPushSubscription().catch(() => {});
       return true;
     }
 
-    // 2. Local storage v2 subscription flag
+    // 2. Active service worker push subscription
+    const sub = await getActualPushSubscription();
+    if (sub) {
+      syncPushSubscription().catch(() => {});
+      return true;
+    }
+
+    // 3. Local storage v2 subscription flag fallback
     if (localStorage.getItem("fcmierda_push_v2_subscribed") === "true") {
       return true;
-    }
-
-    // 3. Active service worker push subscription (use getRegistration to avoid hanging ready promise)
-    if ("serviceWorker" in navigator) {
-      try {
-        const reg = await navigator.serviceWorker.getRegistration();
-        const sub = await reg?.pushManager?.getSubscription();
-        if (sub) {
-          localStorage.setItem("fcmierda_push_v2_subscribed", "true");
-          return true;
-        }
-      } catch {
-        // ignore
-      }
     }
 
     return false;

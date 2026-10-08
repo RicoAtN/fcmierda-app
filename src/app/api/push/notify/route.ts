@@ -177,7 +177,11 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        await webpush.sendNotification(pushSubscription, notificationPayload);
+        await webpush.sendNotification(pushSubscription, notificationPayload, {
+          TTL: 86400, // 24h retention
+          urgency: "high", // Deliver immediately to Android Doze mode
+          topic: "fcmierda-match",
+        });
         sentCount++;
       } catch (error: any) {
         console.error(`Error sending push notification to endpoint ${sub.endpoint}:`, error?.statusCode || error);

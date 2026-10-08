@@ -101,9 +101,49 @@ self.addEventListener('push', function (event) {
   };
 
   event.waitUntil(
-    self.registration.showNotification(title, options).catch(function (err) {
-      console.error('showNotification failed:', err);
-    })
+    self.registration
+      .showNotification(title, options)
+      .catch(function (err) {
+        console.warn('showNotification rich options failed, trying fallback:', err);
+        // Fallback for strict Android / Samsung Internet devices
+        return self.registration.showNotification(title, {
+          body: options.body,
+          icon: '/FCMierda-team-logo.png',
+          data: options.data,
+        });
+      })
+      .catch(function (finalErr) {
+        console.error('All notification attempts failed:', finalErr);
+      })
+  );
+});
+
+// Auto-heal rotated or expired push tokens in background
+self.addEventListener('pushsubscriptionchange', function (event) {
+  event.waitUntil(
+    self.registration.pushManager
+      .subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: 'BFX4DWhXbZcIGVG_AzLcljZcTGydrXgIGBpSNRDjoNFIH5rKdHsbDkYrxXQshLD_y6sKwBh1d5N6m1z4LiG_Wk0',
+      })
+      .then(function (newSubscription) {
+        const rawSub = newSubscription.toJSON();
+        return fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: newSubscription.endpoint,
+            keys: {
+              p256dh: rawSub.keys ? rawSub.keys.p256dh : null,
+              auth: rawSub.keys ? rawSub.keys.auth : null,
+            },
+            oldEndpoint: event.oldSubscription ? event.oldSubscription.endpoint : undefined,
+          }),
+        });
+      })
+      .catch(function (err) {
+        console.error('pushsubscriptionchange renewal failed:', err);
+      })
   );
 });
 
